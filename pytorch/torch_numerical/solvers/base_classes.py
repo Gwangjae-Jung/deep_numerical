@@ -732,7 +732,7 @@ class FastSM_Boltzmann(SpectralMethodBase):
         return torch.squeeze(self._fsm_phase_1, dim=tuple(range(1+self._dimension)))
     @property
     def fsm_phase_2(self) -> Optional[torch.Tensor]:
-        return torch.squeeze(self._fsm_phase_1, dim=tuple(range(1+self._dimension)))
+        return torch.squeeze(self._fsm_phase_2, dim=tuple(range(1+self._dimension)))
     @property
     def kernel_diag(self) -> Optional[torch.Tensor]:
         return torch.squeeze(self._kernel_diag, dim=tuple(range(1+self._dimension)))
