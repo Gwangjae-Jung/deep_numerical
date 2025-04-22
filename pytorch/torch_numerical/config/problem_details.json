@@ -1,0 +1,30 @@
+{
+    "bkw": {
+        "description": "Testing with the BKW solution, which is an analytic solution of the homogeneous Boltzmann equation for the Maxwellian gas.",
+        "allowed_vhs_alpha": 0.0
+    },
+    "maxwellian": {
+        "description": "Testing with a Maxwellian solution, which is already in an equilibrium state.",
+        "initial_condition": {
+            "density":      1.0,
+            "velocity":     [0.0, 0.0, 0.0],
+            "temperature":  1.0
+        }
+    },
+    "multimodal": {
+        "description": "Testing with a nultimodal solution, which is composed of multiple maxwellian distributions.",
+        "num_modes": 2,
+        "mode1": {
+            "density":      1.0,
+            "velocity":     [0.5, 0.0, 0.0],
+            "temperature":  1.0,
+            "weight":       0.5
+        },
+        "mode2": {
+            "density":      1.0,
+            "velocity":     [0.0, -0.5, 0.0],
+            "temperature":  1.0,
+            "weight":       0.5
+        }
+    }
+}
