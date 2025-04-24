@@ -1,5 +1,8 @@
+from    typing      import  Callable, Any
+
 import  torch
 from    typing      import  *
+from    torch.func  import  vmap, jacrev
 
 
 ##################################################
@@ -120,6 +123,22 @@ def compute_grad(
         return_value = torch.zeros_like(inputs)
     
     return return_value
+
+
+def batched_jacobian_vmap(
+        func:   Callable[[torch.Tensor, Any], torch.Tensor],
+        points: torch.Tensor,
+        kwargs: dict[str, Any] = {},
+    ) -> torch.Tensor:
+    """Computes the Jacobian of a differentiable function using `vmap`.
+    
+    -----
+    ### Arguments
+    * `func`: A function that takes a `k`-dimensional tensor and returns a `d`-dimensional tensor. It should be defined so that the first argument allows only 1-dimensional `torch.Tensor` objects.
+    * `points`: A tensor of shape (B, d) where B is the batch size and d is the number of dimensions.
+    * `kwargs`: Optional additional arguments to pass to the function.
+    """
+    return vmap(jacrev(func))(points, **kwargs) # Returns (B, d, k)
 
 
 ##################################################

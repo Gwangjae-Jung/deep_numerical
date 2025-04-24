@@ -12,7 +12,7 @@ from    typing_extensions   import  Self, override
 import  torch
 from    torch.special       import  bessel_j0   as  j0
 
-from    .base_classes       import  FastSM_Boltzmann
+from    .base_classes       import  FastSM_Boltzmann, FastSM_Boltzmann_MultiRes
 from    ..                  import  utils
 from    ._kernel_modes.boltzmann_VHS    import  Boltzmann_VHS_kernel_modes
 
@@ -26,7 +26,7 @@ __all__ = [
     
 ##################################################
 ##################################################
-class FastSM_Boltzmann_VHS(FastSM_Boltzmann):
+class FastSM_Boltzmann_VHS(FastSM_Boltzmann_MultiRes):
     r"""## The class for the fast spectral method for solving the homogeneous Boltzmann equation with the VHS model.
     
     -----

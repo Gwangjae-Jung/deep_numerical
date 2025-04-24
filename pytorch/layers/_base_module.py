@@ -42,11 +42,12 @@ class BaseModule(torch.nn.Module):
             msg.append('')
         
         msg.append(_line)
-        msg.append(f"[ Parameters ]\n")
-        for name, p in self.named_parameters(recurse=False):
+        msg.append(f"[ Parameters ]")
+        named_params = self.named_parameters(recurse=False)
+        for name, p in named_params:
             msg.append(f"( {name} )")
-            msg.append(f"* Shape:       {list(p.shape)}")
-            msg.append(f"* Data type:   {p.dtype}")
+            msg.append(f"- Shape:       {list(p.shape)}")
+            msg.append(f"- Data type:   {p.dtype}")
         
         msg.append(_line)
         msg.append(f"Number of parameters: {self.count_parameters()}")

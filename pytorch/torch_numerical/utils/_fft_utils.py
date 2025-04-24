@@ -13,6 +13,7 @@ __all__: list[str] = [
     'freq_pair_tensor',
     'freq_index_tensor',
     'freq_index_pair_tensor',
+    'freq_slices_low',
     
     # FFT operations
     'convolve_signals',
@@ -146,6 +147,15 @@ def freq_index_pair_tensor(
         return torch.stack((arr, _zeros), dim=-1)
     else:
         return torch.stack(torch.meshgrid(arr, arr, indexing='ij'), dim=-1)
+
+
+def freq_slices_low(n_modes: Sequence[int]) -> tuple[tuple[slice]]:
+    kernel_slices: list[tuple[slice]] = []
+    for n in n_modes:
+        n_front = (n+1)//2
+        n_rear  = n//2
+        kernel_slices.append(tuple( (slice(None, n_front), slice(-n_rear, None)) ))
+    return tuple(kernel_slices)
 
 
 ##################################################
