@@ -9,6 +9,7 @@ from    torch.func  import  vmap, jacrev
 ##################################################
 __all__ = [
     "compute_grad",
+    "compute_jacobian",
     "differential",
     "laplacian",
     "hessian",
@@ -125,7 +126,7 @@ def compute_grad(
     return return_value
 
 
-def batched_jacobian_vmap(
+def compute_jacobian(
         func:   Callable[[torch.Tensor, Any], torch.Tensor],
         points: torch.Tensor,
         kwargs: dict[str, Any] = {},
@@ -134,8 +135,8 @@ def batched_jacobian_vmap(
     
     -----
     ### Arguments
-    * `func`: A function that takes a `k`-dimensional tensor and returns a `d`-dimensional tensor. It should be defined so that the first argument allows only 1-dimensional `torch.Tensor` objects.
-    * `points`: A tensor of shape (B, d) where B is the batch size and d is the number of dimensions.
+    * `func`: A function that takes a `k`-dimensional tensor and returns a `d`-dimensional tensor. Specifically, `func` should be defined as a funciton which maps a tensor of shape `(k,)` to a tensor of shape `(d,)`. `torch.func.vmap` will be used to vectorize the function.
+    * `points`: A tensor of shape `(B, d)`.
     * `kwargs`: Optional additional arguments to pass to the function.
     """
     return vmap(jacrev(func))(points, **kwargs) # Returns (B, d, k)
