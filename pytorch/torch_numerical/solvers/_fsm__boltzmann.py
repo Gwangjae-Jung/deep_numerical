@@ -12,7 +12,7 @@ from    typing_extensions   import  Self, override
 import  torch
 from    torch.special       import  bessel_j0   as  j0
 
-from    .base_classes       import  FastSM_Boltzmann, FastSM_Boltzmann_MultiRes
+from    .base_classes       import  FastSM_Boltzmann
 from    ..                  import  utils
 from    ._kernel_modes.boltzmann_VHS    import  Boltzmann_VHS_kernel_modes
 
@@ -26,7 +26,7 @@ __all__ = [
     
 ##################################################
 ##################################################
-class FastSM_Boltzmann_VHS(FastSM_Boltzmann_MultiRes):
+class FastSM_Boltzmann_VHS(FastSM_Boltzmann):
     r"""## The class for the fast spectral method for solving the homogeneous Boltzmann equation with the VHS model.
     
     -----
@@ -64,6 +64,7 @@ class FastSM_Boltzmann_VHS(FastSM_Boltzmann_MultiRes):
             v_max       = v_max,
             x_num_grid  = x_num_grid,
             x_max       = x_max,
+            restitution = restitution,
             quad_order_uniform  = quad_order_uniform,
             quad_order_legendre = quad_order_legendre,
             quad_order_lebedev  = quad_order_lebedev,
@@ -153,14 +154,14 @@ class FastSM_Boltzmann_VHS(FastSM_Boltzmann_MultiRes):
         
         # Part 1: Compute the scaling part (`fsm_scale`)
         _fsm_scale_coeff    = (2*torch.pi) * self.vhs_coeff
-        _fsm_scale_power    = torch.pow(r_roots, self.vhs_alpha+self._dimension-1)
-        _fsm_scale_fcn      = j0(
-                                    (0.5 * self.v_ratio) * \
-                                    r_roots * \
-                                    torch.sqrt((freqs**2).sum(-3, keepdim=True))
-                                )
-        fsm_scale = _fsm_scale_coeff * _fsm_scale_power * _fsm_scale_fcn
-        fsm_scale = fsm_scale * r_weights
+        _fsm_scale_fcn      = \
+            torch.pow(r_roots, self.vhs_alpha+self._dimension-1) * \
+            j0(
+                (0.5 * self.v_ratio) * \
+                r_roots * \
+                torch.sqrt((freqs**2).sum(-3, keepdim=True))
+            )
+        fsm_scale = _fsm_scale_coeff * _fsm_scale_fcn * r_weights
         
         # Part 2: Compute the multiplicative part (`fsm_phase`)
         _fsm_arg = \
@@ -218,13 +219,14 @@ class FastSM_Boltzmann_VHS(FastSM_Boltzmann_MultiRes):
         
         # Part 1: Compute the scaling part (`fsm_scale`)
         _fsm_scale_coeff    = (4*torch.pi) * self.vhs_coeff
-        _fsm_scale_power    = torch.pow(r_roots, self.vhs_alpha+self._dimension-1)
-        _fsm_scale_fcn      = utils.sinc(
-                                    (0.5 * self.v_ratio) * \
-                                    r_roots * \
-                                    torch.norm(freqs, p=2, dim=-3, keepdim=True)
-                                )
-        fsm_scale = _fsm_scale_coeff * _fsm_scale_power * _fsm_scale_fcn * r_weights
+        _fsm_scale_fcn      = \
+            torch.pow(r_roots, self.vhs_alpha+self._dimension-1) * \
+            utils.sinc(
+                (0.5 * self.v_ratio) * \
+                r_roots * \
+                torch.norm(freqs, p=2, dim=-3, keepdim=True)
+            )
+        fsm_scale = _fsm_scale_coeff * _fsm_scale_fcn * r_weights
         
         # Part 2: Compute the multiplicative part (`fsm_phase`)
         ## NOTE: Some weights in the Lebedev rule might be negative.
@@ -240,6 +242,13 @@ class FastSM_Boltzmann_VHS(FastSM_Boltzmann_MultiRes):
         # Reshape and return the result
         return (fsm_scale, fsm_phase_1, fsm_phase_2)
 
+    
+    def reset_VHS_parameters(self, new_vhs_coeff: float, new_vhs_alpha: float) -> None:
+        """Set a new value for the exponent of the VHS model."""
+        self._vhs_coeff = new_vhs_coeff
+        self._vhs_alpha = new_vhs_alpha
+        self.precompute()
+        return
     
 ##################################################
 ##################################################

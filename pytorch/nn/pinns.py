@@ -89,6 +89,7 @@ class SeparableNet(BaseModule):
     def __compute_networks(self, coordinates: list[torch.Tensor]) -> None:
         # NOTE: Each tensor in `inputs` is a 1D tensor
         # Turn on gradients
+        coordinates = [_coord.reshape(-1, 1) for _coord in coordinates]
         for _coord in coordinates:
             _coord.requires_grad_(True)
             
@@ -99,6 +100,11 @@ class SeparableNet(BaseModule):
         grads   = [
             vmap(jacrev(func))(x) for func, x in zip(self.functions, coordinates)
         ]
+        
+        for cnt, (x, o) in enumerate(zip(coordinates, outputs)):
+            y = self.networks[cnt].forward(x)
+            assert (o-y).norm()<1e-8, \
+                f"{o.shape=}, {x.shape=}, {y.shape=}, {(o-y).norm().item():.4e}"
         
         # Reshape outputs and gradients
         inputs  = [
@@ -139,7 +145,7 @@ class SeparableNet(BaseModule):
         out = self.__network_outputs[0]
         for i in range(1, self.__n_variables):
             out = out * self.__network_outputs[i]
-        return out.sum(dim=-1)
+        return out.sum(dim=-1, keepdim=False)
     
     
     def operator(self) -> torch.Tensor:
