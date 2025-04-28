@@ -144,6 +144,10 @@ class SpectralMethodBase():
             `tuple(range(1+self.dimension, 1+2*self.dimension))`.
         """
         return tuple(range(1+self._dimension, 1+2*self._dimension))
+    @property
+    def v_shape(self) -> tuple[int]:
+        """The shape of the velocity space."""
+        return utils.repeat(self._v_num_grid, self._dimension)
     
     
     # Properties - Velocity space (Supplementary)
@@ -177,6 +181,10 @@ class SpectralMethodBase():
             `tuple(range(1, 1+self.dimension))`.
         """
         return tuple(range(1, 1+self._dimension))
+    @property
+    def x_shape(self) -> tuple[int]:
+        """The shape of the spatial space."""
+        return utils.repeat(self._x_num_grid, self._dimension)
     
     
     # Properties - `torch`
