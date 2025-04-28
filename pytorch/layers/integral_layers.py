@@ -22,7 +22,7 @@ class IntegralLinearV1(BaseModule):
     
     -----
     ### Description
-    Usual linear layer can be regarded as numerical kernel integration at a fixed grid.
+    Usual linear layer can be regarded as a numerical kernel integration on a fixed grid.
     This module sets trainable parameters as the modes of the kernel function, whence numerical kernel integration can be conducted on any discretization.
     """
     def __init__(
