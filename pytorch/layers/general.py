@@ -6,13 +6,14 @@ from    math        import  prod
 import  torch
 from    torch       import  nn
 
+from    ._base_module   import  BaseModule
 from    ..utils     import  Objects, EINSUM_STRING, get_activation
 
 
 ##################################################
 ##################################################
 __all__ = [
-    "MLP",
+    "MLP", "HyperMLP",
     "PatchEmbedding",
     "LinearSelfAttention",
     "LinearCrossAttention",
@@ -39,23 +40,20 @@ class MLP(nn.Module):
         
         -----
         ### Arguments
-        @ `channels` (`Sequence[int]`)
+        * `channels` (`Sequence[int]`)
             * The number of the channels in each layer, from the input layer to the output layer.
-        
-        @ `bias` (`bool`, default: `True`)
+        * `bias` (`bool`, default: `True`)
             * The `bias` argument of `torch.nn.Linear`.
-        
-        @ `activation_name` (`str`, default: "tanh") and `activation_kwargs` (`dict[str, object]`, defaule: `{}`)
+        * `activation_name` (`str`, default: "tanh") and `activation_kwargs` (`dict[str, object]`, defaule: `{}`)
             * The activation function which shall be used in each hidden layer.
         """
         super().__init__()
         self.__check_channels(channels)
         
         # Save some member variables for representation
-        if True:
-            self.__channels         = tuple(channels)
-            self.__bias             = bias
-            self.__activation_name  = activation_name
+        self.__channels         = tuple(channels)
+        self.__bias             = bias
+        self.__activation_name  = activation_name
         
         # Define the MLP
         self.net = nn.Sequential()
@@ -86,6 +84,108 @@ class MLP(nn.Module):
     
     def __repr__(self) -> str:
         return f"MLP(layer={self.__channels}, bias={self.__bias}, activation={self.__activation_name})"
+
+
+class HyperMLP(nn.Module):
+    def __init__(
+            self,
+            channels:           Sequence[int],
+            hyper_channels:     Sequence[int],
+            bias:               bool                = True,
+            activation_name:    str                 = "tanh",
+            activation_kwargs:  dict[str, object]   = {},
+        ) -> Self:
+        """## The initializer of the class `HyperMLP`
+        
+        -----
+        ### Arguments
+        * `channels` (`Sequence[int]`)
+            * The number of the channels in each layer, from the input layer to the output layer.
+            
+        * `hyper_channels` (`Sequence[int]`)
+            * The number of the channels in each layer, from the input layer to the pre-out layer.
+            * *Important* For each hypernet, the last linear layer will be automatically appended using `torch.nn.LazyLinear`.
+        
+        * `bias` (`bool`, default: `True`)
+            * The `bias` argument of `torch.nn.Linear`.
+        
+        * `activation_name` (`str`, default: "tanh") and `activation_kwargs` (`dict[str, object]`, defaule: `{}`)
+            * The activation function which shall be used in each hidden layer.
+        """
+        super().__init__()
+        self.__check_channels(channels)
+        
+        # Save some member variables for representation
+        self.__channels         = tuple(channels)
+        self.__bias             = bias
+        self.__activation_name      = activation_name
+        self.__activation_kwargs    = activation_kwargs
+        
+        # Define variables for hypernetworks
+        __shape_of_weights:    list[tuple[int]]    = []
+        __shape_of_biases:     list[tuple[int]]    = []
+        for idx in range(len(channels)-1):
+            ch_in, ch_out = channels[idx], channels[idx + 1]
+            __shape_of_weights.append((ch_out, ch_in))
+            __shape_of_biases.append((ch_out,))
+        self.__shape_of_weights:    tuple[tuple[int]]    = tuple(__shape_of_weights)
+        self.__shape_of_biases:     tuple[tuple[int]]    = tuple(__shape_of_biases)
+        
+        # Define the hypernetworks
+        hypernet_weight = [
+            MLP(
+                (*hyper_channels, h*w),
+                activation_name     = activation_name,
+                activation_kwargs   = activation_kwargs,
+            )
+            for (h, w) in self.__shape_of_weights
+        ]
+        hypernet_bias   = [] if not bias else [
+            MLP(
+                (*hyper_channels, h),
+                activation_name     = activation_name,
+                activation_kwargs   = activation_kwargs,
+            )
+            for (h,) in self.__shape_of_biases
+        ]
+        self.hypernet_weight    = nn.ModuleList(hypernet_weight)
+        self.hypernet_bias      = nn.ModuleList(hypernet_bias)
+        
+        return
+
+    
+    @property
+    def channels(self) -> tuple[int]:
+        """The widths in this network, from the input layer to the output layer."""
+        return self.__channels
+    
+    
+    def forward(self, X: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
+        weights = [net_w.forward(p) for net_w in self.hypernet_weight]
+        biases  = [net_b.forward(p) for net_b in self.hypernet_bias] if self.__bias \
+            else  [
+                torch.zeros(p.size(0), 1, s, dtype=X.dtype)
+                for s in self.__shape_of_biases
+            ]
+        for cnt, w, b in enumerate(zip(weights, biases)):
+            w = torch.reshape(w, (-1, *self.__shape_of_weights[cnt]))
+            b = torch.reshape(b, (-1, 1, *self.__shape_of_biases[cnt]))
+            X = torch.einsum('bi, bji -> bj', X, w) + b
+            if cnt < len(weights)-1:
+                X = get_activation(self.__activation_name, self.__activation_kwargs)(X)
+        return X
+        
+    
+    
+    def __check_channels(self, channels: Sequence[int]) -> None:
+        for cnt, dim in enumerate(channels):
+            if not (type(dim) == int and dim >= 1):
+                raise RuntimeError(f"The dimension of the layer {cnt} is set {dim}.")
+        return
+    
+    
+    def __repr__(self) -> str:
+        return f"HyperMLP(layer={self.__channels}, bias={self.__bias}, activation={self.__activation_name})"
 
 
 ##################################################

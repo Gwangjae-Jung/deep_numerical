@@ -64,7 +64,7 @@ TORCH_INITIALIZER_DICT: dict[str, Callable[[Tensor, Any], Tensor]] = {
 
 ##################################################
 ##################################################
-def count_parameters(models: Objects[nn.Module], complex_as_two: bool = True) -> Union[int, list[int]]:
+def count_parameters(models: Objects[nn.Module], complex_as_two: bool=True) -> Union[int, list[int]]:
     if not isinstance(models, Sequence):
         models = [models]
     
@@ -83,16 +83,16 @@ def count_parameters(models: Objects[nn.Module], complex_as_two: bool = True) ->
 
 
 def get_activation(
-                    activation_name:    str,
-                    activation_kwargs:  dict[str, object] = {}
+        activation_name:    str,
+        activation_kwargs:  dict[str, object] = {}
     ) -> nn.Module:
     return TORCH_ACTIVATION_DICT[activation_name](**activation_kwargs)
 
 
 def initialize_weights(
-                        models:         Objects[nn.Module],
-                        init_name:      str,
-                        init_kwargs:    dict[str, object] = {},
+        models:         Objects[nn.Module],
+        init_name:      str,
+        init_kwargs:    dict[str, object] = {},
     ) -> None:
     if not isinstance(models, Sequence):
         models = [models]

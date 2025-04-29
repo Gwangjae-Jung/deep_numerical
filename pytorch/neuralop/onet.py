@@ -76,19 +76,21 @@ class DeepONetStructured(BaseModule):
             activation_kwargs   = [activation_kwargs, activation_kwargs]
         
         # Define the subnetworks
-        self.branch =   branch if branch is not None else \
-                        MLP(
-                            channels            = channels_branch,
-                            activation_name     = activation_name[0],
-                            activation_kwargs   = activation_kwargs[0]
-                        )
-        self.trunk  =   trunk if trunk is not None else \
-                        MLP(
-                            channels            = channels_trunk, 
-                            activation_name     = activation_name[1],
-                            activation_kwargs   = activation_kwargs[1]
-                        )
-        self.bias   = nn.Parameter(torch.zeros(size = (1,), dtype = torch.float))
+        self.branch = \
+            branch if branch is not None else \
+            MLP(
+                channels            = channels_branch,
+                activation_name     = activation_name[0],
+                activation_kwargs   = activation_kwargs[0]
+            )
+        self.trunk  = \
+            trunk if trunk is not None else \
+            MLP(
+                channels            = channels_trunk, 
+                activation_name     = activation_name[1],
+                activation_kwargs   = activation_kwargs[1]
+            )
+        self.bias   = nn.Parameter(torch.zeros(size=(1,), dtype=torch.float))
         
         return
     
@@ -119,7 +121,6 @@ class DeepONetStructured(BaseModule):
         """ 
         branch  = self.branch.forward(inputs[0])
         trunk   = self.trunk.forward(inputs[1])
-        print(f"{branch.shape=}, {trunk.shape=}")
         inner_prod = branch @ trunk.T
         return inner_prod + self.bias
 
@@ -182,19 +183,21 @@ class DeepONetUnstructured(BaseModule):
             activation_kwargs   = [activation_kwargs, activation_kwargs]
         
         # Define the subnetworks
-        self.branch =   branch if branch is not None else \
-                        MLP(
-                            channels            = channels_branch,
-                            activation_name     = activation_name[0],
-                            activation_kwargs   = activation_kwargs[0],
-                        )
-        self.trunk  =   trunk if trunk is not None else \
-                        MLP(
-                            channels            = channels_trunk,
-                            activation_name     = activation_name[1],
-                            activation_kwargs   = activation_kwargs[1],
-                        )
-        self.bias   = nn.Parameter(torch.zeros(size = (1,), dtype = torch.float))
+        self.branch = \
+            branch if branch is not None else \
+            MLP(
+                channels            = channels_branch,
+                activation_name     = activation_name[0],
+                activation_kwargs   = activation_kwargs[0],
+            )
+        self.trunk  = \
+            trunk if trunk is not None else \
+            MLP(
+                channels            = channels_trunk,
+                activation_name     = activation_name[1],
+                activation_kwargs   = activation_kwargs[1],
+            )
+        self.bias   = nn.Parameter(torch.zeros(size=(1,), dtype=torch.float))
         
         return
     
@@ -234,6 +237,7 @@ class DeepONetUnstructured(BaseModule):
 class MIONetStructured(BaseModule):
     """## Multiple-Input Operator Network (MIONet) - Structured version
     ### Approximation of a continuous operator of Banach spaces, using a branch neta and a trunk net
+    
     -----
     ### Description
     This class constructs a network which approximates a continuous operator of Banach spaces.
@@ -258,6 +262,7 @@ class MIONetStructured(BaseModule):
             **kwargs,
         ) -> Self:
         """## The initializer of the class `MIONet`
+        
         -----
         ### Arguments
         @ `channels_branches` (`Sequence[Sequence[int]]`)
@@ -293,17 +298,21 @@ class MIONetStructured(BaseModule):
             self.branches = nn.ModuleList(
                 [
                     MLP(_ch_branch, True, _act_name, _act_kwargs)
-                    for _ch_branch, _act_name, _act_kwargs in \
-                        zip(channels_branches, activation_name[:-1], activation_kwargs[:-1])
+                    for _ch_branch, _act_name, _act_kwargs in zip(
+                        channels_branches,
+                        activation_name[:-1],
+                        activation_kwargs[:-1]
+                    )
                 ]
             )
-        self.trunk  =   trunk if trunk is not None else \
-                        MLP(
-                            channels            = channels_trunk,
-                            activation_name     = activation_name[-1],
-                            activation_kwargs   = activation_kwargs[-1],
-                        )
-        self.bias   = nn.Parameter(torch.zeros(size = (1,), dtype = torch.float))
+        self.trunk  = \
+            trunk if trunk is not None else \
+            MLP(
+                channels            = channels_trunk,
+                activation_name     = activation_name[-1],
+                activation_kwargs   = activation_kwargs[-1],
+            )
+        self.bias   = nn.Parameter(torch.zeros(size=(1,), dtype=torch.float))
         
         return
 
@@ -311,6 +320,7 @@ class MIONetStructured(BaseModule):
     def forward(self, inputs: Sequence[torch.Tensor]) -> torch.Tensor:
         r"""
         ### Arguments
+        
         -----
         @ `inputs` (`Sequence[torch.Tensor]`)
             * A list or a tuple of multiple tensors of length `n + 1`, labelled `U_1, ..., U_n` and `Y` in order.
@@ -329,17 +339,17 @@ class MIONetStructured(BaseModule):
             * `branch[i](U_i).shape:    (batch_size,        num_features)`
             * `trunk(Y).shape:          (n_query_points,    num_features)`
             * `output.shape:            (batch_size,        n_query_points)`
-            * `forward:                 torch.einsum("bi,ti->bt", [(branch_1 * ... * branch_n), trunk])`
+            * `forward:                 torch.einsum("bi,ti->bt", [prod(branch_1, ..., branch_n), trunk])`
         
         2. In contrast to the Deep Operator Network, the Multiple-Input Operator Network supports multiple inputs. Since this class assumes that each input instance is 1-dimensional, to input a multidimensional instance, one has to project the instance dimension by dimension. For example, if an input instance is a discretization of a continuous function into a 3-dimensional space, such instance should be given as 3 input instances, each of which is into a 1-dimensional space.
         """
         branch  = torch.stack(
-                        [
-                            self.branches[k].forward(inputs[k])
-                            for k in range(len(inputs) - 1)
-                        ]
-                    ).type(torch.float)
-        branch  = torch.prod(branch, dim = 0)
+            [
+                self.branches[k].forward(inputs[k])
+                for k in range(len(inputs)-1)
+            ], dim=0
+        ).type(torch.float)
+        branch  = torch.prod(branch, dim=0)
         trunk   = self.trunk.forward(inputs[-1])
         inner_prod = branch @ trunk.T
         return inner_prod + self.bias
@@ -350,6 +360,7 @@ class MIONetStructured(BaseModule):
 class MIONetUnstructured(BaseModule):
     """## Multiple-Input Operator Network (MIONet) - Unstructured version
     ### Approximation of a continuous operator of Banach spaces, using a branch neta and a trunk net
+    
     -----
     ### Description
     This class constructs a network which approximates a continuous operator of Banach spaces.
@@ -374,6 +385,7 @@ class MIONetUnstructured(BaseModule):
             **kwargs,
         ) -> Self:
         """## The initializer of the class `MIONet`
+        
         -----
         ### Arguments
         @ `channels_branches` (`Sequence[Sequence[int]]`)
@@ -409,17 +421,21 @@ class MIONetUnstructured(BaseModule):
             self.branches = nn.ModuleList(
                 [
                     MLP(_ch_branch, True, _act_name, _act_kwargs)
-                    for _ch_branch, _act_name, _act_kwargs in \
-                        zip(channels_branches, activation_name[:-1], activation_kwargs[:-1])
+                    for _ch_branch, _act_name, _act_kwargs in zip(
+                        channels_branches,
+                        activation_name[:-1],
+                        activation_kwargs[:-1]
+                    )
                 ]
             )
-        self.trunk  = trunk if trunk is not None else \
-                    MLP(
-                        channels            = channels_trunk,
-                        activation_name     = activation_name[-1],
-                        activation_kwargs   = activation_kwargs[-1],
-                    )
-        self.bias   = nn.Parameter(torch.zeros(size = (1,), dtype = torch.float))
+        self.trunk  = \
+            trunk if trunk is not None else \
+            MLP(
+                channels            = channels_trunk,
+                activation_name     = activation_name[-1],
+                activation_kwargs   = activation_kwargs[-1],
+            )
+        self.bias   = nn.Parameter(torch.zeros(size=(1,), dtype=torch.float))
         
         return
 
@@ -427,6 +443,7 @@ class MIONetUnstructured(BaseModule):
     def forward(self, inputs: Sequence[torch.Tensor]) -> torch.Tensor:
         r"""
         ### Arguments
+        
         -----
         @ `inputs` (`Sequence[torch.Tensor]`)
             * A list or a tuple of multiple tensors of length `n + 1`, labelled `U_1, ..., U_n` and `Y` in order.
@@ -450,12 +467,12 @@ class MIONetUnstructured(BaseModule):
         2. In contrast to the Deep Operator Network, the Multiple-Input Operator Network supports multiple inputs. Since this class assumes that each input instance is 1-dimensional, to input a multidimensional instance, one has to project the instance dimension by dimension. For example, if an input instance is a discretization of a continuous function into a 3-dimensional space, such instance should be given as 3 input instances, each of which is into a 1-dimensional space.
         """
         branch  = torch.stack(
-                        [
-                            self.branches[k].forward(inputs[k])
-                            for k in range(len(inputs) - 1)
-                        ]
-                    ).type(torch.float)
-        branch  = torch.prod(branch, dim = 0)
+            [
+                self.branches[k].forward(inputs[k])
+                for k in range(len(inputs)-1)
+            ], dim=0
+        ).type(torch.float)
+        branch  = torch.prod(branch, dim=0)
         trunk   = self.trunk.forward(inputs[-1])
         inner_prod = torch.einsum("bi,bfi->bf", [branch, trunk])        
         return inner_prod + self.bias

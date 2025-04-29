@@ -19,6 +19,8 @@ from    .gt     import  *
 from    .gnot   import  *
 from    .gno    import  *
 
+from    .hyper_onet     import  *
+
 
 ##################################################
 ##################################################
