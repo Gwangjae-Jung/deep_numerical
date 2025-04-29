@@ -1,9 +1,9 @@
-from    typing              import  *
+from    typing      import  *
 import  warnings
 
-from    torch               import  nn, Tensor
+from    torch       import  nn, Tensor
 
-from    ..utils._dtype      import  Objects
+from    ._dtype     import  Objects
 
 
 ##################################################
