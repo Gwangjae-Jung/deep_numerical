@@ -5,12 +5,12 @@ import  torch
 from    torch   import  nn
 
 from    ..utils         import  Objects, warn_redundant_arguments
-from    ..layers        import  BaseModule, MLP
+from    ..layers        import  BaseModule, MLP, HyperMLP
 
 
 ##################################################
 ##################################################
-__all__: list[str] = ['HyperDeepONet', 'HyperMIONet']
+__all__: list[str] = ['HyperDeepONet', 'HyperMIONet', 'ParameterizedMIONet']
 
 
 ##################################################
@@ -88,83 +88,111 @@ class HyperDeepONet(torch.nn.Module):
 
 ##################################################
 ##################################################
-class HyperMIONetSeparated(BaseModule):
-    """## Multiple-Input Operator Network (MIONet) - Structured version
-    """
-    def __init__(self,) -> Self:
+class HyperMIONet(BaseModule):
+    def __init__(
+            self,
+            dimension:  int,
+        ) -> Self:
         super().__init__()
-        
-        self.num_inputs = self.num_branches = len(channels_branches)
-        
-        # Save some information in lists
-        if isinstance(activation_name, str):
-            activation_name     = [activation_name] * (self.num_branches + 1)
-        if isinstance(activation_kwargs, dict):
-            activation_kwargs   = [activation_kwargs] * (self.num_branches + 1)
-
         # Define the subnetworks
-        if branches is not None:
-            self.branches = nn.ModuleList(branches)
-        else:
-            self.branches = nn.ModuleList(
-                [
-                    MLP(_ch_branch, True, _act_name, _act_kwargs)
-                    for _ch_branch, _act_name, _act_kwargs in zip(
-                        channels_branches,
-                        activation_name[:-1],
-                        activation_kwargs[:-1]
-                    )
-                ]
-            )
-        self.trunk  = \
-            trunk if trunk is not None else \
-            MLP(
-                channels            = channels_trunk,
-                activation_name     = activation_name[-1],
-                activation_kwargs   = activation_kwargs[-1],
-            )
-        
+        self.branch1a = nn.ModuleList(
+            [
+                getattr(nn, f"Conv{dimension}d")(1, 8, 5, 2, 1),   # 33->16
+                nn.SiLU(),
+                getattr(nn, f"Conv{dimension}d")(8, 16, 5, 2, 1),  # 16->7
+                nn.SiLU(),
+                getattr(nn, f"Conv{dimension}d")(16, 32, 5, 2, 1),  # 7->3
+                nn.SiLU(),
+                nn.Flatten(),
+            ]
+        )
+        self.branch1b = HyperMLP([32*9, 100, 64], [1, 50])
+        self.branch2a = nn.ModuleList(
+            [
+                getattr(nn, f"Conv{dimension}d")(1, 8, 5, 2, 1),   # 33->16
+                nn.SiLU(),
+                getattr(nn, f"Conv{dimension}d")(8, 16, 5, 2, 1),  # 16->7
+                nn.SiLU(),
+                getattr(nn, f"Conv{dimension}d")(16, 32, 5, 2, 1),  # 7->3
+                nn.SiLU(),
+                nn.Flatten(),
+            ]
+        )
+        self.branch2b = HyperMLP([32*9, 100, 64], [1, 50])
+        self.trunk    = HyperMLP((dimension, 32, 64, 64), [1, 50])       
         
         return
 
     
-    def forward(self, inputs: Sequence[torch.Tensor]) -> torch.Tensor:
-        r"""
-        ### Arguments
-        
-        -----
-        @ `inputs` (`Sequence[torch.Tensor]`)
-            * A list or a tuple of multiple tensors of length `n + 1`, labelled `U_1, ..., U_n` and `Y` in order.
-                * `U_i` for `i \in {1, ..., n}` (`torch.Tensor`)
-                    * A 2-tensor of shape `(batch_size, n_sensor_points)`.
-                    * Each row corresponds to the values of a function restricted to the sensor points.
-                * `Y` (`torch.Tensor`)
-                    * A 2-tensor, where each row corresponds to the coordinates of a query point.
-                    * The shape and the contents of `Y` are up to whether the query points are shared for all `U` instances. (See the following remark.)
+    def forward(self, X: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
+        branch1 = X
+        branch2 = X
+        for md in self.branch1:
+            branch1 = md.forward(branch1, p)
+        for md in self.branch2:
+            branch2 = md.forward(branch2, p)
+        branch = branch1 * branch2
+        trunk = self.trunk.forward(p)
+        return branch @ trunk.T
 
-        -----
-        ### Remark
-        1. The forward operation is defined by `einsum` operation, whose specific definition is determined by `self.is_query_shared`.
-            * `U_i.shape:               (batch_size,        n_sensor_points)`
-            * `Y.shape:                 (n_query_points,    dim_query_space)`
-            * `branch[i](U_i).shape:    (batch_size,        num_features)`
-            * `trunk(Y).shape:          (n_query_points,    num_features)`
-            * `output.shape:            (batch_size,        n_query_points)`
-            * `forward:                 torch.einsum("bi,ti->bt", [prod(branch_1, ..., branch_n), trunk])`
-        
-        2. In contrast to the Deep Operator Network, the Multiple-Input Operator Network supports multiple inputs. Since this class assumes that each input instance is 1-dimensional, to input a multidimensional instance, one has to project the instance dimension by dimension. For example, if an input instance is a discretization of a continuous function into a 3-dimensional space, such instance should be given as 3 input instances, each of which is into a 1-dimensional space.
-        """
-        branch  = torch.stack(
-            [
-                self.branches[k].forward(inputs[k])
-                for k in range(len(inputs)-1)
-            ], dim=0
-        ).type(torch.float)
-        branch  = torch.prod(branch, dim=0)
-        trunk   = self.trunk.forward(inputs[-1])
-        inner_prod = branch @ trunk.T
-        return inner_prod + self.bias
 
+class ParameterizedMIONet(BaseModule):
+    def __init__(
+            self,
+            dimension:  int,
+        ) -> Self:
+        super().__init__()
+        # Define the subnetworks
+        _conv_kwargs    = {'kernel_size': 4, 'stride': 2, 'padding': 1}
+        self.branch1_f  = nn.Sequential(
+            getattr(nn, f"Conv{dimension}d")(1, 4, **_conv_kwargs),
+            nn.SiLU(),  # 33->16
+            getattr(nn, f"Conv{dimension}d")(4, 8, **_conv_kwargs),
+            nn.SiLU(),  # 16->8
+            getattr(nn, f"Conv{dimension}d")(8, 16, **_conv_kwargs),
+            nn.SiLU(),  # 8->4
+            getattr(nn, f"MaxPool{dimension}d")(4),
+            nn.SiLU(),  # 4->1
+            nn.Flatten(),   # Output shape: `(batch_size, 16)`
+        )
+        self.branch1_p  = MLP([1, 16, 16])
+        self.branch1    = MLP([32, 50, 50, 50])
+        self.branch2_f = nn.Sequential(
+            getattr(nn, f"Conv{dimension}d")(1, 4, **_conv_kwargs),
+            nn.SiLU(),  # 33->16
+            getattr(nn, f"Conv{dimension}d")(4, 8, **_conv_kwargs),
+            nn.SiLU(),  # 16->8
+            getattr(nn, f"Conv{dimension}d")(8, 16, **_conv_kwargs),
+            nn.SiLU(),  # 8->4
+            getattr(nn, f"MaxPool{dimension}d")(4),
+            nn.SiLU(),  # 4->1
+            nn.Flatten(),   # Output shape: `(batch_size, 16)`
+        )
+        self.branch2_p  = MLP([1, 16, 16])
+        self.branch2    = MLP([32, 50, 50, 50])
+        # self.trunk      = HyperMLP((dimension, 32, 64, 64, 64), [1, 50])       
+        self.trunk      = MLP((dimension, 100, 100, 50))
+        
+        return
+
+    
+    def forward(
+            self,
+            X:      torch.Tensor,
+            query:  torch.Tensor,
+            params: torch.Tensor,
+        ) -> torch.Tensor:
+        branch1_f   = self.branch1_f.forward(X)
+        branch1_p   = self.branch1_p.forward(params)
+        branch1     = self.branch1.forward(torch.cat((branch1_f, branch1_p), dim=1))
+        branch2_f   = self.branch2_f.forward(X)
+        branch2_p   = self.branch2_p.forward(params)
+        branch2     = self.branch2.forward(torch.cat((branch2_f, branch2_p), dim=1))
+        branch = branch1 * branch2
+        # trunk = self.trunk.forward(query, params)
+        trunk = self.trunk.forward(query)
+        return branch @ trunk.T
+    
 
 ##################################################
 ##################################################

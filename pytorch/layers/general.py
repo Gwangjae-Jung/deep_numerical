@@ -6,8 +6,7 @@ from    math        import  prod
 import  torch
 from    torch       import  nn
 
-from    ._base_module   import  BaseModule
-from    ..utils     import  Objects, EINSUM_STRING, get_activation
+from    ..utils     import  Objects, get_activation, ones
 
 
 ##################################################
@@ -15,8 +14,6 @@ from    ..utils     import  Objects, EINSUM_STRING, get_activation
 __all__ = [
     "MLP", "HyperMLP",
     "PatchEmbedding",
-    "LinearSelfAttention",
-    "LinearCrossAttention",
 ]
 
 
@@ -84,6 +81,81 @@ class MLP(nn.Module):
     
     def __repr__(self) -> str:
         return f"MLP(layer={self.__channels}, bias={self.__bias}, activation={self.__activation_name})"
+
+
+class HyperLinear(nn.Module):
+    def __init__(
+            self,
+            in_channels:    int,
+            out_channels:   int,
+            bias:           bool    = True,
+            hyper_channels_weight:  Optional[Sequence[int]] = None,
+            hyper_channels_bias:    Optional[Sequence[int]] = None,
+            activation_name:        str = "tanh",
+            activation_kwargs:      dict[str, object] = {},
+        ) -> Self:
+        """## The initializer of the class `HyperMLP`
+        
+        -----
+        ### Arguments
+        * `in_channels` (`int`) and `out_channels` (`int`)
+            * The number of the channels in the input layer and the output layer.
+            
+        * `hyper_channels_weight` (`Sequence[int]`) and ``hyper_channels_bias` (`Optional[Sequence[int]]`, default: `None`)
+            * The number of the channels in each layer, from the input layer to the pre-out layer.
+            * *Important* For each hypernet, the last linear layer will be appended in the initializer.
+        
+        * `bias` (`bool`, default: `True`)
+            * The `bias` argument of `torch.nn.Linear`.
+        
+        * `activation_name` (`str`, default: "tanh") and `activation_kwargs` (`dict[str, object]`, defaule: `{}`)
+            * The activation function which shall be used in each hidden layer.
+        """
+        super().__init__()
+        
+        # Save some member variables for representation
+        self.__in_channels      = in_channels
+        self.__out_channels     = out_channels
+        self.__bias             = bias
+        
+        # Define variables for hypernetworks
+        size_of_weight  = out_channels*in_channels
+        size_of_bias    = out_channels
+        self.__shape_of_weight = (-1, out_channels, in_channels)
+        self.__shape_of_bias   = (-1, out_channels,)
+        
+        if hyper_channels_weight is None:
+            raise ValueError(f"'hyper_channels_weight' should be set.")
+        if hyper_channels_bias is None:
+            hyper_channels_bias = [hyper_channels_weight[0]]
+        # Define the hypernetworks
+        self.hyper_weight = MLP(
+            (*hyper_channels_weight, size_of_weight),
+            activation_name     = activation_name,
+            activation_kwargs   = activation_kwargs,
+        )
+        self.hyper_bias:    Optional[MLP]   = MLP(
+            (*hyper_channels_bias, size_of_bias),
+            activation_name     = activation_name,
+            activation_kwargs   = activation_kwargs,
+        ) if bias else None
+        
+        return
+    
+    
+    def forward(self, X: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
+        weight = self.hyper_weight.forward(p)
+        bias  = self.hyper_bias.forward(p) if self.__bias else torch.zeros((p.size(0), self.__out_channels), dtype=X.dtype, device=X.device)
+        weight = weight.reshape(self.__shape_of_weight)
+        bias   = bias.reshape(-1, *ones(X.ndim-2), self.__shape_of_bias[1])
+        X = torch.einsum('b...i, bji -> b...j', X, weight) + bias
+        return X
+    
+    
+    def __repr__(self) -> str:
+        return f"HyperLinear(in_channels={self.__in_channels}, out_channels={self.__out_channels}, bias={self.__bias})"
+
+
 
 
 class HyperMLP(nn.Module):
@@ -167,10 +239,10 @@ class HyperMLP(nn.Module):
                 torch.zeros(p.size(0), 1, s, dtype=X.dtype)
                 for s in self.__shape_of_biases
             ]
-        for cnt, w, b in enumerate(zip(weights, biases)):
+        for cnt, (w, b) in enumerate(zip(weights, biases)):
             w = torch.reshape(w, (-1, *self.__shape_of_weights[cnt]))
-            b = torch.reshape(b, (-1, 1, *self.__shape_of_biases[cnt]))
-            X = torch.einsum('bi, bji -> bj', X, w) + b
+            b = torch.reshape(b, (-1, *ones(X.ndim-2), *self.__shape_of_biases[cnt]))
+            X = torch.einsum('b...i, bji -> b...j', X, w) + b
             if cnt < len(weights)-1:
                 X = get_activation(self.__activation_name, self.__activation_kwargs)(X)
         return X
@@ -273,182 +345,6 @@ class PatchEmbedding(nn.Module):
     @property
     def __permute_2(self) -> tuple[int]:
         return tuple((0, *tuple(range(2, 2+self.dim_domain)), 1))
-    
-
-
-##################################################
-##################################################
-class LinearSelfAttention(nn.Module):
-    """## Linear self-attention
-    -----
-    
-    ### Description
-    This class aims to compute the self-attention of given features from two distinct sources.
-    The modifications from the original attention layer are listed below:
-    
-    * The softmax is removed, and the key-value multiplication is computed ahead of the multiplication with the query. It reduces the quadratic complexity to the linear complexity.
-    * The scaling is done by the inverse of the length of the sequence, rather than its square root.
-    """
-    def __init__(
-            self,
-            dim_domain:         int,
-            hidden_channels:    int,
-            n_heads:            int = 1,
-        ) -> Self:
-        # Check if the number of the hidden channels is divisible by the number of the heads
-        if hidden_channels % n_heads != 0:
-            raise ValueError(
-                f"The number of the heads in the self attention should divide the number of the hidden features. "
-                f"('hidden_channels': {hidden_channels}, 'n_heads': {n_heads})"
-            )
-        
-        # Initialization begins
-        super().__init__()
-        
-        # Save some variables for representation and computation
-        self.__dim_domain       = dim_domain
-        self.__hidden_channels  = hidden_channels
-        self.__n_heads          = n_heads
-        self.__EINSUM_DOMAIN    = EINSUM_STRING[:self.__dim_domain]
-        self.__EINSUM_COMMAND   = f"b{self.__EINSUM_DOMAIN}c,chd->b{self.__EINSUM_DOMAIN}hd"
-        
-        # Variables for attention
-        _size   = (hidden_channels, n_heads, hidden_channels // n_heads)    # (C, H, C/H)
-        _scale  = (hidden_channels ** 2) / n_heads
-        # Feature maps
-        self.sa_query   = nn.Parameter(torch.randn(size = _size, dtype = torch.float) / _scale)
-        self.sa_key     = nn.Parameter(torch.randn(size = _size, dtype = torch.float) / _scale)
-        self.sa_value   = nn.Parameter(torch.randn(size = _size, dtype = torch.float) / _scale)
-        # Layer normalization
-        self.layernorm_key   = nn.LayerNorm((n_heads, hidden_channels // n_heads))
-        self.layernorm_value = nn.LayerNorm((n_heads, hidden_channels // n_heads))
-        
-        return
-    
-    
-    @property
-    def einsum_domain(self) -> str:
-        return self.__EINSUM_DOMAIN
-    @property
-    def einsum_command(self) -> str:
-        return self.__EINSUM_COMMAND
-    
-    
-    def forward(self, X: torch.Tensor) -> torch.Tensor:
-        # Map to the query/key/value spaces
-        X_query = torch.einsum(self.einsum_command, [X, self.sa_query])
-        X_key   = torch.einsum(self.einsum_command, [X, self.sa_key])
-        X_value = torch.einsum(self.einsum_command, [X, self.sa_value])
-        
-        # Layer normalization
-        X_key   = self.layernorm_key.forward(X_key)
-        X_value = self.layernorm_key.forward(X_value)
-        
-        # Compute the Galerkin-type self-attention
-        num_points = prod(X.shape[1: 1 + self.__dim_domain])
-        X_kv = torch.einsum(f"b{self.einsum_domain}hd,b{self.einsum_domain}he->bhde", [X_key,   X_value ])
-        X_sa = torch.einsum(f"b{self.einsum_domain}hd,bhde->b{self.einsum_domain}eh", [X_query, X_kv    ])
-        X_sa = (X_sa / num_points).reshape(X.shape)
-        
-        return X_sa
-
-    
-    def __repr__(self) -> str:
-        return f"LinearSelfAttention(dim_domain: {self.__dim_domain}, hidden_channels: {self.__hidden_channels}, n_heads: {self.__n_heads})"
-
-
-
-
-class LinearCrossAttention(nn.Module):
-    """## Linear cross-attention
-    
-    -----
-    ### Description
-    This class aims to compute the cross-attention of given features from two distinct sources.
-    The modifications from the original attention layer are listed below:
-    
-    * The softmax is removed, and the key-value multiplication is computed ahead of the multiplication with the query. It reduces the quadratic complexity to the linear complexity.
-    * The scaling is done by the inverse of the length of the sequence, rather than its square root.
-    """
-    def __init__(
-            self,
-            dim_domain:         int,        # Query
-            hidden_channels:    int,        # Key and value
-            n_heads:            int = 1,    # Common
-        ) -> Self:
-        # Check if the number of the hidden channels is divisible by the number of the heads
-        if hidden_channels % n_heads != 0:
-            raise ValueError(
-                f"The number of the heads in the self attention should divide the number of the hidden features. "
-                f"('hidden_channels': {hidden_channels}, 'n_heads': {n_heads})"
-            )
-        
-        # Initialization begins
-        super().__init__()
-        
-        # Save some variables for representation and computation
-        self.__dim_domain       = dim_domain
-        self.__hidden_channels  = hidden_channels
-        self.__n_heads          = n_heads
-        self.__EINSUM_DOMAIN    = EINSUM_STRING[:self.__dim_domain]
-        self.__EINSUM_COMMAND   = f"b{self.__EINSUM_DOMAIN}c,chd->b{self.__EINSUM_DOMAIN}hd"
-        
-        # Variables for attention
-        _size_U = (hidden_channels, n_heads, hidden_channels // n_heads)    # (C, H, C/H)
-        _size_X = (dim_domain, n_heads, hidden_channels // n_heads)         # (D, H, C/H)
-        _scale  = (hidden_channels ** 2) / n_heads
-        # Feature maps
-        self.ca_query   = nn.Parameter(torch.randn(size = _size_X, dtype = torch.float) / _scale)
-        self.ca_key     = nn.Parameter(torch.randn(size = _size_U, dtype = torch.float) / _scale)
-        self.ca_value   = nn.Parameter(torch.randn(size = _size_U, dtype = torch.float) / _scale)
-        # Layer normalization
-        self.layernorm_key   = nn.LayerNorm((n_heads, hidden_channels // n_heads))
-        self.layernorm_value = nn.LayerNorm((n_heads, hidden_channels // n_heads))
-        
-        return
-    
-    
-    @property
-    def einsum_domain(self) -> str:
-        return self.__EINSUM_DOMAIN
-    @property
-    def einsum_command(self) -> str:
-        return self.__EINSUM_COMMAND
-    
-    
-    def forward(self, U: torch.Tensor, X: torch.Tensor) -> torch.Tensor:
-        """
-        ### Arguments
-        @ `U` (`torch.Tensor`)
-            * `U` is the embedding of the input function.
-            * `U` has the shape `(B, *__domain__. C)`.
-            * `U` is input to the key map and the value map.
-        
-        @ `X` (`torch.Tensor`)
-            * `X` is the 3-tensor saving the coordinates of the query points.
-            * `X` has the shape `(B, size(__domain__), dim(__domain__))`.
-            * `X` is input to the query map.
-        """
-        # Map to the query/key/value spaces
-        X_query = torch.einsum(self.einsum_command, [X, self.ca_query])
-        U_key   = torch.einsum(self.einsum_command, [U, self.ca_key])
-        U_value = torch.einsum(self.einsum_command, [U, self.ca_value])
-        
-        # Layer normalization
-        U_key   = self.layernorm_key.forward(U_key)
-        U_value = self.layernorm_key.forward(U_value)
-        
-        # Compute the Galerkin-type self-attention
-        num_points = prod(U.shape[1: 1 + self.__dim_domain])
-        U_kv = torch.einsum(f"b{self.einsum_domain}hd,b{self.einsum_domain}he->bhde", [U_key,   U_value ])
-        U_sa = torch.einsum(f"b{self.einsum_domain}hd,bhde->b{self.einsum_domain}eh", [X_query, U_kv    ])
-        U_sa = (U_sa / num_points).reshape(U.shape)
-        
-        return U_sa
-
-    
-    def __repr__(self) -> str:
-        return f"LinearCrossAttention(dim_domain: {self.__dim_domain}, hidden_channels: {self.__hidden_channels}, n_heads: {self.__n_heads})"
 
 
 ##################################################

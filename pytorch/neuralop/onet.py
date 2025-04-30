@@ -44,6 +44,7 @@ class DeepONetStructured(BaseModule):
             channels_trunk:     Optional[Sequence[int]]     = None,
             activation_name:    Objects[str]                = "relu",
             activation_kwargs:  Objects[dict[str, object]]  = {},
+            bias:               bool                        = True,
             
             **kwargs,
         ) -> Self:
@@ -65,6 +66,10 @@ class DeepONetStructured(BaseModule):
             * The activation functions.
             * If `activation` is a string, then the same activation applies to both the branch net and the trunk net.
             * If `activation` is a list of strings, then the branch net is activated by `activation[0]` and the trunk net is activated by `activation[1]`.
+        
+        * `bias` (`bool`, default: `True`)
+            * If `True`, then the bias is added to the output of the network.
+            * If `False`, then the bias is not added to the output of the network.
         """
         super().__init__()
         warn_redundant_arguments(type(self), kwargs=kwargs)
@@ -90,7 +95,7 @@ class DeepONetStructured(BaseModule):
                 activation_name     = activation_name[1],
                 activation_kwargs   = activation_kwargs[1]
             )
-        self.bias   = nn.Parameter(torch.zeros(size=(1,), dtype=torch.float))
+        self.bias   = nn.Parameter(torch.zeros(size=(1,), dtype=torch.float)) if bias else 0.0
         
         return
     
@@ -151,6 +156,7 @@ class DeepONetUnstructured(BaseModule):
             channels_trunk:     Optional[Sequence[int]]     = None,
             activation_name:    Objects[str]                = "relu",
             activation_kwargs:  Objects[dict[str, object]]  = {},
+            bias:               bool                        = True,
             
             **kwargs,
         ) -> Self:
@@ -172,6 +178,10 @@ class DeepONetUnstructured(BaseModule):
             * The activation functions.
             * If `activation` is a string, then the same activation applies to both the branch net and the trunk net.
             * If `activation` is a list of strings, then the branch net is activated by `activation[0]` and the trunk net is activated by `activation[1]`.
+            
+        * `bias` (`bool`, default: `True`)
+            * If `True`, then the bias is added to the output of the network.
+            * If `False`, then the bias is not added to the output of the network.
         """
         super().__init__()
         warn_redundant_arguments(type(self), kwargs=kwargs)
@@ -197,7 +207,7 @@ class DeepONetUnstructured(BaseModule):
                 activation_name     = activation_name[1],
                 activation_kwargs   = activation_kwargs[1],
             )
-        self.bias   = nn.Parameter(torch.zeros(size=(1,), dtype=torch.float))
+        self.bias   = nn.Parameter(torch.zeros(size=(1,), dtype=torch.float)) if bias else 0.0
         
         return
     
@@ -259,26 +269,32 @@ class MIONetStructured(BaseModule):
             activation_name:    Objects[str]                = "relu",
             activation_kwargs:  Objects[dict[str, object]]  = {},
             
+            bias:               bool                        = True,
+            
             **kwargs,
         ) -> Self:
         """## The initializer of the class `MIONet`
         
         -----
         ### Arguments
-        @ `channels_branches` (`Sequence[Sequence[int]]`)
+        * `channels_branches` (`Sequence[Sequence[int]]`)
             * The list of channels for the branch net, from the input to the output.
             * (Input layer) The number of the input channels is the number of the sensor points.
             * (Output layer) The number of the output channels must match the number of the output channels of the trunk net.
         
-        @ `channels_trunk` (`Sequence[int]`)
+        * `channels_trunk` (`Sequence[int]`)
             * The list of channels for the trunk net, from the input to the output.
             * (Input layer) The number of the input channels is the number of the coordinates of the query space.
             * (Output layer) The number of the output channels must match the number of the output channels of the branch net.
         
-        @ `activation_name` (`Objects[str]`, default: `"relu"`) and `activation_kwargs` (`Objects[dict[str, object]]`, defaule: `{}`)
+        * `activation_name` (`Objects[str]`, default: `"relu"`) and `activation_kwargs` (`Objects[dict[str, object]]`, defaule: `{}`)
             * The activation functions.
             * If `activation` is a string, then the same activation applies to both the branch net and the trunk net.
             * If `activation` is a list of strings, then the branch net is activated by `activation[0]` and the trunk net is activated by `activation[1]`.
+        
+        * `bias` (`bool`, default: `True`)
+            * If `True`, then the bias is added to the output of the network.
+            * If `False`, then the bias is not added to the output of the network.
         """
         super().__init__()
         warn_redundant_arguments(type(self), kwargs=kwargs)
@@ -312,7 +328,7 @@ class MIONetStructured(BaseModule):
                 activation_name     = activation_name[-1],
                 activation_kwargs   = activation_kwargs[-1],
             )
-        self.bias   = nn.Parameter(torch.zeros(size=(1,), dtype=torch.float))
+        self.bias   = nn.Parameter(torch.zeros(size=(1,), dtype=torch.float)) if bias else 0.0
         
         return
 
@@ -381,6 +397,7 @@ class MIONetUnstructured(BaseModule):
             channels_trunk:     Optional[Sequence[int]]             = None,
             activation_name:    Objects[str]                = "relu",
             activation_kwargs:  Objects[dict[str, object]]  = {},
+            bias:               bool                        = True,
             
             **kwargs,
         ) -> Self:
@@ -388,20 +405,24 @@ class MIONetUnstructured(BaseModule):
         
         -----
         ### Arguments
-        @ `channels_branches` (`Sequence[Sequence[int]]`)
+        * `channels_branches` (`Sequence[Sequence[int]]`)
             * The list of channels for the branch net, from the input to the output.
             * (Input layer) The number of the input channels is the number of the sensor points.
             * (Output layer) The number of the output channels must match the number of the output channels of the trunk net.
         
-        @ `channels_trunk` (`Sequence[int]`)
+        * `channels_trunk` (`Sequence[int]`)
             * The list of channels for the trunk net, from the input to the output.
             * (Input layer) The number of the input channels is the number of the coordinates of the query space.
             * (Output layer) The number of the output channels must match the number of the output channels of the branch net.
         
-        @ `activation_name` (`Objects[str]`, default: `"relu"`) and `activation_kwargs` (`Objects[dict[str, object]]`, defaule: `{}`)
+        * `activation_name` (`Objects[str]`, default: `"relu"`) and `activation_kwargs` (`Objects[dict[str, object]]`, defaule: `{}`)
             * The activation functions.
             * If `activation` is a string, then the same activation applies to both the branch net and the trunk net.
             * If `activation` is a list of strings, then the branch net is activated by `activation[0]` and the trunk net is activated by `activation[1]`.
+        
+        * `bias` (`bool`, default: `True`)
+            * If `True`, then the bias is added to the output of the network.
+            * If `False`, then the bias is not added to the output of the network.
         """
         super().__init__()
         warn_redundant_arguments(type(self), kwargs=kwargs)
@@ -435,7 +456,7 @@ class MIONetUnstructured(BaseModule):
                 activation_name     = activation_name[-1],
                 activation_kwargs   = activation_kwargs[-1],
             )
-        self.bias   = nn.Parameter(torch.zeros(size=(1,), dtype=torch.float))
+        self.bias   = nn.Parameter(torch.zeros(size=(1,), dtype=torch.float)) if bias else 0.0
         
         return
 
