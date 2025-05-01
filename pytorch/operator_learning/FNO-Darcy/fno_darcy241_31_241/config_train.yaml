@@ -1,0 +1,26 @@
+experiment:
+  num_epochs:     300
+  batch_size:     16
+  learning_rate:  0.001
+  train_size:     800
+  val_size:       200
+  cuda_index:     0
+
+
+pde_dataset:
+  path:           "E:/PDE_datasets/from_pde_dataset/Darcy flow/Darcy241_1.npz"
+  # path:           "/ssd/PANGPANG/PDE_datasets/from_pde_dataset/Darcy flow/Darcy241_1.npz"
+  resolution:     241
+  file_index:     1
+  downsample:     8
+
+
+fno:
+  n_modes:          [12, 12]
+  in_channels:      3
+  hidden_channels:  32
+  out_channels:     1
+  lift_layer:       [64]
+  n_layers:         4
+  project_layer:    [64]
+  activation:       "relu"

@@ -1,0 +1,33 @@
+experiment:
+  batch_size:     1
+  test_size:      50
+  cuda_index:     0
+
+
+pde_dataset:
+  path:            "E:/PDE_datasets/from_pde_dataset/Darcy flow/Darcy241_1.npz"
+  # path:            "/ssd/PANGPANG/PDE_datasets/from_pde_dataset/Darcy flow/Darcy241_1.npz"
+  resolution:     241
+  file_index:     2
+  downsample:     2
+
+
+graph:
+  radii_geometric:  [0.1, 2]
+  sample_sizes:     [100, 50, 25]
+  num_sampling:     4
+  max_neighbors:    [5, 5, 5]
+
+
+mgno:
+  in_channels:      6
+  hidden_channels:  32
+  out_channels:     1
+  edge_channels:    6
+  n_layers:         2
+  n_poles:          3
+  lift_layer:       [16]
+  kernel_layer:     [128, 64, 32]
+  project_layer:    [16]
+
+train_prefix: "202407012124"

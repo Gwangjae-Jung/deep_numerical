@@ -1,0 +1,65 @@
+.DS_Store
+.mypy_cache
+.pytest_cache
+.idea
+
+# Python
+__pycache__
+*.ipynb_checkpoints
+*.pyc
+*.pylintrc
+*.ipynb
+
+# Experimental files
+*.th
+*.pth
+*.ckpt-*
+events.out.tfevents.*
+*.pbtxt
+checkpoint
+checkpoints
+wandb
+*.pkl
+
+# Packaging
+/dist
+/build
+*.egg-info
+
+# Latex
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.run.xml
+*.synctex.gz
+*-blx.bib
+*.brf
+
+*.pdf
+/expt/**/serialization
+/notebooks
+/results
+*.tar.gz
+*_bak
+
+# per-machine project settings
+.env
+
+dask-worker-space
+
+# Data
+*.nc
+*.h5
+*.mat
+*.csv
+*.pickle
+*.tfrecord
+*.index
+meta.json
+*.npy
+artifacts

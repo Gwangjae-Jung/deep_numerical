@@ -1,0 +1,32 @@
+experiment:
+  batch_size:     4
+  test_size:      50
+  cuda_index:     0
+
+
+pde_dataset:
+  path:           "E:/PDE_datasets/from_pde_dataset/Darcy flow/Darcy241_2.npz"
+  # path:           "/ssd/PANGPANG/PDE_datasets/from_pde_dataset/Darcy flow/Darcy241_2.npz"
+  resolution:     241
+  file_index:     2
+  downsample:     4
+
+
+graph:
+  radius:         0.1
+  # No sampling in the test phase
+
+
+gno:
+  in_channels:      6
+  hidden_channels:  32
+  out_channels:     1
+  edge_channels:    6
+  n_layers:         6
+  lift_layer:       [64]
+  kernel_layer:     [128, 128]
+  project_layer:    [64]
+  activation:       "relu"
+
+
+train_prefix: "202406110042"

@@ -1,0 +1,21 @@
+experiment:
+  num_epochs:     300
+  batch_size:     16
+  learning_rate:  0.001
+  train_size:     800
+  val_size:       200
+  cuda_index:     0
+
+
+pde_dataset:
+  path:           "E:/PDE_datasets/from_pde_dataset/Darcy flow/Darcy241_1.npz"
+  # path:           "/ssd/PANGPANG/PDE_datasets/from_pde_dataset/Darcy flow/Darcy241_1.npz"
+  resolution:     241
+  file_index:     1
+  downsample:     8
+
+
+deeponet:
+  channels_branch:    [961, 512, 512, 256]
+  channels_trunk:     [2, 256, 256, 256]
+  activation_name:    "relu"
