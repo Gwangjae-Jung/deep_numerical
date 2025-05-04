@@ -1,8 +1,0 @@
-deepxde
-matplotlib
-numpy
-pathos
-scipy
-sklearn
-tensorflow
-torch
