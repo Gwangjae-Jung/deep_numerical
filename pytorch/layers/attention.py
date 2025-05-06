@@ -7,7 +7,7 @@ import  torch
 from    torch       import  nn
 from    torch_geometric.nn      import  MessagePassing
 
-from    ..utils     import  EINSUM_STRING
+from    ..utils     import  EINSUM_STRING, get_activation
 from    ..layers    import  MLP
 
 
@@ -18,6 +18,8 @@ __all__ = [
     "LinearCrossAttention",
     
     "VectorSelfAttention",
+    
+    "ModifiedMLP",
     
     "HyperLinearSelfAttention",
 ]
@@ -356,6 +358,86 @@ class VectorSelfAttention(MessagePassing):
         use_linear  = self.use_linear
         return f"VectorSelfAttention({channels=}, {n_heads=}, {use_softmax=}, {use_linear=})"
 
+
+##################################################
+##################################################
+class ModifiedMLP(nn.Module):
+    """## Modified MLP
+    
+    -----
+    ### Reference
+    https://epubs.siam.org/doi/epdf/10.1137/20M1318043
+    """
+    def __init__(
+            self,
+            in_channels:        int,
+            hidden_channels:    int,
+            out_channels:       int,
+            n_layers:           int = 4,
+            
+            activation_name:    str     = "relu",
+            activation_kwargs:  dict    = {},
+        ) -> Self:
+        super().__init__()
+        self.__in_channels     = in_channels
+        self.__hidden_channels = hidden_channels
+        self.__out_channels    = out_channels
+        self.__n_layers         = n_layers
+        self.network_basis1 = nn.Sequential(
+            nn.Linear(in_channels, hidden_channels),
+            get_activation(activation_name, **activation_kwargs),
+        )
+        self.network_basis2 = nn.Sequential(
+            nn.Linear(in_channels, hidden_channels),
+            get_activation(activation_name, **activation_kwargs),
+        )
+        self.network_trans = nn.ModuleList(
+            [
+                nn.Linear(in_channels, hidden_channels),
+                get_activation(activation_name, **activation_kwargs),
+            ] + [
+                nn.Sequential(
+                    nn.Linear(hidden_channels, hidden_channels),
+                    get_activation(activation_name, **activation_kwargs),
+                ) for _ in range(n_layers-1)
+            ]
+        )
+        self.network_coeff = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.Linear(hidden_channels, hidden_channels),
+                    get_activation(activation_name, **activation_kwargs),
+                ) for _ in range(n_layers)
+            ]
+        )
+        self.network_project = nn.Linear(hidden_channels, out_channels)
+        return
+    
+    
+    @property
+    def in_channels(self) -> int:
+        return self.__in_channels
+    @property
+    def hidden_channels(self) -> int:
+        return self.__hidden_channels
+    @property
+    def out_channels(self) -> int:
+        return self.__out_channels
+    @property
+    def n_layers(self) -> int:
+        return self.__n_layers
+    
+    
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
+        U = self.network_basis1.forward(X)
+        V = self.network_basis2.forward(X)
+        for cnt in range(self.__n_layers):
+            X       = self.network_trans[cnt].forward(X)
+            coeff   = self.network_coeff[cnt].forward(X)
+            X = (1-coeff)*U + coeff*V
+        out = self.network_project.forward(X)
+        return out
+    
 
 ##################################################
 ##################################################
