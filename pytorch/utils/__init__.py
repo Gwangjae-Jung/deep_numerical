@@ -37,10 +37,11 @@ from    ._quadrature        import  *
 from    ._runge_kutta       import  *
 from    ._grid              import  *
 
+from    ._autograd          import  *
+from    ._network           import  *
 
-from    ._autograd      import  *
-from    ._network       import  *
-
+from    ._dataloader        import  *
+from    ._normalizers       import  *
 
 from    ._uncategorized     import  *
 

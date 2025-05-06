@@ -1,6 +1,5 @@
+from    typing_extensions   import  Self
 import  torch
-
-
 
 
 ##################################################
@@ -14,25 +13,35 @@ __all__ = [
 ##################################################
 ##################################################
 class UnitGaussianNormalizer():
+    """Pointwise normalization of the input tensor `x`."""
     def __init__(
             self,
             x:      torch.Tensor,
             eps:    float           = 1e-12,
             device: torch.device    = torch.device('cpu')
-        ) -> None:
-        self.__mean = torch.mean(x, 0).to(device).view(-1)
-        self.__std = torch.std(x, 0).to(device).view(-1)
-        self.__eps = eps
+        ) -> Self:
+        self.__mean:    torch.Tensor    = torch.mean(x, 0).to(device).view(-1)
+        self.__std:     torch.Tensor    = torch.std(x, 0).to(device).view(-1)
+        self.__eps:     float           = eps
         return
+    
+    
+    @property
+    def mean(self) -> torch.Tensor:
+        return self.__mean
+    @property
+    def std(self) -> torch.Tensor:
+        return self.__std
     
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
+        """Normalize the input tensor `x`."""
         s = x.size()
         x = x.view(s[0], -1)
         x = (x - self.__mean) / (self.__std + self.__eps)
         x = x.view(s)
         return x
-    def decode(self, x: torch.Tensor, sample_idx: slice = None) -> torch.Tensor:
+    def decode(self, x: torch.Tensor, sample_idx: slice=None) -> torch.Tensor:
         if sample_idx is None:
             std  = self.__std + self.__eps # n
             mean = self.__mean
@@ -61,18 +70,25 @@ class UnitGaussianNormalizer():
 
 
 class GaussianNormalizer():
-    """
-    """
+    """Instance-wise normalization of the input tensor `x`."""
     def __init__(
-                    self,
-                    x:      torch.Tensor,
-                    eps:    float = 1e-12,
-                    device: torch.device = torch.device('cpu')
-        ) -> torch.Tensor:
-        self.__mean = torch.mean(x).to(device)
-        self.__std = torch.std(x).to(device)
-        self.__eps = eps
+            self,
+            x:      torch.Tensor,
+            eps:    float = 1e-12,
+            device: torch.device = torch.device('cpu')
+        ) -> Self:
+        self.__mean:    torch.Tensor    = torch.mean(x).to(device)
+        self.__std:     torch.Tensor    = torch.std(x).to(device)
+        self.__eps:     float           = eps
         return
+    
+    
+    @property
+    def mean(self) -> torch.Tensor:
+        return self.__mean
+    @property
+    def std(self) -> torch.Tensor:
+        return self.__std
     
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:

@@ -22,7 +22,7 @@ from    pytorch.numerical   import  distribution
 from    pytorch.numerical.solvers     import  FastSM_Boltzmann_VHS
 
 dtype:  torch.dtype     = torch.float64
-device: torch.device    = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
+device: torch.device    = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
 dtype_and_device = {'dtype': dtype, 'device': device}
 __dtype_str = str(dtype).split('.')[-1]
@@ -72,8 +72,9 @@ for VHS_ALPHA in [-2.0, -1.0, 0.0, 1.0]:
 
     # %%
     print(f"# Type 1. Maxwellian distribution")
-    T1__data:       list[torch.Tensor]  = []
-    T1__collision:  list[torch.Tensor]  = []
+    T1__data:   list[torch.Tensor]  = []
+    T1__gain:   list[torch.Tensor]  = []
+    T1__loss:   list[torch.Tensor]  = []
 
     T1__init: torch.Tensor = distribution.maxwellian_homogeneous(v_grid, *sample_q(T1__n_init))
     arr_f_1 = T1__init = normalize_density(T1__init, DELTA_V)
@@ -83,29 +84,34 @@ for VHS_ALPHA in [-2.0, -1.0, 0.0, 1.0]:
         ##### 1. Save the distribution at the previous time step
         T1__data.append(arr_f_1)
         ##### 2. Save the collision term at the previous time step
-        _col_1_fft = solver.compute_fft(None, arr_f_1_fft)
-        col_1 = torch.real(torch.fft.ifftn(_col_1_fft, **FFT_CONFIG))
-        T1__collision.append(col_1)
+        _gain_1_fft = solver.compute_gain_fft(None, arr_f_1_fft)
+        _loss_1_fft = solver.compute_loss_fft(None, arr_f_1_fft)
+        gain_1 = torch.real(torch.fft.ifftn(_gain_1_fft, **FFT_CONFIG))
+        loss_1 = torch.real(torch.fft.ifftn(_loss_1_fft, **FFT_CONFIG))
+        T1__gain.append(gain_1)
+        T1__loss.append(loss_1)
         ##### 3. Compute the distribution at the current time step
         arr_f_1_fft = solver.forward(0.0, arr_f_1_fft, DELTA_T, utils.one_step_RK4_classic)
         arr_f_1 = torch.real(torch.fft.ifftn(arr_f_1_fft, **FFT_CONFIG))
         
-    T1__data:       torch.Tensor    = torch.stack(T1__data, dim=1).cpu()
-    T1__collision:  torch.Tensor    = torch.stack(T1__collision, dim=1).cpu()
+    T1__data:   torch.Tensor    = torch.stack(T1__data, dim=1).cpu()
+    T1__gain:   torch.Tensor    = torch.stack(T1__gain, dim=1).cpu()
+    T1__loss:   torch.Tensor    = torch.stack(T1__loss, dim=1).cpu()
 
 
     print(f"The shape of the input data")
     print(f">>> {T1__data.shape}")
     print(f"The shape of the output data")
-    print(f">>> {T1__collision.shape}")
+    print(f">>> {T1__gain.shape}, {T1__loss.shape}")
 
     # %% [markdown]
     # Type 2. Sum of two Maxwellian distributions
 
     # %%
     print(f"# Type 2. Sum of two Maxwellian distributions")
-    T2__data:       list[torch.Tensor]  = []
-    T2__collision:  list[torch.Tensor]  = []
+    T2__data:   list[torch.Tensor]  = []
+    T2__gain:   list[torch.Tensor]  = []
+    T2__loss:   list[torch.Tensor]  = []
 
     T2__init: torch.Tensor = \
         0.5 * (
@@ -120,28 +126,33 @@ for VHS_ALPHA in [-2.0, -1.0, 0.0, 1.0]:
         ##### 1. Save the distribution at the previous time step
         T2__data.append(arr_f_2)
         ##### 2. Save the collision term at the previous time step
-        _col_2_fft = solver.compute_fft(None, arr_f_2_fft)
-        col_2 = torch.real(torch.fft.ifftn(_col_2_fft, **FFT_CONFIG))
-        T2__collision.append(col_2)
+        _gain_2_fft = solver.compute_gain_fft(None, arr_f_2_fft)
+        _loss_2_fft = solver.compute_loss_fft(None, arr_f_2_fft)
+        gain_2 = torch.real(torch.fft.ifftn(_gain_2_fft, **FFT_CONFIG))
+        loss_2 = torch.real(torch.fft.ifftn(_loss_2_fft, **FFT_CONFIG))
+        T2__gain.append(gain_2)
+        T2__loss.append(loss_2)
         ##### 3. Compute the distribution at the current time step
         arr_f_2_fft = solver.forward(0.0, arr_f_2_fft, DELTA_T, utils.one_step_RK4_classic)
         arr_f_2 = torch.real(torch.fft.ifftn(arr_f_2_fft, **FFT_CONFIG))
         
-    T2__data:       torch.Tensor    = torch.stack(T2__data, dim=1).cpu()
-    T2__collision:  torch.Tensor    = torch.stack(T2__collision, dim=1).cpu()
+    T2__data:   torch.Tensor    = torch.stack(T2__data, dim=1).cpu()
+    T2__gain:   torch.Tensor    = torch.stack(T2__gain, dim=1).cpu()
+    T2__loss:   torch.Tensor    = torch.stack(T2__loss, dim=1).cpu()
 
     print(f"The shape of the input data")
     print(f">>> {T2__data.shape}")
     print(f"The shape of the output data")
-    print(f">>> {T2__collision.shape}")
+    print(f">>> {T2__gain.shape}, {T2__loss.shape}")
 
     # %% [markdown]
     # Type 3. Perturbed Maxwellian distributions
 
     # %%
     print(f"# Type 3. Perturbed Maxwellian distributions")
-    T3__data:       list[torch.Tensor] = []
-    T3__collision:  list[torch.Tensor] = []
+    T3__data:   list[torch.Tensor] = []
+    T3__gain:   list[torch.Tensor] = []
+    T3__loss:   list[torch.Tensor] = []
 
     coeffs = sample_noise_quadratic(DIMENSION, V_MAX, T3__n_init, **dtype_and_device)
     quad = compute_quadratic_polynomial(v_grid, coeffs)
@@ -157,40 +168,47 @@ for VHS_ALPHA in [-2.0, -1.0, 0.0, 1.0]:
         ##### 1. Save the distribution at the previous time step
         T3__data.append(arr_f_3)
         ##### 2. Save the collision term at the previous time step
-        _col_3_fft = solver.compute_fft(None, arr_f_3_fft)
-        col_3 = torch.real(torch.fft.ifftn(_col_3_fft, **FFT_CONFIG))
-        T3__collision.append(col_3)
+        _gain_3_fft = solver.compute_gain_fft(None, arr_f_3_fft)
+        _loss_3_fft = solver.compute_loss_fft(None, arr_f_3_fft)
+        gain_3 = torch.real(torch.fft.ifftn(_gain_3_fft, **FFT_CONFIG))
+        loss_3 = torch.real(torch.fft.ifftn(_loss_3_fft, **FFT_CONFIG))
+        T3__gain.append(gain_3)
+        T3__loss.append(loss_3)
         ##### 3. Compute the distribution at the current time step
         arr_f_3_fft = solver.forward(0.0, arr_f_3_fft, DELTA_T, utils.one_step_RK4_classic)
         arr_f_3 = torch.real(torch.fft.ifftn(arr_f_3_fft, **FFT_CONFIG))
         
-    T3__data:       torch.Tensor    = torch.stack(T3__data, dim=1).cpu()
-    T3__collision:  torch.Tensor    = torch.stack(T3__collision, dim=1).cpu()
+    T3__data:   torch.Tensor    = torch.stack(T3__data, dim=1).cpu()
+    T3__gain:   torch.Tensor    = torch.stack(T3__gain, dim=1).cpu()
+    T3__loss:   torch.Tensor    = torch.stack(T3__loss, dim=1).cpu()
 
     print(f"The shape of the input data")
     print(f">>> {T3__data.shape}")
     print(f"The shape of the output data")
-    print(f">>> {T3__collision.shape}")
+    print(f">>> {T3__gain.shape}, {T3__loss.shape}")
 
     # %% [markdown]
     # Merge the data
 
     # %%
     print(f"# Merge the data")
-    data        = \
+    data    = \
         torch.concatenate((T1__data, T2__data, T3__data), dim=0)
-    collision   = \
-        torch.concatenate((T1__collision, T2__collision, T3__collision), dim=0)
+    gain    = \
+        torch.concatenate((T1__gain, T2__gain, T3__gain), dim=0)
+    loss    = \
+        torch.concatenate((T1__loss, T2__loss, T3__loss), dim=0)
 
     print(f"The shape of the input data")
     print(f">>> {data.shape}")
     print(f"The shape of the output data")
-    print(f">>> {collision.shape}")
+    print(f">>> {gain.shape}, {loss.shape}")
 
     # %%
     saved_data: dict[str, object] = {
         'input_distribution':   data,
-        'collision_term':       collision,
+        'collision_gain':       gain,
+        'collision_loss':       loss,
         
         'n_init':           3*NUM_INST,
         

@@ -4,7 +4,7 @@ from    platform                import  system
 from    pathlib                 import  Path
 from    numpy                   import  ndarray, load
 from    numpy.lib.npyio         import  NpzFile
-from    ...utils_main._dtype    import  PathLike
+from    ._dtype                 import  PathLike
 
 
 
@@ -21,8 +21,8 @@ __all__ = [
 ##################################################
 _sys = system()
 _root_list = {
-    'Windows':  Path("E:/PDE_datasets"),
-    'Linux':    Path("/ssd/PANGPANG"),
+    'Windows':  Path(r"E:/PDE_datasets"),
+    'Linux':    Path(r"/media/junseung/47a90e46-3a9d-467c-bbee-066752b68532/GWANGJAE/datasets"),
 }
 PDE_PATH__BURGERS: dict[str, Path] = {
     'R10':          Path("from_pde_dataset/Burgers equation/Burgers_R10.npz"),
@@ -52,11 +52,8 @@ class npzReader():
     By passing the path of an `npz` file to be loaded, this class generates an object which is ready to load data from the file.
     One can also close the file or change the path of the file to be loaded.
     """
-    def __init__(
-            self,
-            path:   PathLike,
-        ) -> Self:
-        self.npz: NpzFile   = load(path, allow_pickle = True)
+    def __init__(self, path: PathLike) -> Self:
+        self.npz: NpzFile = load(path, allow_pickle=True)
         return
 
     
@@ -74,10 +71,7 @@ class npzReader():
         return
     
     
-    def reset(
-            self,
-            path:   PathLike,
-        ) -> None:
+    def reset(self, path: PathLike) -> None:
         self.close_file()
         self.__init__(path)
         return
