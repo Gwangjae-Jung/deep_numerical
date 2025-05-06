@@ -67,7 +67,6 @@ TORCH_INITIALIZER_DICT: dict[str, Callable[[Tensor, Any], Tensor]] = {
 def count_parameters(models: Objects[nn.Module], complex_as_two: bool=True) -> Union[int, list[int]]:
     if not isinstance(models, Sequence):
         models = [models]
-    
     num_params: list[int] = []
     model: nn.Module
     for model in models:
@@ -75,8 +74,7 @@ def count_parameters(models: Objects[nn.Module], complex_as_two: bool=True) -> U
         for p in model.parameters():
             cnt += p.numel() * (1 + (complex_as_two and p.is_complex()))
         num_params.append(cnt)
-    
-    if len(models) == 1:
+    if len(models)==1:
         return num_params[0]
     else:
         return num_params
@@ -96,7 +94,6 @@ def initialize_weights(
     ) -> None:
     if not isinstance(models, Sequence):
         models = [models]
-    
     try:
         initializer = TORCH_INITIALIZER_DICT[init_name]
     except:
