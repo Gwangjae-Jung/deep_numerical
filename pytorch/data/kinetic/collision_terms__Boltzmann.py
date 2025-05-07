@@ -22,7 +22,7 @@ from    pytorch.numerical   import  distribution
 from    pytorch.numerical.solvers     import  FastSM_Boltzmann_VHS
 
 dtype:  torch.dtype     = torch.float64
-device: torch.device    = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+device: torch.device    = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
 # device: torch.device    = torch.device('cpu')
 
 dtype_and_device = {'dtype': dtype, 'device': device}
@@ -232,7 +232,7 @@ for VHS_ALPHA in [-2.0, -1.0, 0.0, 1.0]:
         'dtype_str':    __dtype_str,
     }
     file_dir = path_data / __dtype_str
-    file_name = f"Boltzmann__{DIMENSION}D__res{str(RESOLUTION).zfill(3)}__alpha{float(VHS_ALPHA):.1e}.pth"
+    file_name = f"Boltzmann__{DIMENSION}D__res{str(RESOLUTION).zfill(3)}__alpha{float(VHS_ALPHA):.1e}__part02.pth"
     if not Path.exists(file_dir):
         Path.mkdir(file_dir, parents=True)
     torch.save(saved_data, file_dir/file_name)
