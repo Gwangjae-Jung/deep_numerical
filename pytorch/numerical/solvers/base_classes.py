@@ -856,6 +856,16 @@ class FastSM_Boltzmann__Advanced(SpectralMethodBase):
         * `quad_order_lebedev` (`Optional[int]`)
             The number of the points required to do integration using Lebedev quadrature rule.
         """
+        warnings.warn(
+            ' '.join(
+                [
+                    "The class 'FastSM_Boltzmann__Advanced' does not perform as expected.",
+                    "Use the class 'FastSM_Boltzmann' instead.",
+                ]
+            ),
+            Warning
+        )
+        
         super().__init__(dimension, v_num_grid, v_max, x_num_grid, x_max, dtype=dtype, device=device)
         self._restitution:   float = \
             restitution if isinstance(restitution, float)\

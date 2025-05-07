@@ -167,7 +167,6 @@ class SpectralConv(nn.Module):
         
         # Linear transform on the Fourier modes
         for kernel_slice in product(*self.__kernel_slices):
-            print(Y_rfftn.shape, self.kernel[*kernel_slice].shape, X_rfftn[:, *kernel_slice].shape)
             Y_rfftn[:, *kernel_slice] = \
                 torch.einsum(self.__einsum_cmd, self.kernel[*kernel_slice], X_rfftn[:, *kernel_slice])
         

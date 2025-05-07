@@ -11,7 +11,9 @@ from    ..utils         import  *
 ##################################################
 class FFNO(nn.Module):
     """## Factorized Fourier Neural Operator (FFNO)
+    
     -----
+    ### Description
     The FFNO is a neural operator modelling integral operators with a skip connection, using the dimensionwise Fourier transform.
     
     Reference: https://arxiv.org/abs/2111.13802
@@ -45,22 +47,23 @@ class FFNO(nn.Module):
     """
     
     def __init__(
-                    self,
-                    n_modes:                Sequence[int],
-                    
-                    in_channels:            int,
-                    hidden_channels:        int,
-                    out_channels:           int,
-                    
-                    n_layers:               int,
-                    
-                    lifting_channels:       int = 256,
-                    projection_channels:    int = 256,
-                    
-                    expansion_factor:       float = 2,
-        ) -> None:
+            self,
+            n_modes:                Sequence[int],
+            
+            in_channels:            int,
+            hidden_channels:        int,
+            out_channels:           int,
+            
+            n_layers:               int,
+            
+            lifting_channels:       int = 256,
+            projection_channels:    int = 256,
+            
+            expansion_factor:       float = 2,
+        ) -> Self:
         """## The initializer of the class `FFNO`
-        ----
+        
+        -----
         ### Arguments
         
             1. `n_modes` (`ListData[int]`)
@@ -117,8 +120,7 @@ class FFNO(nn.Module):
                 
                 Checklist
                     (1) `projection_channels` should be a positive integer.
-        """        
-        
+        """
         super().__init__()
         
         for cnt, item in enumerate(n_modes, 1):
@@ -133,37 +135,37 @@ class FFNO(nn.Module):
         self.out_channels       = out_channels
         
         self.network_lifting    = LiftProject(
-                                                in_channels     = in_channels,
-                                                hidden_channels = lifting_channels,
-                                                out_channels    = hidden_channels,
-                                                dim_domain      = self.dim_domain
-                                    )
+            in_channels     = in_channels,
+            hidden_channels = lifting_channels,
+            out_channels    = hidden_channels,
+            dim_domain      = self.dim_domain
+        )
         self.network_projection = LiftProject(
-                                                in_channels     = hidden_channels,
-                                                hidden_channels = projection_channels,
-                                                out_channels    = out_channels,
-                                                dim_domain      = self.dim_domain
-                                    )
+            in_channels     = hidden_channels,
+            hidden_channels = projection_channels,
+            out_channels    = out_channels,
+            dim_domain      = self.dim_domain
+        )
         
         if n_layers <= 0:
             _network_fourier = None
         else:
             _network_fourier    = [
-                                    FactorizedFourierLayer(
-                                        n_modes             = n_modes,
-                                        hidden_channels     = hidden_channels,
-                                        expansion_factor    = expansion_factor,
-                                        activation          = "gelu"
-                                    )
-                                    for _ in range(n_layers - 1)
-                                ] + [
-                                    FactorizedFourierLayer(
-                                        n_modes             = n_modes,
-                                        hidden_channels     = hidden_channels,
-                                        expansion_factor    = expansion_factor,
-                                        activation          = "identity"
-                                    )
-                                ]
+                FactorizedFourierLayer(
+                    n_modes             = n_modes,
+                    hidden_channels     = hidden_channels,
+                    expansion_factor    = expansion_factor,
+                    activation          = "gelu"
+                )
+                for _ in range(n_layers - 1)
+            ] + [
+                FactorizedFourierLayer(
+                    n_modes             = n_modes,
+                    hidden_channels     = hidden_channels,
+                    expansion_factor    = expansion_factor,
+                    activation          = "identity"
+                )
+            ]
         self.network_fourier    = nn.Sequential(*_network_fourier)
                         
         return;

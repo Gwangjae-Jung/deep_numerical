@@ -316,7 +316,7 @@ class FastSM_Boltzmann_VHS__Advanced(FastSM_Boltzmann__Advanced):
     
     @override
     def set_positivity_constant(self, density: torch.Tensor) -> None:
-        aux_scale = 1.5
+        aux_scale = 1.1
         lower_bound = \
             density.reshape(-1) * \
             utils.area_of_unit_sphere(self._dimension) * \
