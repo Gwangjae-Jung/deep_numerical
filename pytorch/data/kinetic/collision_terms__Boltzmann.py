@@ -232,7 +232,7 @@ for VHS_ALPHA in [-2.0, -1.0, 0.0, 1.0]:
         'dtype_str':    __dtype_str,
     }
     file_dir = path_data / __dtype_str
-    file_name = f"Boltzmann__{DIMENSION}D__res{str(RESOLUTION).zfill(3)}__alpha{float(VHS_ALPHA):.1e}__part02.pth"
+    file_name = f"Boltzmann__{DIMENSION}D__res{str(RESOLUTION).zfill(3)}__alpha{float(VHS_ALPHA):.1e}__part03.pth"
     if not Path.exists(file_dir):
         Path.mkdir(file_dir, parents=True)
     torch.save(saved_data, file_dir/file_name)
