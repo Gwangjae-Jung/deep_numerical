@@ -28,19 +28,20 @@ dtype_and_device = {'dtype': dtype, 'device': device}
 __dtype_str = str(dtype).split('.')[-1]
 
 # %%
-DELTA_T:    float   = 0.001
+DELTA_T:    float   = 0.1
 MAX_T:      float   = 5.0
+NUM_T:      int     = 1 + int(MAX_T/DELTA_T + 0.1)
 NUM_INST:   int     = 20
-DATA_SIZE:  int     = NUM_INST * int(MAX_T/DELTA_T + 0.1)
+DATA_SIZE:  int     = NUM_INST * NUM_T
 
 T1__n_init  = T2__n_init    = T3__n_init    = NUM_INST
 T1__size    = T2__size      = T3__size      = DATA_SIZE
 
 DIMENSION:  int     = 2
-RESOLUTION: int     = (2**6)+1
+RESOLUTION: int     = 2**6
 V_MAX:      float   = 3.0/utils.LAMBDA
 DELTA_V:    float   = (2*V_MAX) / RESOLUTION
-V_WHERE_CLOSED: str = 'both' if RESOLUTION%2==1 else 'none'
+V_WHERE_CLOSED: str = 'left'
 
 v_grid = utils.velocity_grid(DIMENSION, RESOLUTION, V_MAX, where_closed=V_WHERE_CLOSED, **dtype_and_device)
 
@@ -83,7 +84,7 @@ for VHS_ALPHA in [-2.0, -1.0, 0.0]:
     arr_f_1 = T1__init = normalize_density(T1__init, DELTA_V)
     arr_f_1_fft: torch.Tensor = torch.fft.fftn(arr_f_1, **FFT_CONFIG)
 
-    for cnt in tqdm(range(T1__size//T1__n_init)):
+    for cnt in tqdm(range(NUM_T)):
         ##### 1. Save the distribution at the previous time step
         T1__data.append(arr_f_1)
         ##### 2. Save the collision term at the previous time step
@@ -94,8 +95,9 @@ for VHS_ALPHA in [-2.0, -1.0, 0.0]:
         T1__gain.append(gain_1)
         T1__loss.append(loss_1)
         ##### 3. Compute the distribution at the current time step
-        arr_f_1_fft = solver.forward(0.0, arr_f_1_fft, DELTA_T, utils.one_step_RK4_classic)
-        arr_f_1 = torch.real(torch.fft.ifftn(arr_f_1_fft, **FFT_CONFIG))
+        if cnt<NUM_T-1:
+            arr_f_1_fft = solver.forward(0.0, arr_f_1_fft, DELTA_T, utils.one_step_RK4_classic)
+            arr_f_1 = torch.real(torch.fft.ifftn(arr_f_1_fft, **FFT_CONFIG))
         
     T1__data:   torch.Tensor    = torch.stack(T1__data, dim=1).cpu()
     T1__gain:   torch.Tensor    = torch.stack(T1__gain, dim=1).cpu()
@@ -125,7 +127,7 @@ for VHS_ALPHA in [-2.0, -1.0, 0.0]:
     arr_f_2 = T2__init = normalize_density(T2__init, DELTA_V)
     arr_f_2_fft: torch.Tensor = torch.fft.fftn(arr_f_2, **FFT_CONFIG)
 
-    for cnt in tqdm(range(T2__size//T2__n_init)):
+    for cnt in tqdm(range(NUM_T)):
         ##### 1. Save the distribution at the previous time step
         T2__data.append(arr_f_2)
         ##### 2. Save the collision term at the previous time step
@@ -136,8 +138,9 @@ for VHS_ALPHA in [-2.0, -1.0, 0.0]:
         T2__gain.append(gain_2)
         T2__loss.append(loss_2)
         ##### 3. Compute the distribution at the current time step
-        arr_f_2_fft = solver.forward(0.0, arr_f_2_fft, DELTA_T, utils.one_step_RK4_classic)
-        arr_f_2 = torch.real(torch.fft.ifftn(arr_f_2_fft, **FFT_CONFIG))
+        if cnt<NUM_T-1:
+            arr_f_2_fft = solver.forward(0.0, arr_f_2_fft, DELTA_T, utils.one_step_RK4_classic)
+            arr_f_2 = torch.real(torch.fft.ifftn(arr_f_2_fft, **FFT_CONFIG))
         
     T2__data:   torch.Tensor    = torch.stack(T2__data, dim=1).cpu()
     T2__gain:   torch.Tensor    = torch.stack(T2__gain, dim=1).cpu()
@@ -166,7 +169,7 @@ for VHS_ALPHA in [-2.0, -1.0, 0.0]:
     arr_f_3 = T3__init = normalize_density(T3__init, DELTA_V)
     arr_f_3_fft: torch.Tensor = torch.fft.fftn(arr_f_3, **FFT_CONFIG)
 
-    for cnt in tqdm(range(T3__size//T3__n_init)):
+    for cnt in tqdm(range(NUM_T)):
         ##### 1. Save the distribution at the previous time step
         T3__data.append(arr_f_3)
         ##### 2. Save the collision term at the previous time step
@@ -177,8 +180,9 @@ for VHS_ALPHA in [-2.0, -1.0, 0.0]:
         T3__gain.append(gain_3)
         T3__loss.append(loss_3)
         ##### 3. Compute the distribution at the current time step
-        arr_f_3_fft = solver.forward(0.0, arr_f_3_fft, DELTA_T, utils.one_step_RK4_classic)
-        arr_f_3 = torch.real(torch.fft.ifftn(arr_f_3_fft, **FFT_CONFIG))
+        if cnt<NUM_T-1:
+            arr_f_3_fft = solver.forward(0.0, arr_f_3_fft, DELTA_T, utils.one_step_RK4_classic)
+            arr_f_3 = torch.real(torch.fft.ifftn(arr_f_3_fft, **FFT_CONFIG))
         
     T3__data:   torch.Tensor    = torch.stack(T3__data, dim=1).cpu()
     T3__gain:   torch.Tensor    = torch.stack(T3__gain, dim=1).cpu()
