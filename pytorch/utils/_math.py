@@ -54,10 +54,18 @@ def absolute_error(
     ) -> torch.Tensor:
     """Returns the instance-wise absolute error between the `preds` and `targets`.
     
-    -----
     Given to sequences `preds` and `targets` of shape `(N, ...)` (where `N` is the number of the instances), this function returns the array `error` of shape `(N,)`, where `error[k]` is the absolute error of `preds[k]` of order `ord` from `targets[k]` for `k` in `range(N)`.
     
-    -----
+    Arguments:
+        `preds` (`torch.Tensor`): The predictions.
+        `targets` (`torch.Tensor`): The targets.
+        `p` (`float` or `str`): The order of the error. If `p` is a string, it must be one of the following: 'inf', '1', '2'.
+        `dim` (`Sequence[int]`, optional): The dimensions to compute the error over. If `None`, all dimensions are used.
+        `scale` (`torch.Tensor`, optional): A scaling factor for the error. If `None`, no scaling is applied.
+    
+    Returns:
+        `torch.Tensor`: The tensor of the absolute errors.
+    
     ### Note
     To compute the error using the maximum function, pass `ord='inf'`.
     """
@@ -85,10 +93,17 @@ def relative_error(
     ) -> torch.Tensor:
     """Returns the instance-wise relative error between the `preds` and `targets`.
     
-    -----
     Given to sequences `preds` and `targets` of shape `(N, ...)` (where `N` is the number of the instances), this function returns the array `error` of shape `(N,)`, where `error[k]` is the relative error of `preds[k]` of order `ord` from `targets[k]` for `k` in `range(N)`.
     
-    -----
+    Arguments:
+        `preds` (`torch.Tensor`): The predictions.
+        `targets` (`torch.Tensor`): The targets.
+        `p` (`float` or `str`): The order of the error. If `p` is a string, it must be one of the following: 'inf', '1', '2'.
+        `dim` (`Sequence[int]`, optional): The dimensions to compute the error over. If `None`, all dimensions are used.
+    
+    Returns:
+        `torch.Tensor`: The tensor of the relative errors.
+    
     ### Note
     To compute the error using the maximum function, pass `ord='inf'`.
     """
