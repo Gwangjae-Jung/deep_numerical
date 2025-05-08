@@ -22,26 +22,27 @@ from    pytorch.numerical   import  distribution
 from    pytorch.numerical.solvers     import  FastSM_Boltzmann_VHS
 
 dtype:  torch.dtype     = torch.float64
-# device: torch.device    = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
-device: torch.device    = torch.device('cpu')
+device: torch.device    = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
+# device: torch.device    = torch.device('cpu')
 
 dtype_and_device = {'dtype': dtype, 'device': device}
 __dtype_str = str(dtype).split('.')[-1]
 
 # %%
-N_REPEAT:   int     = 10
+PART_INIT:  int     = 3
+N_REPEAT:   int     = 4
 
 DELTA_T:    float   = 0.1
 MAX_T:      float   = 5.0
 NUM_T:      int     = 1 + int(MAX_T/DELTA_T + 0.1)
-NUM_INST:   int     = 2
+NUM_INST:   int     = 5
 DATA_SIZE:  int     = NUM_INST * NUM_T
 
 T1__n_init  = T2__n_init    = T3__n_init    = NUM_INST
 T1__size    = T2__size      = T3__size      = DATA_SIZE
 
-DIMENSION:  int     = 2
-RESOLUTION: int     = 2**7
+DIMENSION:  int     = 3
+RESOLUTION: int     = 2**5
 V_MAX:      float   = 3.0/utils.LAMBDA
 DELTA_V:    float   = (2*V_MAX) / RESOLUTION
 V_WHERE_CLOSED: str = 'left'
@@ -55,7 +56,7 @@ sample_q: Callable[[int], tuple[torch.Tensor]] = \
     lambda batch_size: sample_quantities(DIMENSION, batch_size, **dtype_and_device)
 
 VHS_COEFF = 1 / utils.area_of_unit_sphere(DIMENSION)
-for part in range(1, 1+N_REPEAT):
+for part in range(PART_INIT, PART_INIT+N_REPEAT):
     print('+' + '='*30 + ' +')
     print(f"# part: {str(part).zfill(len(str(N_REPEAT)))}")
     for VHS_ALPHA in [0.0]:

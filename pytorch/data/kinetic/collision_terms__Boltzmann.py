@@ -38,8 +38,8 @@ DATA_SIZE:  int     = NUM_INST * NUM_T
 T1__n_init  = T2__n_init    = T3__n_init    = NUM_INST
 T1__size    = T2__size      = T3__size      = DATA_SIZE
 
-DIMENSION:  int     = 2
-RESOLUTION: int     = 2**6
+DIMENSION:  int     = 3
+RESOLUTION: int     = 2**5
 V_MAX:      float   = 3.0/utils.LAMBDA
 DELTA_V:    float   = (2*V_MAX) / RESOLUTION
 V_WHERE_CLOSED: str = 'left'
@@ -232,7 +232,7 @@ for VHS_ALPHA in [-2.0, -1.0, 0.0, 1.0]:
         'dtype_str':    __dtype_str,
     }
     file_dir = path_data / __dtype_str
-    file_name = f"Boltzmann__{DIMENSION}D__res{str(RESOLUTION).zfill(3)}__alpha{float(VHS_ALPHA):.1e}__part03.pth"
+    file_name = f"Boltzmann__{DIMENSION}D__res{str(RESOLUTION).zfill(3)}__alpha{float(VHS_ALPHA):.1e}__part01.pth"
     if not Path.exists(file_dir):
         Path.mkdir(file_dir, parents=True)
     torch.save(saved_data, file_dir/file_name)
