@@ -1,4 +1,4 @@
-from    typing                  import  *
+from    typing                  import  Sequence
 from    typing_extensions       import  Self
 
 import  torch

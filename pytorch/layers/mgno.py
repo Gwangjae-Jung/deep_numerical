@@ -1,9 +1,9 @@
-from    typing                  import  *
+from    typing                  import  Sequence, Union
 from    typing_extensions       import  Self
 
 import  torch
 from    torch                   import  nn
-from    torch_geometric.nn      import  MessagePassing, NNConv
+from    torch_geometric.nn      import  MessagePassing
 
 from    ..layers        import  MLP, GraphKernelLayer
 from    ..utils         import  get_activation

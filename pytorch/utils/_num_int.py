@@ -38,24 +38,20 @@ def integration_guass_legendre(
         dtype:          torch.dtype     = TORCH_DEFAULT_DTYPE,
         device:         torch.device    = TORCH_DEFAULT_DEVICE,
     ) -> torch.Tensor:
-    """Numerical integration on a compact interval using the Gauss-Legendre quadrature rule
+    """
+    ## Numerical integration on a compact interval using the Gauss-Legendre quadrature rule
     
-    -----
-    ### Description
     This function supports the numerical integration of a tensor-valued function `func` on a compact interval `[a, b]`, using the Gauss-Legendre quadrature rule of order `num_roots`.
     
-    -----
-    ### Arguments
-        * `num_roots` (`int`)
-            The number of roots of the Gauss-Legendre quadrature rule.
-        * `a` (`float`)
-            The lower bound of the interval.
-        * `b` (`float`)
-            The upper bound of the interval.
-        * `func` (`Callable[[torch.Tensor, object], torch.Tensor]`)
-            The integrand. The numeric input `r` of `func` should be a 1-dimensional tensor, and it should be implemented so that the summands are aligned in the last dimension.
-        * `func_kwargs` (`Optional[dict[str, object]]`)
-            The other arguments of `func`.
+    Arguments:
+        `num_roots` (`int`): The number of roots of the Gauss-Legendre quadrature rule.
+        `a` (`float`): The lower bound of the interval.
+        `b` (`float`): The upper bound of the interval.
+        `func` (`Callable[[torch.Tensor, object], torch.Tensor]`):  The integrand. The numeric input `r` of `func` should be a 1-dimensional tensor, and it should be implemented so that the summands are aligned in the last dimension.
+        `func_kwargs` (`Optional[dict[str, object]]`): The other arguments of `func`.
+    
+    Returns:
+        `torch.Tensor`: The result of the numerical integration.
     """
     roots, weights = roots_legendre_shifted(num_roots, a, b, dtype=dtype, device=device)
     func_vals = func(roots, **func_kwargs)
@@ -68,15 +64,21 @@ def integration_lebedev(
         dtype:              torch.dtype     = TORCH_DEFAULT_DTYPE,
         device:             torch.device    = TORCH_DEFAULT_DEVICE,
     ) -> torch.Tensor:
-    """Numerical integration on S^2 using the Lebedev quadrature rule
-    -----
+    """
+    ## Numerical integration on S2 using the Lebedev quadrature rule
     
-    ### Description
     This function supports the numerical integration of a complex-valued function `f`, using the Lebedev quadrature rule of order `quad_order_lebedev`.
     
-    -----
-    ### Note
     Currently, the parallel computation is not implemented, which is easy to be implemented.
+    
+    Arguments:
+        `f` (`Callable[[torch.Tensor], float]`): The integrand. The numeric input `r` of `func` should be a 1-dimensional tensor, and it should be implemented so that the summands are aligned in the last dimension.
+        `quad_order_lebedev` (`int`): The order of the Lebedev quadrature rule.
+        `dtype` (`torch.dtype`): The data type of the input tensor.
+        `device` (`torch.device`): The device on which the input tensor is located.
+    
+    Returns:
+        `torch.Tensor`: The result of the numerical integration.
     """
     roots, weights = roots_lebedev(quad_order_lebedev, dtype=dtype, device=device)
     return torch.sum(f(roots) * weights)
@@ -95,10 +97,9 @@ def integration_closed_Newton_Cotes(
         func_kwargs:    Optional[dict[str, object]] = {},
         degree:         int = 4,
     ) -> torch.Tensor:
-    """Numerical integration using the closed Newton-Cotes formula
+    """
+    ## Numerical integration using the closed Newton-Cotes formula
     
-    -----
-    ### Description
     This function supports the numerical integration of a tensor-valued function `func` on a compact interval `[a, b]`, using the closed Newton-Cotes formula of degree `degree`.
     Here, the number of the grid points on which `func` is evaluated is `degree+1`.
     The closed Newton-Cotes formula uses a uniform discretization of the compact interval `[a, b]` and Lagrange interpolation polynomials, and is exact for
@@ -121,6 +122,16 @@ def integration_closed_Newton_Cotes(
         * Error term of order `h**7`.
     
     Reference: [Wikipedia](https://en.wikipedia.org/wiki/Newton%E2%80%93Cotes_formulas#Closed_Newton%E2%80%93Cotes_formulas)
+    
+    Arguments:
+        `a` (`float`): The lower bound of the interval.
+        `b` (`float`): The upper bound of the interval.
+        `func` (`Callable[[torch.Tensor], torch.Tensor]`):  The integrand. The numeric input `r` of `func` should be a 1-dimensional tensor, and it should be implemented so that the summands are aligned in the last dimension.
+        `func_kwargs` (`Optional[dict[str, object]]`): The other arguments of `func`.
+        `degree` (`int`): The degree of the closed Newton-Cotes formula.
+    
+    Returns:
+        `torch.Tensor`: The result of the numerical integration.
     
     -----
     ### Implementation
@@ -161,10 +172,9 @@ def integration_open_Newton_Cotes(
         func_kwargs:    Optional[dict[str, object]] = {},
         degree:         int = 3,
     ) -> torch.Tensor:
-    """Numerical integration using the open Newton-Cotes formula
+    """
+    ## Numerical integration using the open Newton-Cotes formula
     
-    -----
-    ### Description
     This function supports the numerical integration of a tensor-valued function `func` on a compact interval `[a, b]`, using the open Newton-Cotes formula of degree `degree`.
     Here, the number of the grid points on which `func` is evaluated is `degree+1`.
     The open Newton-Cotes formula uses a uniform discretization of the compact interval `[a, b]` without the endpoints `a` and `b`, and Lagrange interpolation polynomials, and is exact for
@@ -187,6 +197,16 @@ def integration_open_Newton_Cotes(
         * Error term of order `h**5`.
     
     Reference: [Wikipedia](https://en.wikipedia.org/wiki/Newton%E2%80%93Cotes_formulas#Open_Newton%E2%80%93Cotes_formulas)
+    
+    Arguments:
+        `a` (`float`): The lower bound of the interval.
+        `b` (`float`): The upper bound of the interval.
+        `func` (`Callable[[torch.Tensor], torch.Tensor]`):  The integrand. The numeric input `r` of `func` should be a 1-dimensional tensor, and it should be implemented so that the summands are aligned in the last dimension.
+        `func_kwargs` (`Optional[dict[str, object]]`): The other arguments of `func`.
+        `degree` (`int`): The degree of the open Newton-Cotes formula.
+    
+    Returns:
+        `torch.Tensor`: The result of the numerical integration.
     
     -----
     ### Implementation
@@ -283,11 +303,21 @@ def integration_romberg(
         order:          int = 4,
         num_intervals:  int = 4,
     ) -> torch.Tensor:
-    """Numerical integration using the Romberg integration
+    """
+    ## Numerical integration using the Romberg integration
     
-    -----
-    ### Description
     This function supports the numerical integration of a tensor-valued function `func` on a compact interval `[a, b]`, using the Romberg integration of order `order`, a method inspired by the Richardson extrapolation and the trapezoid quadrature rule for smooth functions.
+    
+    Arguments:
+        `a` (`float`): The lower bound of the interval.
+        `b` (`float`): The upper bound of the interval.
+        `func` (`Callable[[torch.Tensor], torch.Tensor]`):  The integrand. The numeric input `r` of `func` should be a 1-dimensional tensor, and it should be implemented so that the summands are aligned in the last dimension.
+        `func_kwargs` (`Optional[dict[str, object]]`): The other arguments of `func`.
+        `order` (`int`): The order of the Romberg integration.
+        `num_intervals` (`int`): The number of intervals for the trapezoid rule.
+    
+    Returns:
+        `torch.Tensor`: The result of the numerical integration.
     """
     if order < 1:
         raise ValueError(f"'order' should be a positive even integer.")

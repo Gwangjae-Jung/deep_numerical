@@ -25,28 +25,19 @@ def compute_grad(
         retain_graph:   Optional[bool]  = None,
     ) -> torch.Tensor:
     """## Autograd for computing gradients
-    ### Computing gradients of functions which have computational graph.
     
-    -----
-    ### Arguments
-    @ `outputs` (`torch.Tensor`):
-        * A `torch.Tensor` object of dimension 1, which acts as an array of the values of a function of `inputs`.
-        * This function aims at computing the gradient of `outputs` at `inputs`.
-
-    @ `inputs` (`torch.Tensor`):
-        * A `torch.Tensor` object at which the gradient of `outputs` shall be computed.
-
-    3. `create_graph` (`bool`, default: `True`):
-        * See Appendix below.
+    Arguments:
+        `outputs` (`torch.Tensor`): A 1-dimensional tensor, which acts as an array of the values of a function of `inputs`. This function aims at computing the gradient of `outputs` at `inputs`.
         
-    4. `retain_graph` (`bool`, default: `None`):
-        * See Appendix below.
-        * When this parameter is not initialized, it is initialized to `create_graph` by default.
+        `inputs` (`torch.Tensor`): A tensor object at which the gradient of `outputs` shall be computed.
+
+        `create_graph` (`bool`, default: `True`): See Appendix below.
+        
+        `retain_graph` (`bool`, default: `None`): See Appendix below. When this parameter is not initialized, it is initialized to `create_graph` by default.
     
-    -----
-    ### Return
-    This function returns the gradient of `outputs` at `inputs`.
-    
+    Returns:
+        This function returns the gradient of `outputs` at `inputs`.
+        
     -----
     ### Remark
     1. (Dimensionality)
@@ -109,7 +100,6 @@ def compute_grad(
         retain_graph = create_graph
     
     # Compute the gradient
-    batch_size, output_dim = outputs.shape
     return_value =  torch.autograd.grad(
         outputs         = outputs,
         inputs          = inputs,
@@ -131,13 +121,15 @@ def compute_jacobian(
         points: torch.Tensor,
         kwargs: dict[str, Any] = {},
     ) -> torch.Tensor:
-    """Computes the Jacobian of a differentiable function using `vmap`.
+    """## Computes the Jacobian of a differentiable function using `vmap`.
     
-    -----
-    ### Arguments
-    * `func`: A function that takes a `k`-dimensional tensor and returns a `d`-dimensional tensor. Specifically, `func` should be defined as a funciton which maps a tensor of shape `(k,)` to a tensor of shape `(d,)`. `torch.func.vmap` will be used to vectorize the function.
-    * `points`: A tensor of shape `(B, d)`.
-    * `kwargs`: Optional additional arguments to pass to the function.
+    Arguments:
+        `func` (`Callable[[torch.Tensor, Any], torch.Tensor]`): A function that takes a `k`-dimensional tensor and returns a `d`-dimensional tensor. Specifically, `func` should be defined as a function which maps a tensor of shape `(k,)` to a tensor of shape `(d,)`. `torch.func.vmap` will be used to vectorize the function.
+        `points` (`torch.Tensor`): A tensor of shape `(B, d)`.
+        `kwargs` (`dict[str, Any]`, default: `{}`): Optional additional arguments to pass to the function.
+    
+    Returns:
+        A tensor of shape `(B, d, k)` representing the Jacobian of `func` at the given points.
     """
     return vmap(jacrev(func))(points, **kwargs) # Returns (B, d, k)
 

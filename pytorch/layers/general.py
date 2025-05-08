@@ -1,4 +1,4 @@
-from    typing                  import  *
+from    typing                  import  Sequence, Optional
 from    typing_extensions       import  Self
 
 from    math        import  prod
@@ -305,7 +305,7 @@ class PatchEmbedding(nn.Module):
         
         self.__dim_domain:  int         = dim_domain
         self.__in_channels: int         = in_channels
-        self.__patch_size:  Tuple[int]  = tuple(patch_size)
+        self.__patch_size:  tuple[int]  = tuple(patch_size)
         self.__dim_embed:   int         = in_channels * prod(patch_size) if dim_embed is None else dim_embed
         
         self.patch_embed:   nn.Module = getattr(nn, f"Conv{dim_domain}d")(

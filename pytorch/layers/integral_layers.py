@@ -1,7 +1,5 @@
-from    typing              import  *
+from    typing              import  Sequence, Optional, Union
 from    typing_extensions   import  Self
-
-from    math                import  prod
 
 import  torch
 from    torch.nn.functional import  grid_sample

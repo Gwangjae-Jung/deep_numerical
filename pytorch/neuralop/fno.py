@@ -30,28 +30,6 @@ class FourierNeuralOperator(BaseModule):
     Ignoring the Fourier modes of high frequencies, the Fourier Neural Operator reduces its quadratic computational complexity to quasilinear computational complexity.
     
     Reference: https://openreview.net/pdf?id=c8P9NQVtmnO
-
-    -----
-    ### Architecture
-    * Input: A `torch.Tensor` object of shape `(B, domain, d_in)`
-    * Output: A `torch.Tensor` object of shape `(B, domain, d_out)`
-        
-    1. Lift
-        * The input `X` is lifted to a feature space of dimension `hidden_channels`.
-    
-    2. Hidden layers (Fourier layers)
-        * A tensor `v_t` in the feature space passes a Fourier layer.
-        * A single Fourier layer consists of the following two subnetworks:
-            * Linear part
-                * Given `v_t`, this subnetwork computes a linear transform of `v_t`.
-                * In the implementation, it is done by `torch.einsum()`.
-            * Kernel integration
-                * Given `v_t`, this subnetwork computes the kernel integration with a kernel.
-                * Assuming that the kernel function is a function of displacement, the kernel integration can be done by linear transform in the Fourier space.
-        * After the above processes, the tensor passes an activation function, except for the last Fourier layer.
-    
-    3. Projection
-        * The tensor which passed all Fourier layers are projected to the space of dimension `out_channels`.
     
     -----
     ### Note
@@ -77,24 +55,18 @@ class FourierNeuralOperator(BaseModule):
         ) -> Self:
         """## The initializer of the class `FourierNeuralOperator`
         
-        ----
-        ### Arguments
-        * `n_modes` (`Sequence[int]`)
-            * The maximum degree of the Fourier modes to be preserved. To be precise, after performing the FFT, for the `i`-th Fourier transform, only the modes in `[-n_modes[i], +n_modes[i]]` will be preserved.
-            * [Checklist]
-                * Each entry should be a positive integer.
-                * Let `X` be an input tensor of shape `(B, s_1, ..., s_d, d_in)`. For the FFT to be computed, it is required that `s_i // 2 >= n_modes[i]`.
-            * Note that the length of `n_modes` is the dimension of the domain.
-                
-        * `in_channels` (`int`), `hidden_channels` (`int`), `out_channels` (`int`)
-            * The number of the features in the input, hidden, and output spaces, respectively.
-            * [Checklist]
-                * Each value should be a positive integer.
-        
-        * `lift_layer` (`Sequential[int]`, default: `(256)`), `n_layers` (`int`, default: `4`), and `project_layer` (`Sequential[int]`, default: `(256)`)
-            * The intermediate widths of the lift, hidden layers, and projection.
-            * [Checklist]
-                * Each argument should consist of positive integers.
+        Arguments:
+            `n_modes` (`Sequence[int]`):
+                * The maximum degree of the Fourier modes to be preserved. To be precise, after performing the FFT, for the `i`-th Fourier transform, only the modes in `[-n_modes[i], +n_modes[i]]` will be preserved.
+                * Note that the length of `n_modes` is the dimension of the domain.
+                    
+            `in_channels` (`int`): The number of the input channels.
+            `hidden_channels` (`int`): The number of the hidden channels.
+            `out_channels` (`int`): The number of the output channels.
+            
+            `lift_layer` (`Sequential[int]`, default: `(256)`): The numbers of channels inside the lift layer.
+            `n_layers` (`int`, default: `4`): The number of hidden layers.
+            `project_layer` (`Sequential[int]`, default: `(256)`): The numbers of channels inside the projection layer.
         """        
         super().__init__()
         warn_redundant_arguments(type(self), kwargs=kwargs)
@@ -137,8 +109,11 @@ class FourierNeuralOperator(BaseModule):
         
     def forward(self, X: torch.Tensor) -> torch.Tensor:
         """
-        ### Note
-        1. This class assumes that the input tensor `X` has the shape `(B, s_1, ..., s_d, C)`.
+        Arguments:
+            `X` (`torch.Tensor`): The input tensor of shape `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` is the size of the `i`-th dimension of the domain, and `C` is the number of channels.
+        
+        Returns:
+            `torch.Tensor`: The output tensor of shape `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` is the size of the `i`-th dimension of the domain, and `C` is the number of channels.
         """
         X = self.network_lift.forward(X)
         X = self.network_hidden.forward(X)
@@ -183,29 +158,7 @@ class FourierNeuralOperatorLite(BaseModule):
     Ignoring the Fourier modes of high frequencies, the Fourier Neural Operator reduces its quadratic computational complexity to quasilinear computational complexity.
     
     Reference: https://openreview.net/pdf?id=c8P9NQVtmnO
-
-    -----
-    ### Model architecture
-    * Input: A `torch.Tensor` object of shape `(B, domain, d_in)`
-    * Output: A `torch.Tensor` object of shape `(B, domain, d_out)`
-        
-    1. Lift
-        * The input `X` is lifted to a feature space of dimension `hidden_channels`.
     
-    2. Hidden layers (Fourier layers)
-        * A tensor `v_t` in the feature space passes a Fourier layer.
-        * A single Fourier layer consists of the following two subnetworks:
-            * Linear part
-                * Given `v_t`, this subnetwork computes a linear transform of `v_t`.
-                * In the implementation, it is done by `torch.einsum()`.
-            * Kernel integration
-                * Given `v_t`, this subnetwork computes the kernel integration with a kernel.
-                * Assuming that the kernel function is a function of displacement, the kernel integration can be done by linear transform in the Fourier space.
-        * After the above processes, the tensor passes an activation function, except for the last Fourier layer.
-    
-    3. Projection
-        * The tensor which passed all Fourier layers are projected to the space of dimension `out_channels`.
-
     -----
     ### Note
     Given `n_layers`, this class instantiates a single `FourierLayer` object and reuse it for `n_layers` times.
@@ -230,24 +183,18 @@ class FourierNeuralOperatorLite(BaseModule):
         ) -> Self:
         """## The initializer of the class `FourierNeuralOperatorLite`
         
-        ----
-        ### Arguments
-        @ `n_modes` (`Sequence[int]`)
-            * The maximum degree of the Fourier modes to be preserved. To be precise, after performing the FFT, for the `i`-th Fourier transform, only the modes in `[-n_modes[i], +n_modes[i]]` will be preserved.
-            * [Checklist]
-                * Each entry should be a positive integer.
-                * Let `X` be an input tensor of shape `(B, s_1, ..., s_d, d_in)`. For the FFT to be computed, it is required that `s_i // 2 >= n_modes[i]`.
-            * Note that the length of `n_modes` is the dimension of the domain.
-                
-        @ `in_channels` (`int`), `hidden_channels` (`int`), `out_channels` (`int`)
-            * The number of the features in the input, hidden, and output spaces, respectively.
-            * [Checklist]
-                * Each value should be a positive integer.
-        
-        @ `lift_layer` (`Sequential[int]`, default: `(256)`), `n_layers` (`int`, default: `4`), and `project_layer` (`Sequential[int]`, default: `(256)`)
-            * The intermediate widths of the lift, hidden layers, and projection.
-            * [Checklist]
-                * Each argument should consist of positive integers.
+        Arguments:
+            `n_modes` (`Sequence[int]`):
+                * The maximum degree of the Fourier modes to be preserved. To be precise, after performing the FFT, for the `i`-th Fourier transform, only the modes in `[-n_modes[i], +n_modes[i]]` will be preserved.
+                * Note that the length of `n_modes` is the dimension of the domain.
+                    
+            `in_channels` (`int`): The number of the input channels.
+            `hidden_channels` (`int`): The number of the hidden channels.
+            `out_channels` (`int`): The number of the output channels.
+            
+            `lift_layer` (`Sequential[int]`, default: `(256)`): The numbers of channels inside the lift layer.
+            `n_layers` (`int`, default: `4`): The number of hidden layers.
+            `project_layer` (`Sequential[int]`, default: `(256)`): The numbers of channels inside the projection layer.
         """        
         super().__init__()
         warn_redundant_arguments(type(self), kwargs=kwargs)
@@ -276,10 +223,10 @@ class FourierNeuralOperatorLite(BaseModule):
             self.activation     = get_activation(activation_name, activation_kwargs)
         ## Projection
         self.network_projection = MLP(
-                                        [hidden_channels] + project_layer + [out_channels],
-                                        activation_name     = activation_name,
-                                        activation_kwargs   = activation_kwargs
-                                    )
+            [hidden_channels] + project_layer + [out_channels],
+            activation_name     = activation_name,
+            activation_kwargs   = activation_kwargs
+        )
                         
         return
     

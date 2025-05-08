@@ -33,6 +33,16 @@ class GalerkinTypeSelfAttention(nn.Module):
             hidden_channels:    int,
             n_heads:            int = 1,
         ) -> Self:
+        """The initializer of the `GalerkinTypeSelfAttention` class.
+        
+        Arguments:
+            `dim_domain` (`int`):
+                * The dimension of the domain.
+            `hidden_channels` (`int`):
+                * The number of the hidden channels.
+            `n_heads` (`int`, default: `1`):
+                * The number of the heads in the self attention.
+        """
         # Check if the number of the hidden channels is divisible by the number of the heads
         if hidden_channels % n_heads != 0:
             raise ValueError(
@@ -107,6 +117,16 @@ class GalerkinTypeCrossAttention(nn.Module):
             hidden_channels:    int,        # Key and value
             n_heads:            int = 1,    # Common
         ) -> Self:
+        """The initializer of the `GalerkinTypeCrossAttention` class.
+        
+        Arguments:
+            `dim_domain` (`int`):
+                * The dimension of the domain.
+            `hidden_channels` (`int`):
+                * The number of the hidden channels.
+            `n_heads` (`int`, default: `1`):
+                * The number of the heads in the self attention.
+        """
         # Check if the number of the hidden channels is divisible by the number of the heads
         if hidden_channels % n_heads != 0:
             raise ValueError(
@@ -197,6 +217,24 @@ class GalerkinTypeEncoderBlockSelfAttention(nn.Module):
             mlp_activation_name:    str                 = "relu",
             mlp_activation_kwargs:  dict[str, object]   = {},
         ) -> Self:
+        """The initializer of the `GalerkinTypeEncoderBlockSelfAttention` class.
+        
+        Arguments:
+            `dim_domain` (`int`):
+                * The dimension of the domain.
+            `hidden_channels` (`int`):
+                * The number of the hidden channels.
+            `n_heads` (`int`, default: `1`):
+                * The number of the heads in the self attention.
+            `mlp_hidden_channels` (`Sequence[int]`, default: `None`):
+                * The number of the hidden channels in the MLP.
+                * If `None`, then `mlp_hidden_channels` is set to `[hidden_channels * 2]`.
+            `mlp_activation_name` (`str`, default: `"relu"`):
+                * The activation function name in the MLP.
+            `mlp_activation_kwargs` (`dict[str, object]`, default: `{}`):
+                * The keyword arguments for the activation function in the MLP.
+        """
+        # Check if the number of the hidden channels is divisible by the number of the heads
         if hidden_channels % n_heads != 0:
             raise ValueError(
                 f"The number of the heads in the self attention should divide the number of the hidden features. "
@@ -247,6 +285,25 @@ class GalerkinTypeEncoderBlockCrossAttention(nn.Module):
             mlp_activation_name:    str                 = "relu",
             mlp_activation_kwargs:  dict[str, object]   = {},
         ) -> Self:
+        """The initializer of the `GalerkinTypeEncoderBlockCrossAttention` class.
+        
+        Arguments:
+            `dim_input_domain` (`int`):
+                * The dimension of the input domain.
+            `dim_query_domain` (`int`):
+                * The dimension of the query domain.
+            `hidden_channels` (`int`):
+                * The number of the hidden channels.
+            `n_heads` (`int`, default: `1`):
+                * The number of the heads in the self attention.
+            `mlp_hidden_channels` (`Sequence[int]`, default: `None`):
+                * The number of the hidden channels in the MLP.
+                * If `None`, then `mlp_hidden_channels` is set to `[hidden_channels * 2]`.
+            `mlp_activation_name` (`str`, default: `"relu"`):
+                * The activation function name in the MLP.
+            `mlp_activation_kwargs` (`dict[str, object]`, default: `{}`):
+                * The keyword arguments for the activation function in the MLP.
+        """
         if hidden_channels % n_heads != 0:
             raise ValueError(
                 f"The number of the heads in the self attention should divide the number of the hidden features. "
@@ -274,16 +331,15 @@ class GalerkinTypeEncoderBlockCrossAttention(nn.Module):
     
     def forward(self, U: torch.Tensor, X: torch.Tensor) -> torch.Tensor:
         """
-        ### Arguments
-        * `U` (`torch.Tensor`)
-            * `U` is the embedding of the input function.
-            * `U` has the shape `(B, *__domain__, C)`.
-            * `U` is input to the key map and the value map.
-        
-        * `X` (`torch.Tensor`)
-            * `X` is the 3-tensor saving the coordinates of the query points.
-            * `X` has the shape `(B, size(__domain__), dim(__domain__))`.
-            * `X` is input to the query map.
+        Arguments:
+            `U` (`torch.Tensor`):
+                * `U` is the embedding of the input function.
+                * `U` has the shape `(B, *__domain__, C)`.
+                * `U` is input to the key map and the value map.
+            `X` (`torch.Tensor`):
+                * `X` is the 3-tensor saving the coordinates of the query points.
+                * `X` has the shape `(B, size(__domain__), dim(__domain__))`.
+                * `X` is input to the query map.
         """
         U = U + self.ca.forward(U, X)
         U = U + self.mlp.forward(U)

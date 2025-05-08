@@ -1,4 +1,4 @@
-from    typing                  import  *
+from    typing                  import  Sequence
 from    typing_extensions       import  Self
 
 from    math        import  prod
@@ -44,6 +44,18 @@ class LinearSelfAttention(nn.Module):
             hidden_channels:    int,
             n_heads:            int = 1,
         ) -> Self:
+        """The initializer of `LinearSelfAttention`.
+        
+        Arguments:
+            `dim_domain` (`int`):
+                * The dimension of the domain in which the points exist.
+                * `dim_domain` is used to compute the einsum command.
+            `hidden_channels` (`int`):
+                * The number of the hidden channels.
+                * `hidden_channels` is used to compute the einsum command.
+            `n_heads` (`int`, default: `1`):
+                * The number of the heads in the attention layer.
+        """
         # Check if the number of the hidden channels is divisible by the number of the heads
         if hidden_channels % n_heads != 0:
             raise ValueError(
@@ -84,6 +96,14 @@ class LinearSelfAttention(nn.Module):
     
     
     def forward(self, X: torch.Tensor) -> torch.Tensor:
+        """The forward propagation of `LinearSelfAttention`.
+        
+        Arguments:
+            `X` (`torch.Tensor`): The input tensor.
+        
+        Returns:
+            `torch.Tensor`: The linear self-attention of the input tensor `X`.
+        """
         # Map to the query/key/value spaces
         X_query = torch.einsum(self.einsum_command, [X, self.sa_query])
         X_key   = torch.einsum(self.einsum_command, [X, self.sa_key])
@@ -125,6 +145,18 @@ class LinearCrossAttention(nn.Module):
             hidden_channels:    int,        # Key and value
             n_heads:            int = 1,    # Common
         ) -> Self:
+        """The initializer of `LinearCrossAttention`.
+        
+        Arguments:
+            `dim_domain` (`int`):
+                * The dimension of the domain in which the points exist.
+                * `dim_domain` is used to compute the einsum command.
+            `hidden_channels` (`int`):
+                * The number of the hidden channels.
+                * `hidden_channels` is used to compute the einsum command.
+            `n_heads` (`int`, default: `1`):
+                * The number of the heads in the attention layer.
+        """
         # Check if the number of the hidden channels is divisible by the number of the heads
         if hidden_channels % n_heads != 0:
             raise ValueError(
@@ -166,17 +198,22 @@ class LinearCrossAttention(nn.Module):
     
     
     def forward(self, U: torch.Tensor, X: torch.Tensor) -> torch.Tensor:
-        """
-        ### Arguments
-        * `U` (`torch.Tensor`)
-            * `U` is the embedding of the input function.
-            * `U` has the shape `(B, *__domain__. C)`.
-            * `U` is input to the key map and the value map.
+        """The forward propagation of `LinearCrossAttention`.
         
-        9 `X` (`torch.Tensor`)
-            * `X` is the 3-tensor saving the coordinates of the query points.
-            * `X` has the shape `(B, size(__domain__), dim(__domain__))`.
-            * `X` is input to the query map.
+        Arguments:
+            `U` (`torch.Tensor`):
+                * `U` is the embedding of the input function.
+                * `U` has the shape `(B, *shape_of_domain, C)`.
+                * `U` is input to the key map and the value map.
+        
+            `X` (`torch.Tensor`):
+                * `X` is a tensor saving the coordinates of the query points.
+                * `X` has the shape `(B, *shape_of_domain, dim_domain)`.
+                * `X` is input to the query map.
+        
+        Returns:
+            `torch.Tensor`:
+                * A `torch.Tensor` object of shape `(B, *shape_of_domain, C)`.
         """
         # Map to the query/key/value spaces
         X_query = torch.einsum(self.einsum_command, [X, self.ca_query])
@@ -189,11 +226,17 @@ class LinearCrossAttention(nn.Module):
         
         # Compute the Galerkin-type self-attention
         num_points = prod(U.shape[1: 1 + self.__dim_domain])
-        U_kv = torch.einsum(f"b{self.einsum_domain}hd,b{self.einsum_domain}he->bhde", [U_key,   U_value ])
-        U_sa = torch.einsum(f"b{self.einsum_domain}hd,bhde->b{self.einsum_domain}eh", [X_query, U_kv    ])
-        U_sa = (U_sa / num_points).reshape(U.shape)
+        U_kv = torch.einsum(
+            f"b{self.einsum_domain}hd,b{self.einsum_domain}he->bhde",
+            U_key, U_value,
+        )
+        U_ca = torch.einsum(
+            f"b{self.einsum_domain}hd,bhde->b{self.einsum_domain}eh",
+            X_query, U_kv,
+        )
+        U_ca = (U_ca/num_points).reshape(U.shape)
         
-        return U_sa
+        return U_ca
 
     
     def __repr__(self) -> str:
@@ -224,6 +267,25 @@ class VectorSelfAttention(MessagePassing):
             use_softmax:    bool = True,
             use_linear:     bool = True,
         ) -> Self:
+        """The initializer of `VectorSelfAttention`.
+        
+        Arguments:
+            `channels` (`int`):
+                * The number of the hidden channels.
+                * `channels` is used to compute the einsum command.
+            `n_heads` (`int`):
+                * The number of the heads in the attention layer.
+            `pos_encoder` (`nn.Module`):
+                * The positional encoder.
+                * `pos_encoder` is used to compute the positional encoding.
+            `use_softmax` (`bool`, default: `True`):
+                * If `True`, the softmax will be used in the attention layer.
+                * If `False`, the softmax will not be used in the attention layer.
+            `use_linear` (`bool`, default: `True`):
+                * If `True`, the linear layer will be used as a skip connection.
+                * If `False`, the linear layer will not be used as a skip connection.
+        """
+        # Check if the number of the hidden channels is divisible by the number of the heads
         # Initialization begins
         super().__init__(aggr='sum')
         
@@ -286,19 +348,19 @@ class VectorSelfAttention(MessagePassing):
             edge_index: torch.LongTensor,
             position:   torch.Tensor,
         ) -> torch.Tensor:
-        """## The forward method of `VectorSelfAttention`
+        """The forward method of `VectorSelfAttention`
         
-        -----
-        ### Arguments
+        Arguments:
+            `node_attr` (`torch.Tensor`):
+                * A `torch.Tensor` object of shape `(N, D)`, where `N` is the number of the points and `D` is the number of the input channels. Note that there is not dimension for the batch, which is in accordance with the operation of `torch_geometric`.
+            `edge_index` (`torch.LongTensor`):
+                * A `torch.LongTensor` object of shape `(E, 2)`, where `E` is the number of the edges.
+            `position` (`torch.Tensor`):
+                * A `torch.Tensor` object of shape `(N, k)`, where `k` is the dimension of the physical domain.
         
-        @ `node_attr` (`torch.Tensor`)
-            * A `torch.Tensor` object of shape `(N, D)`, where `N` is the number of the points and `D` is the number of the input channels. Note that there is not dimension for the batch, which is in accordance with the operation of `torch_geometric`.
-        
-        @ `edge_index` (`torch.LongTensor`)
-            * A `torch.LongTensor` object of shape `(E, 2)`, where `E` is the number of the edges.
-        
-        @ `position` (`torch.Tensor`)
-            * A `torch.Tensor` object of shape `(N, k)`, where `k` is the dimension of the physical domain.
+        Returns:
+            `torch.Tensor`:
+                * A `torch.Tensor` object of shape `(N, D)`, where `N` is the number of the points and `D` is the number of the output channels.
         """
         # Map to the query/key/value spaces (resultant shape: `(N, hidden_channels)`)
         query   = torch.einsum(self.einsum_command, [node_attr, self.sa_query]).reshape(-1, self.channels)

@@ -14,6 +14,7 @@ This submodule provides some classes of neural operators which can be used to ap
 * (UNSTABLE) Multipole Graph Neural Operator
 """
 from    .fno    import  *
+from    .ffno   import  *
 from    .onet   import  *
 from    .gt     import  *
 from    .gnot   import  *
