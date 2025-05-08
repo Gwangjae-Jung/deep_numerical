@@ -128,8 +128,9 @@ class FactorizedSpectralConv(nn.Module):
         self.__einsum_strings:  list[str]   = []
         domain_string = EINSUM_STRING[:self.__dim_domain]
         for d in range(self.__dim_domain):
-            domain_string__d = domain_string
+            domain_string__d = list(domain_string)
             domain_string__d[d] = 'r'
+            domain_string__d = ''.join(domain_string__d)
             self.__einsum_strings.append(
                 f"rij, b{domain_string__d}j -> b{domain_string__d}i"
             )
