@@ -114,14 +114,15 @@ class SeparableSpectralConv(nn.Module):
                 
         # Set `self.__kernel_slices`
         self.__kernel_slices:  list[list[slice]] = []
-        for k in range(self.dim_domain-1):
+        for k in range(self.dim_domain):
             n_modes_front  = (self.__n_modes[k]+1) // 2
             n_modes_back   = self.__n_modes[k] - n_modes_front
-            self.__kernel_slices.append([
-                slice(None, n_modes_front, None),
-                slice(-n_modes_back, None, None)
-            ])
-        self.__kernel_slices.append([ slice(None, self.__kernel_shape[-1], None) ])
+            _slices: list[slice]
+            if k<self.dim_domain-1:
+                _slices = [slice(None, n_modes_front, None), slice(-n_modes_back, None, None)]
+            else:
+                _slices = [slice(None, n_modes_front, None)]
+            self.__kernel_slices.append(_slices)
         
         return
     
