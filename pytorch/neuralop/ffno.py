@@ -1,191 +1,126 @@
-from    typing          import  *
+from    typing              import  Sequence
+from    typing_extensions   import  Self
 
 import  torch
 from    torch           import  nn
 
-from    ..layers        import  LiftProject, FactorizedFourierLayer
-from    ..utils         import  *
+from    ..layers        import  MLP, FactorizedFourierLayer
+from    ..utils         import  get_activation, warn_redundant_arguments
 
 
 ##################################################
 ##################################################
-class FFNO(nn.Module):
+__all__: list[str] = [
+    "FactorizedFourierNeuralOperator", "FFNO"
+]
+
+
+##################################################
+##################################################
+class FactorizedFourierNeuralOperator(nn.Module):
     """## Factorized Fourier Neural Operator (FFNO)
     
     -----
     ### Description
     The FFNO is a neural operator modelling integral operators with a skip connection, using the dimensionwise Fourier transform.
     
-    Reference: https://arxiv.org/abs/2111.13802
-
-    -----
-    ### Model architecture
-    
-    1. A tensor-type input data `X` of shape `(B, C, shape_of_domain)` is given, where\n
-        (1) `B` is the batch size\n
-        (2) `C` is the number of the input channels\n
-        (3) `shape_of_domain` is the shape of the domain\n
-    
-    2. (Lift)
-        The input `X` is lifted upward to another space, whose dimension is `hidden_channels`
-    
-    3. (Multiple passes of Fourier layers)
-        The lifted tensor `v_t` passes `n_layers` times of distinct factorized Fourier layers, each of which has the same architecture.
-        A single Fourier layer consists of the following two subnetworks:
-        (1) Kernel integration
-            Given `v_t`, this subnetwork computes the kernel integration with a kernel.
-            This shall be done as a pointwise linear transform in the frequency domain, rather than the integration in the spatial domain.
-            By a pointwise map we mean that the map is defined for each point, rather than globally.
-        (2) Linear part
-            Given `v_t`, this subnetwork passes `v_t` as the output, acting as a skip connection.
-        After the above processes, the tensor passes a nonlinearity, except for the last factorized Fourier layer.
-    
-    4. (Projection)
-        The tensor which passed all Fourier layers are projected to the space of dimension `out_channels`.
-        
-    5. The projected tensor is returned as the result of the forward propagation.
+    Reference: https://openreview.net/forum?id=tmIiMPl4IPa
     """
     
     def __init__(
             self,
-            n_modes:                Sequence[int],
+            n_modes:            Sequence[int],
+
+            in_channels:        int,
+            hidden_channels:    int,
+            out_channels:       int,
+
+            lift_layer:         Sequence[int]   = [256],
+            n_layers:           int             = 4,
+            project_layer:      Sequence[int]   = [256],
+
+            activation_name:    str                 = "relu",
+            activation_kwargs:  dict[str, object]   = {},
             
-            in_channels:            int,
-            hidden_channels:        int,
-            out_channels:           int,
-            
-            n_layers:               int,
-            
-            lifting_channels:       int = 256,
-            projection_channels:    int = 256,
-            
-            expansion_factor:       float = 2,
+            **kwargs,
         ) -> Self:
         """## The initializer of the class `FFNO`
         
-        -----
-        ### Arguments
-        
-            1. `n_modes` (`ListData[int]`)
-                This is a list or tuple of integers whose `i`-th entry denotes the number of the maximum nodes to be kept along the `i`-th variable.
-                
-                Checklist
-                    (1) Each entry should be a positive integer.
-                    (2) After the instantiation of an object of this class, the shape of the tensor `X` whose forward pass shall be coputed should be of the shape `(batch_size, num_channels, __any_shape_matching_n_modes__)` and should be large enough for sampling Fourier modes.
-                
-                Note that the length of `n_modes` is the dimension of the domain.
+        Arguments:
+            `n_modes` (`Sequence[int]`):
+                * The maximum degree of the Fourier modes to be preserved. To be precise, after performing the FFT, for the `i`-th Fourier transform, only the modes in `[-n_modes[i], +n_modes[i]]` will be preserved.
+                * Note that the length of `n_modes` is the dimension of the domain.
                     
-            2. `in_channels` (`int`)
-                The number of the channels of the input tensor, denoted by `d_a`.
-                This is a required argument to determine the lifting.
-                
-                Checklist
-                    (1) `in_channels` should be a positive integer.
+            `in_channels` (`int`): The number of the input channels.
+            `hidden_channels` (`int`): The number of the hidden channels.
+            `out_channels` (`int`): The number of the output channels.
             
-            3. `hidden_channels` (`int`)
-                The number of the channels of the tensors passed between the lifting and the projection, denoted by `d_v`.
-                This is a required argument to determine each Fourier layer.
-                
-                Checklist
-                    (1) `hidden_channels` should be a positive integer.
-                    
-            4. `out_channels` (`int`)
-                The number of the channels of the output tensor, denoted by `d_u`.
-                This is a required argument to determine the projection.
-                
-                Checklist
-                    (1) `out_channels` should be a positive integer.
-            
-            5. `expansion_factor` (`float`)
-                The factor in which the number of channels will be expanded in the first affine transform in the factorized Fourier layer.
-                
-                Checklist
-                    (1) `int(expansion_factor * hidden_channels)` should be a positive integer.
-            
-            6. `n_layers` (`int`)
-                The number of the Fourier layers instantiated in this object, denoted by `T`.
-                This is a required argument to determine the depth of the entire network.
-                
-                Checklist
-                    (1) `n_layers` should be a positive integer.
-            
-            7. `lifting_channels` (`int`, default: `256`)
-                The number of the channels in the lift.
-                
-                Checklist
-                    (1) `lifting_channels` should be a positive integer.
-                    
-            8. `projection_channels` (`int`, default: `256`)
-                The number of the channels in the projection.
-                
-                Checklist
-                    (1) `projection_channels` should be a positive integer.
+            `lift_layer` (`Sequential[int]`, default: `(256)`): The numbers of channels inside the lift layer.
+            `n_layers` (`int`, default: `4`): The number of hidden layers.
+            `project_layer` (`Sequential[int]`, default: `(256)`): The numbers of channels inside the projection layer.
         """
         super().__init__()
+        warn_redundant_arguments(type(self), kwargs)
         
+        # Check the argument validity
         for cnt, item in enumerate(n_modes, 1):
             if not (type(item) == int and item > 0):
                 raise RuntimeError(f"'k_max[{cnt}]' is chosen {item}, which is not positive.")
         
-        self.n_modes            = n_modes
-        self.dim_domain         = len(n_modes)
+        # Save some member variables for representation
+        self.__dim_domain = len(n_modes)
         
-        self.in_channels        = in_channels
-        self.hidden_channels    = hidden_channels
-        self.out_channels       = out_channels
-        
-        self.network_lifting    = LiftProject(
-            in_channels     = in_channels,
-            hidden_channels = lifting_channels,
-            out_channels    = hidden_channels,
-            dim_domain      = self.dim_domain
+        # Define the subnetworks
+        ## Lift
+        self.network_lift   = MLP(
+            [in_channels] + lift_layer + [hidden_channels],
+            activation_name     = activation_name,
+            activation_kwargs   = activation_kwargs
         )
-        self.network_projection = LiftProject(
-            in_channels     = hidden_channels,
-            hidden_channels = projection_channels,
-            out_channels    = out_channels,
-            dim_domain      = self.dim_domain
-        )
-        
+        ## Hidden layers
+        self.network_hidden: torch.nn.Sequential = torch.nn.Sequential()
         if n_layers <= 0:
-            _network_fourier = None
+            self.network_hidden.apply(torch.nn.Identity())
         else:
-            _network_fourier    = [
-                FactorizedFourierLayer(
-                    n_modes             = n_modes,
-                    hidden_channels     = hidden_channels,
-                    expansion_factor    = expansion_factor,
-                    activation          = "gelu"
-                )
-                for _ in range(n_layers - 1)
-            ] + [
-                FactorizedFourierLayer(
-                    n_modes             = n_modes,
-                    hidden_channels     = hidden_channels,
-                    expansion_factor    = expansion_factor,
-                    activation          = "identity"
-                )
-            ]
-        self.network_fourier    = nn.Sequential(*_network_fourier)
+            __fl_kwargs = {'n_modes': n_modes, 'in_channels': hidden_channels}
+            self.network_hidden.append(FactorizedFourierLayer(**__fl_kwargs))
+            for _ in range(n_layers-1):
+                self.network_hidden.append(get_activation(activation_name, activation_kwargs))
+                self.network_hidden.append(FactorizedFourierLayer(**__fl_kwargs))
+        ## Projection
+        self.network_projection = MLP(
+            [hidden_channels] + project_layer + [out_channels],
+            activation_name     = activation_name,
+            activation_kwargs   = activation_kwargs
+        )
                         
-        return;
+        return
     
     
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        X = self.network_lifting(X)
-        X = self.network_fourier(X)
+        """
+        Arguments:
+            `X` (`torch.Tensor`): The input tensor of shape `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` is the size of the `i`-th dimension of the domain, and `C` is the number of channels.
+        
+        Returns:
+            `torch.Tensor`: The output tensor of shape `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` is the size of the `i`-th dimension of the domain, and `C` is the number of channels.
+        """
+        X = self.network_lift(X)
+        X = self.network_hidden(X)
         X = self.network_projection(X)
         return X
     
     
-    def __name__(self, full: bool = True) -> str:
-        if full:
-            return f"Factorized Fourier neural operator ({self.dim_domain}D)"
-        else:
-            return f"FFNO ({self.dim_domain}D)"
-
-
+    @property
+    def dim_domain(self) -> int:
+        return self.__dim_domain
 
 
 ##################################################
 ##################################################
+FFNO = FactorizedFourierNeuralOperator
+
+
+##################################################
+##################################################
+# End of file

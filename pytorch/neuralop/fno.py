@@ -71,7 +71,6 @@ class FourierNeuralOperator(BaseModule):
         super().__init__()
         warn_redundant_arguments(type(self), kwargs=kwargs)
         
-        
         # Check the argument validity
         for cnt, item in enumerate(n_modes, 1):
             if not (type(item) == int and item > 0):
@@ -94,7 +93,7 @@ class FourierNeuralOperator(BaseModule):
         else:
             __fl_kwargs = {'n_modes': n_modes, 'in_channels': hidden_channels}
             self.network_hidden.append(FourierLayer(**__fl_kwargs))
-            for _ in range(n_layers - 1):
+            for _ in range(n_layers-1):
                 self.network_hidden.append(get_activation(activation_name, activation_kwargs))
                 self.network_hidden.append(FourierLayer(**__fl_kwargs))
         ## Projection
@@ -119,25 +118,6 @@ class FourierNeuralOperator(BaseModule):
         X = self.network_hidden.forward(X)
         X = self.network_projection.forward(X)
         return X
-        
-    
-    def __repr__(self) -> str:
-        msg: list[str] = []
-        msg.append(f"FourierNeuralOperator(")
-        msg.append(f"\tlift:    {self.network_lift}")
-        
-        msg = \
-                f"FourierNeuralOperator(\n" \
-                f"    lift:       {self.network_lift}\n" \
-                f"    hidden:     (\n"
-        for md in self.network_hidden:
-            msg += \
-                f"                     {md},\n"
-        msg += \
-                f"                ),\n" \
-                f"    projection: {self.network_projection}\n" \
-                f")"
-        return msg
     
     
     @property
@@ -207,7 +187,6 @@ class FourierNeuralOperatorLite(BaseModule):
         # Save some member variables for representation
         self.__dim_domain       = len(n_modes)
         self.__n_layers         = n_layers
-        self.__activation_name  = activation_name
         
         # Define the subnetworks
         ## Lift
@@ -219,7 +198,7 @@ class FourierNeuralOperatorLite(BaseModule):
         ## Hidden layers
         self.network_hidden     = torch.nn.Identity()
         if n_layers > 0:
-            self.network_hidden = FourierLayer(n_modes = n_modes, channels = hidden_channels)
+            self.network_hidden = FourierLayer(n_modes=n_modes, channels=hidden_channels)
             self.activation     = get_activation(activation_name, activation_kwargs)
         ## Projection
         self.network_projection = MLP(
@@ -243,15 +222,6 @@ class FourierNeuralOperatorLite(BaseModule):
         X = self.network_hidden.forward(X)
         X = self.network_projection.forward(X)
         return X
-    
-    
-    def __repr__(self) -> str:
-        return \
-                f"FourierNeuralOperatorLite(\n"\
-                f"    lift:       {self.network_lift}\n"\
-                f"    hidden:     {self.network_hidden} x {self.__n_layers} (activation: {self.__activation_name})\n"\
-                f"    projection: {self.network_projection}\n"\
-                f")"
     
     
     @property

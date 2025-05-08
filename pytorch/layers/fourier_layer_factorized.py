@@ -67,6 +67,20 @@ class FactorizedSpectralConv(nn.Module):
         return
     
     
+    @property
+    def n_modes(self) -> tuple[int]:
+        return self.__n_modes
+    @property
+    def in_channels(self) -> int:
+        return self.__in_channels
+    @property
+    def out_channels(self) -> int:
+        return self.__out_channels
+    @property
+    def dim_domain(self) -> int:
+        return self.__dim_domain
+    
+    
     def __check_arguments(
             self,
             n_modes:        tuple[int],
@@ -188,67 +202,76 @@ class FactorizedSpectralConv(nn.Module):
 ##################################################
 class FactorizedFourierLayer(nn.Module):
     """## Factorized Fourier layer
-    ### Kernel integration via dimensionwise FFT with a skip connection
     
-    -----
-    Given a batch of uniformly discretized functions, this class computes the spectral convolution of the input with a skip connection.
-    
-    -----
-    ## Remark
-    
-    1. The input tensor should be of shape `(batch_size, hidden_channels, *shape_of_domain)`.
-    2. The skip connection is implemented by adding the result of the spectral convolution with a linear transform of the input tensor. The linear transform in the skip connection is shared by all points of the domain.
-    3. As for the spectral convolution, see the documentation of the class `SpectralConv`.
+    The factorized Fourier layer is a combination of a linear layer and a spectral convolutional layer.
+    Note that the activation function is not included in this layer.
     """
-    
     def __init__(
-                    self,
-                    n_modes:            Sequence[int],
-                    hidden_channels:    int,
-                    expansion_factor:   float,
-                    activation:         str
-        ) -> None:
+            self,
+            n_modes:        Sequence[int],
+            in_channels:    int,
+            out_channels:   Optional[int] = None,
+            mlp_channels:   Optional[Sequence[int]] = None,
+        ) -> Self:
+        """The initializer of the class `FourierLayer`
         
+        Arguments:
+            `n_modes` (`Sequence[int]`):
+                * The maximum degree of the Fourier modes to be preserved.
+            `in_channels` (`int`):
+                * The number of the input features.
+            `out_channels` (`int`, default: `None`):
+                * The number of the output features.
+                * If `None`, then `out_channels` is set `in_channels`.
+            `mlp_channels` (`Sequence[int]`, default: `None`):
+                * The number of the channels in the MLP.
+                * If `None`, then `mlp_channels` is set to `[in_channels, in_channels+out_channels, out_channels]`.
+        """
         super().__init__()
         
-        self.hidden_channels    = hidden_channels
-        self.n_modes            = n_modes
-        self.dim_domain         = len(n_modes)
+        if out_channels is None:
+            out_channels    = in_channels
+        self.__in_channels  = in_channels
+        self.__out_channels = out_channels
         
-        self.activation = getattr(nn, TORCH_ACTIVATION_DICT[activation])()
+        # Define the subnetworks
+        self.linear     = nn.Linear(in_channels, out_channels)
+        self.spectral   = FactorizedSpectralConv(n_modes, in_channels, out_channels, mlp_channels)
+        return
         
-        conv = getattr(nn, f"Conv{self.dim_domain}d", None)
-        if conv is None:
-            raise NotImplementedError(
-                f"The PyTorch library provides the convolutional layers up to dimenion 3, but the domain is {self.dim_domain}-dimensional."
-            )
-        
-        self.spectral = nn.Sequential(
-            FactorizedSpectralConv(
-                n_modes         = n_modes,
-                hidden_channels = hidden_channels
-            ),
-            conv(
-                in_channels     = hidden_channels,
-                out_channels    = int(expansion_factor * hidden_channels),
-                kernel_size     = 1
-            ),
-            self.activation,
-            conv(
-                in_channels     = int(expansion_factor * hidden_channels),
-                out_channels    = hidden_channels,
-                kernel_size     = 1
-            ),
-            self.activation
-        )
-                
-        return;
-    
     
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        return (X + self.spectral(X))
-    
+        """The forward pass of the `FactorizedFourierLayer` class.
         
+        Arguments:
+            `X` (`torch.Tensor`):
+                * The input tensor to be transformed.
+                * The shape of `X` is expected to be `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` are the spatial dimensions, and `C` is the number of channels.
+        
+        Returns:
+            `torch.Tensor`: The transformed tensor after applying the linear and spectral convolutions.
+        """
+        _linear     = self.linear.forward(X)
+        _spectral   = self.spectral.forward(X)
+        return _linear + _spectral
+    
+    
+    def __repr__(self) -> str:
+        return f"FourierLayer(n_modes={self.n_modes}, in_channels={self.__in_channels}, out_channels={self.__out_channels})"
+    
+    
+    @property
+    def n_modes(self) -> int:
+        return self.spectral.n_modes
+    @property
+    def in_channels(self) -> int:
+        return self.spectral.in_channels
+    @property
+    def out_channels(self) -> int:
+        return self.spectral.out_channels
+    @property
+    def dim_domain(self) -> int:
+        return self.spectral.dim_domain
 
 
 ##################################################

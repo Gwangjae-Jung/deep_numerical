@@ -210,6 +210,12 @@ class SpectralConv(nn.Module):
     def n_modes(self) -> tuple[int]:
         return self.__n_modes
     @property
+    def in_channels(self) -> int:
+        return self.__in_channels
+    @property
+    def out_channels(self) -> int:
+        return self.__out_channels
+    @property
     def dim_domain(self) -> int:
         return len(self.__n_modes)
 
@@ -251,9 +257,15 @@ class FourierLayer(nn.Module):
         
     
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        """
-        ### Note
-        1. This class assumes that the input tensor `X` has the shape `(B, s_1, ..., s_d, C)`.
+        """The forward pass of the `FourierLayer` class.
+        
+        Arguments:
+            `X` (`torch.Tensor`):
+                * The input tensor to be transformed.
+                * The shape of `X` is expected to be `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` are the spatial dimensions, and `C` is the number of channels.
+        
+        Returns:
+            `torch.Tensor`: The transformed tensor after applying the linear and spectral convolutions.
         """
         _linear     = self.linear.forward(X)
         _spectral   = self.spectral.forward(X)
@@ -267,6 +279,15 @@ class FourierLayer(nn.Module):
     @property
     def n_modes(self) -> int:
         return self.spectral.n_modes
+    @property
+    def in_channels(self) -> int:
+        return self.spectral.in_channels
+    @property
+    def out_channels(self) -> int:
+        return self.spectral.out_channels
+    @property
+    def dim_domain(self) -> int:
+        return self.spectral.dim_domain
 
 
 ##################################################
