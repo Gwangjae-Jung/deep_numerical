@@ -111,18 +111,11 @@ class FactorizedSpectralConv(nn.Module):
         # NOTE (rfftn): Modification for the last dimension is required
         # Set `self.__kernel_shape`
         self.__kernel_shape: list[int]   = list(self.__n_modes)
-        self.__kernel_shape[-1]          = self.__n_modes[-1]//2 + 1
         
         # Set `self.__kernel_slices`
-        self.__kernel_slices:  list[list[slice]] = []
-        for k in range(self.__dim_domain-1):
-            n_modes_front  = (self.__n_modes[k]+1) // 2
-            n_modes_back   = self.__n_modes[k] - n_modes_front
-            self.__kernel_slices.append([
-                slice(None, n_modes_front, None),
-                slice(-n_modes_back, None, None)
-            ])
-        self.__kernel_slices.append([ slice(None, self.__kernel_shape[-1], None) ])
+        self.__kernel_slices:  list[slice] = []
+        for k in range(self.__dim_domain):
+            self.__kernel_slices.append(slice(None, self.__n_modes[k], None))
         
         # Set `self.__einsum_strings`
         self.__einsum_strings:  list[str]   = []
@@ -158,45 +151,21 @@ class FactorizedSpectralConv(nn.Module):
             Y = torch.zeros(size=X_rfft_d.shape, dtype=X_rfft_d.dtype, device=X.device)
             
             # Conduct the linear transform in the Fourier space
-            for _kernel_slice in self.__kernel_slices[d]:
-                _range =  [...,]
-                _range += [self.__kernel_slices[d]]
-                _range += [slice(None)] * (self.__dim_domain-d)
-                Y[*_range] = torch.einsum(
-                    self.__einsum_strings[d],
-                    X_rfft_d[*_range], self.kernel_list[d][_kernel_slice]
-                )
+            __kernel_slice = self.__kernel_slices[d]
+            _range =  [...]
+            _range += [__kernel_slice]
+            _range += [slice(None)] * (self.__dim_domain-d)
+            Y[*_range] = torch.einsum(
+                self.__einsum_strings[d],
+                self.kernel_list[d][__kernel_slice], X_rfft_d[*_range]
+            )
             
             # Add to the output
-            summand = torch.fft.irfft(Y, dim=fft_dim, norm=self.__fft_dim, n=X_size_d)
+            summand = torch.fft.irfft(Y, dim=fft_dim, norm=self.__fft_norm, n=X_size_d)
             out += summand
         
         out = self.mlp.forward(out)
         return out
-    # def forward(self, X: torch.Tensor) -> torch.Tensor:
-    #     out = torch.zeros_like(X, dtype=torch.float, device=X.device)
-    #     for d in range(self.__dim_domain):
-    #         # Discrete Fourier transform for each dimension
-    #         fft_dim     = (X.ndim-1-self.dim_domain)+d
-    #         X_rfft_d    = torch.fft.rfft(X, dim = fft_dim, norm = fft_norm)
-            
-    #         # Instantiate a tensor which will be filled with a reduced DFT
-    #         X_rfft_d_shape  = list(X_rfft_d.shape)
-    #         X_spatial_shape = list(X.shape)[-self.dim_domain:]
-    #         Y = torch.zeros(size = X_rfft_d_shape, dtype = torch.cfloat, device = X.device)
-            
-    #         # Get the range of the low-frequency parts of the discrete Fourier transform
-    #         _range =  [slice(None), slice(None)]
-    #         _range += [slice(None)] * d
-    #         _range += [slice(self.n_modes[d])]
-    #         _range += [slice(None)] * (self.dim_domain - d - 1)
-            
-    #         # Do the affine transform
-    #         Y[_range] = self.factorized_spectral_affine(X_rfft_d[_range], dim = d)
-            
-    #         # Add to the output
-    #         summand = torch.fft.irfft(Y, dim = fft_dim, norm = fft_norm, n = X_spatial_shape[d])
-    #         out += summand
     
 
 ##################################################

@@ -6,6 +6,7 @@ from    .integral_layers    import  *
 
 from    .fourier_layer              import  *
 from    .fourier_layer_factorized   import  *
+from    .fourier_layer_separable    import  *
 from    .galerkin_transformer       import  *
 
 from    .gno        import  *
