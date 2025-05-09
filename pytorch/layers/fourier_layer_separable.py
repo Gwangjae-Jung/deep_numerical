@@ -220,6 +220,7 @@ class SeparableFourierLayer(nn.Module):
             out_channels    = in_channels
         
         # Define the subnetworks
+        self.linear     = nn.Linear(in_channels, out_channels)
         self.spectral   = SeparableSpectralConv(n_modes, in_channels, out_channels, rank)
         self.mlp        = MLP([out_channels, 2*out_channels, out_channels])
         self.activation = get_activation(activation_name, activation_kwargs)
@@ -237,8 +238,9 @@ class SeparableFourierLayer(nn.Module):
         Returns:
             `torch.Tensor`: The transformed tensor after applying the MLP and the spectral convolution, with the residual connection.
         """
+        _linear     = self.linear.forward(X)
         _spectral   = self.spectral.forward(X)
-        return X + self.mlp.forward(_spectral)
+        return _linear + self.mlp.forward(_spectral)
     
     
     def __repr__(self) -> str:

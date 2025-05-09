@@ -22,7 +22,7 @@ from    pytorch.numerical   import  distribution
 from    pytorch.numerical.solvers     import  FastSM_Boltzmann_VHS
 
 dtype:  torch.dtype     = torch.float64
-device: torch.device    = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+device: torch.device    = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
 # device: torch.device    = torch.device('cpu')
 
 dtype_and_device = {'dtype': dtype, 'device': device}
@@ -59,7 +59,7 @@ VHS_COEFF = 1 / utils.area_of_unit_sphere(DIMENSION)
 for part in range(PART_INIT, PART_INIT+N_REPEAT):
     print('+' + '='*30 + ' +')
     print(f"# part: {str(part).zfill(len(str(N_REPEAT)))}")
-    for VHS_ALPHA in [0.0]:
+    for VHS_ALPHA in [-2.0, -1.0, 0.0, 1.0]:
         torch.cuda.empty_cache()
         print('+' + '-'*30 + ' +')
         print(f"* vhs_alpha: {VHS_ALPHA:.2f}")
