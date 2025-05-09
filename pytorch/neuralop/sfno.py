@@ -85,7 +85,7 @@ class SeparableFourierNeuralOperator(BaseModule):
         ## Hidden layers
         self.network_hidden: torch.nn.Sequential = torch.nn.Sequential()
         if n_layers <= 0:
-            self.network_hidden.apply(torch.nn.Identity())
+            self.network_hidden.append(torch.nn.Identity())
         else:
             __fl_kwargs = {'n_modes': n_modes, 'in_channels': hidden_channels, 'rank': rank}
             self.network_hidden.append(SeparableFourierLayer(**__fl_kwargs))
@@ -119,6 +119,7 @@ class SeparableFourierNeuralOperator(BaseModule):
     @property
     def dim_domain(self) -> int:
         return self.__dim_domain
+
 
 ##################################################
 ##################################################

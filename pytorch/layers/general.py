@@ -169,20 +169,18 @@ class HyperMLP(nn.Module):
         ) -> Self:
         """## The initializer of the class `HyperMLP`
         
-        -----
-        ### Arguments
-        * `channels` (`Sequence[int]`)
-            * The number of the channels in each layer, from the input layer to the output layer.
+        Arguments:
+            `channels` (`Sequence[int]`): The number of the channels in each layer, from the input layer to the output layer.
+                
+            `hyper_channels` (`Sequence[int]`): The number of the channels in each layer, from the input layer to the pre-out layer.
             
-        * `hyper_channels` (`Sequence[int]`)
-            * The number of the channels in each layer, from the input layer to the pre-out layer.
-            * *Important* For each hypernet, the last linear layer will be automatically appended using `torch.nn.LazyLinear`.
-        
-        * `bias` (`bool`, default: `True`)
-            * The `bias` argument of `torch.nn.Linear`.
-        
-        * `activation_name` (`str`, default: "tanh") and `activation_kwargs` (`dict[str, object]`, defaule: `{}`)
-            * The activation function which shall be used in each hidden layer.
+                *Important* Users do not have to pass the output channels; the last linear layer will be automatically appended using `torch.nn.LazyLinear`.
+            
+            `bias` (`bool`, default: `True`): The `bias` argument of `torch.nn.Linear`.
+            
+            `activation_name` (`str`, default: "tanh"): The activation function which shall be used in each hidden layer.
+            
+            `activation_kwargs` (`dict[str, object]`, defaule: `{}`): The keyword arguments for the activation function.
         """
         super().__init__()
         self.__check_channels(channels)
@@ -233,6 +231,14 @@ class HyperMLP(nn.Module):
     
     
     def forward(self, X: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
+        """The forward pass of the class `HyperMLP`.
+        
+        Arguments:
+            `X` (`torch.Tensor`):
+                * The input tensor.
+            `p` (`torch.Tensor`):
+                * The hyperparameters.
+        """
         weights = [net_w.forward(p) for net_w in self.hypernet_weight]
         biases  = [net_b.forward(p) for net_b in self.hypernet_bias] if self.__bias \
             else  [
