@@ -48,21 +48,24 @@ class SpectralMethodBase():
         ) -> Self:
         """The initializer of the class `SpectralMethodBase`.
         
-        -----
-        ### Arguments
-        * `dimension` (`int`)
-            The dimension of the domain.
-        * `v_num_grid` (`int`)
-            The resolution of the grid in each velocity dimension.
-        * `v_max` (`float`)
-            The maximum coordinate in the velocity space.
-        * `x_num_grid` (`Optional[int]`, default: `None`)
-            The resolution of the grid in each spatial dimeneion.
-        * `x_max` (`Optional[float]`, default: `None`)
-            The maximum coordinate in the spatial space.
-        * `freqs_keepdim` (`bool`, default: `False`)
-            The configuration for the initialization of `self.freqs`.
-        
+        Arguments:
+            `dimension` (`int`):
+                The dimension of the domain.
+            `v_num_grid` (`int`):
+                The resolution of the grid in each velocity dimension.
+            `v_max` (`float`):
+                The maximum coordinate in the velocity space.
+            `x_num_grid` (`Optional[int]`, default: `None`):
+                The resolution of the grid in each spatial dimeneion.
+            `x_max` (`Optional[float]`, default: `None`):
+                The maximum coordinate in the spatial space.
+            `freqs_keepdim` (`bool`, default: `False`):
+                The configuration for the initialization of `self.freqs`.
+            `dtype` (`torch.dtype`, default: `torch.float64`):
+                The data type of the input tensor.
+            `device` (`torch.device`, default: `utils.TORCH_DEFAULT_DEVICE`):
+                The device on which the input tensor is stored.
+
         -----
         ### Note
         `SpectralMethodBase` and all classes which inherits `SpectralMethodBase` discretizes the velocity space in such a way that both `+v_max` and `-v_max` are *not* included as entries.
@@ -473,19 +476,23 @@ class DirectSM_Base(SpectralMethodBase):
         """The initializer of the class `DirectSM_Base`.
         
         -----
-        ### Arguments
-        * `dimension` (`int`)
-            The dimension of the domain.
-        * `v_num_grid` (`int`)
-            The number of the grid points in each dimension.
-        * `v_max` (`float`)
-            The maximum velocity in the velocity space.
-        * `x_num_grid` (`int`)
-            The number of the grid points in each dimension.
-        * `x_max` (`float`)
-            The maximum velocity in the velocity space.
-        * `order` (`Optional[int]`)
-            The order of the quadrature rule for the computation of the kernel modes.
+        Arguments:
+            `dimension` (`int`):
+                The dimension of the domain.
+            `v_num_grid` (`int`):
+                The number of the grid points in each dimension.
+            `v_max` (`float`):
+                The maximum velocity in the velocity space.
+            `x_num_grid` (`int`):
+                The number of the grid points in each dimension.
+            `x_max` (`float`):
+                The maximum velocity in the velocity space.
+            `order` (`Optional[int]`):
+                The order of the quadrature rule for the computation of the kernel modes.
+            `dtype` (`torch.dtype`, default: `torch.float64`):
+                The data type of the input tensor.
+            `device` (`torch.device`, default: `utils.TORCH_DEFAULT_DEVICE`):
+                The device on which the input tensor is stored.
         """
         super().__init__(dimension, v_num_grid, v_max, x_num_grid, x_max, dtype=dtype, device=device)
         self._order:    int = order if isinstance(order, int) else v_num_grid
@@ -677,28 +684,31 @@ class FastSM_Boltzmann(SpectralMethodBase):
             dtype:      torch.dtype     = torch.float64,
             device:     torch.device    = utils.TORCH_DEFAULT_DEVICE,
         ) -> Self:
-        """The initializer of the class `FastSM_Base`.
+        """The initializer of the class `FastSM_Boltzmann`.
         
-        -----
-        ### Arguments
-        * `dimension` (`int`)
-            The dimension of the domain.
-        * `v_num_grid` (`int`)
-            The number of the grid points in each dimension.
-        * `v_max` (`float`)
-            The maximum velocity in the velocity space.
-        * `x_num_grid` (`int`)
-            The number of the grid points in each dimension.
-        * `x_max` (`float`)
-            The maximum velocity in the velocity space.
-        * `restitution` (`float`, default: `1.0`)
-            The restitution coefficient of the collision. This should be in the range of `[0, 1]`.
-        * `quad_order_uniform` (`Optional[int]`)
-            The number of the points required to do integration using uniform quadrature rule.
-        * `quad_order_legendre` (`Optional[int]`)
-            The number of the points required to do integration using Legendre quadrature rule.
-        * `quad_order_lebedev` (`Optional[int]`)
-            The number of the points required to do integration using Lebedev quadrature rule.
+        Arguments:
+            `dimension` (`int`):
+                The dimension of the domain.
+            `v_num_grid` (`int`):
+                The number of the grid points in each dimension.
+            `v_max` (`float`):
+                The maximum velocity in the velocity space.
+            `x_num_grid` (`int`):
+                The number of the grid points in each dimension.
+            `x_max` (`float`):
+                The maximum velocity in the velocity space.
+            `restitution` (`float`, default: `1.0`):
+                The restitution coefficient of the collision. This should be in the range of `[0, 1]`.
+            `quad_order_uniform` (`Optional[int]`):
+                The number of the points required to do integration using uniform quadrature rule.
+            `quad_order_legendre` (`Optional[int]`):
+                The number of the points required to do integration using Legendre quadrature rule.
+            `quad_order_lebedev` (`Optional[int]`):
+                The number of the points required to do integration using Lebedev quadrature rule.
+            `dtype` (`torch.dtype`, default: `torch.float64`):
+                The data type of the input tensor.
+            `device` (`torch.device`, default: `utils.TORCH_DEFAULT_DEVICE`):
+                The device on which the input tensor is stored.
         """
         super().__init__(dimension, v_num_grid, v_max, x_num_grid, x_max, dtype=dtype, device=device)
         self._restitution:   float = \
@@ -839,15 +849,36 @@ class FastSM_Landau(SpectralMethodBase):
             x_num_grid: Optional[int]   = None,
             x_max:      Optional[float] = None,
             
-            vhs_coeff:  Optional[float] = None,
-            vhs_alpha:  Optional[float] = None,
-            
             quad_order_uniform:     Optional[int] = None,
             quad_order_legendre:    Optional[int] = None,
             
             dtype:  torch.dtype     = utils.TORCH_DEFAULT_DTYPE,
             device: torch.device    = utils.TORCH_DEFAULT_DEVICE,
         ) -> Self:
+        """The initializer of the class `FastSM_Boltzmann`.
+        
+        Arguments:
+            `dimension` (`int`):
+                The dimension of the domain.
+            `v_num_grid` (`int`):
+                The number of the grid points in each dimension.
+            `v_max` (`float`):
+                The maximum velocity in the velocity space.
+            `x_num_grid` (`int`):
+                The number of the grid points in each dimension.
+            `x_max` (`float`):
+                The maximum velocity in the velocity space.
+            `quad_order_uniform` (`Optional[int]`):
+                The number of the points required to do integration using uniform quadrature rule.
+            `quad_order_legendre` (`Optional[int]`):
+                The number of the points required to do integration using Legendre quadrature rule.
+            `quad_order_lebedev` (`Optional[int]`):
+                The number of the points required to do integration using Lebedev quadrature rule.
+            `dtype` (`torch.dtype`, default: `torch.float64`):
+                The data type of the input tensor.
+            `device` (`torch.device`, default: `utils.TORCH_DEFAULT_DEVICE`):
+                The device on which the input tensor is stored.
+        """
         super().__init__(
             dimension       = dimension,
             v_num_grid      = v_num_grid,
@@ -858,8 +889,6 @@ class FastSM_Landau(SpectralMethodBase):
             dtype           = dtype,
             device          = device,
         )   # NOTE Set `freqs_keepdims=True` for the vectorized implementation
-        self._vhs_coeff:    float   = vhs_coeff
-        self._vhs_alpha:    float   = vhs_alpha
         self._quad_order_uniform:   int = quad_order_uniform    \
             if isinstance(quad_order_uniform,   int) else v_num_grid
         self._quad_order_legendre:  int = quad_order_legendre   \
@@ -921,12 +950,6 @@ class FastSM_Landau(SpectralMethodBase):
         -----
         (`FastSM_FPL_VHS`) Redefined."""
         return self._freq_norms
-    @property
-    def vhs_coeff(self) -> float:
-        return self._vhs_coeff
-    @property
-    def vhs_alpha(self) -> float:
-        return self._vhs_alpha
     @property
     def fpl_character_1(self) -> Optional[torch.Tensor]:
         """Returns the 1-tensor of the first characteristic function.

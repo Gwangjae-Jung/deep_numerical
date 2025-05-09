@@ -12,7 +12,7 @@ from    typing_extensions   import  Self, override
 import  torch
 from    torch.special       import  bessel_j0   as  j0
 
-from    .base_classes       import  FastSM_Boltzmann, FastSM_Boltzmann__Advanced
+from    .base_classes       import  FastSM_Boltzmann
 from    ...                 import  utils
 from    ._kernel_modes.boltzmann_VHS    import  Boltzmann_VHS_kernel_modes
 

@@ -59,14 +59,22 @@ class FastSM_Landau_VHS(FastSM_Landau):
             v_max       = v_max,
             x_num_grid  = x_num_grid,
             x_max       = x_max,
-            vhs_coeff   = vhs_coeff,
-            vhs_alpha   = vhs_alpha,
             quad_order_uniform  = quad_order_uniform,
             quad_order_legendre = quad_order_legendre,
             dtype           = dtype,
             device          = device,
         )
+        self._vhs_coeff:    float   = vhs_coeff
+        self._vhs_alpha:    float   = vhs_alpha
         return
+    
+    
+    @property
+    def vhs_coeff(self) -> float:
+        return self._vhs_coeff
+    @property
+    def vhs_alpha(self) -> float:
+        return self._vhs_alpha
     
     
     # 2-dimensional precomputations
