@@ -31,11 +31,9 @@ def sample_noise_quadratic(
         device:     torch.device    = torch.device('cpu'),
     ) -> tuple[torch.Tensor]:
     """Sample the quadratic noise $q$, for which $1 + q >= 0$."""
-    dim_simplex = int(np.sum([np.power(dimension, i) for i in range(0, dimension+1)]))
-    sampler = torch.distributions.Dirichlet(torch.ones(dim_simplex+1))
-    
+    dim_simplex = int(np.sum([np.power(dimension, i) for i in range(0, 2+1)]))
+    sampler = torch.distributions.Dirichlet(torch.ones(dim_simplex+1, dtype=dtype, device=device))
     __coeffs = sampler.sample((batch_size,))[:, :-1]
-    __coeffs = __coeffs.type(dtype).to(device)
     __rand_sign = 2*torch.randint(0, 2, size=__coeffs.shape, device=device)-1
     __coeffs = __coeffs * __rand_sign
     
