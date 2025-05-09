@@ -28,10 +28,11 @@ dtype_and_device = {'dtype': dtype, 'device': device}
 __dtype_str = str(dtype).split('.')[-1]
 
 # %%
+NUM_INST:   int     = 20
+
 DELTA_T:    float   = 0.1
 MAX_T:      float   = 5.0
 NUM_T:      int     = 1 + int(MAX_T/DELTA_T + 0.1)
-NUM_INST:   int     = 20
 DATA_SIZE:  int     = NUM_INST * NUM_T
 
 T1__n_init  = T2__n_init    = T3__n_init    = NUM_INST

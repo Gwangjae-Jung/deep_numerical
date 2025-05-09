@@ -22,20 +22,20 @@ from    pytorch.numerical   import  distribution
 from    pytorch.numerical.solvers     import  FastSM_Boltzmann_VHS
 
 dtype:  torch.dtype     = torch.float64
-device: torch.device    = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
+device: torch.device    = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 # device: torch.device    = torch.device('cpu')
 
 dtype_and_device = {'dtype': dtype, 'device': device}
 __dtype_str = str(dtype).split('.')[-1]
 
 # %%
-PART_INIT:  int     = 3
+PART_INIT:  int     = 1
 N_REPEAT:   int     = 4
+NUM_INST:   int     = 5
 
 DELTA_T:    float   = 0.1
 MAX_T:      float   = 5.0
 NUM_T:      int     = 1 + int(MAX_T/DELTA_T + 0.1)
-NUM_INST:   int     = 5
 DATA_SIZE:  int     = NUM_INST * NUM_T
 
 T1__n_init  = T2__n_init    = T3__n_init    = NUM_INST

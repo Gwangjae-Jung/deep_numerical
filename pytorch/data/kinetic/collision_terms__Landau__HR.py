@@ -28,12 +28,13 @@ dtype_and_device = {'dtype': dtype, 'device': device}
 __dtype_str = str(dtype).split('.')[-1]
 
 # %%
+PART_INIT:  int     = 0
 N_REPEAT:   int     = 10
+NUM_INST:   int     = 2
 
 DELTA_T:    float   = 0.1
 MAX_T:      float   = 5.0
 NUM_T:      int     = 1 + int(MAX_T/DELTA_T + 0.1)
-NUM_INST:   int     = 2
 DATA_SIZE:  int     = NUM_INST * NUM_T
 
 T1__n_init  = T2__n_init    = T3__n_init    = NUM_INST
@@ -54,7 +55,7 @@ sample_q: Callable[[int], tuple[torch.Tensor]] = \
     lambda batch_size: sample_quantities(DIMENSION, batch_size, **dtype_and_device)
 
 VHS_COEFF = 1 / utils.area_of_unit_sphere(DIMENSION)
-for part in range(1, 1+N_REPEAT):
+for part in range(PART_INIT, PART_INIT+N_REPEAT):
     print('+' + '='*30 + ' +')
     print(f"# part: {str(part).zfill(len(str(N_REPEAT)))}")
     for VHS_ALPHA in [-2.0, -1.0, 0.0]:

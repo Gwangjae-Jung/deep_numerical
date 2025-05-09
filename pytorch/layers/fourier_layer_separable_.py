@@ -5,8 +5,7 @@ import  torch
 from    torch       import  nn
 from    itertools   import  product
 
-from    .general    import  MLP
-from    ..utils     import  EINSUM_STRING, get_activation
+from    ..utils         import  EINSUM_STRING
 
 
 ##################################################
@@ -27,7 +26,7 @@ class SeparableSpectralConv(nn.Module):
             n_modes:        Sequence[int],
             in_channels:    int,
             out_channels:   Optional[int]   = None,
-            rank:           Optional[int]   = 2,
+            rank:           Optional[int]   = 4,
         ) -> Self:
         """The initializer of the class `SeparableSpectralConv`
         
@@ -40,7 +39,7 @@ class SeparableSpectralConv(nn.Module):
             `out_channels` (`int`, default: `None`):
                 * The number of the output features.
                 * If `None`, then `out_channels` is set `in_channels`.
-            `rank` (`int`, default: `2`):
+            `rank` (`int`, default: `4`):
                 * The rank of the kernel.
                 * This argument is not used in this class, but it is kept for compatibility with the `FactorizedSpectralConv` class.
         """
@@ -62,7 +61,7 @@ class SeparableSpectralConv(nn.Module):
         self.kernel_components = nn.ParameterList(
             [
                 torch.rand(
-                    size    = (*_shape, out_channels, in_channels, rank),
+                    size    = (rank, *_shape, out_channels, in_channels),
                     dtype   = torch.cfloat,
                 )
                 for _shape in self.__kernel_shape
@@ -109,7 +108,7 @@ class SeparableSpectralConv(nn.Module):
         
         # Set einsum commands
         self.__kernel_einsum_cmd:   str = \
-            ','.join(["...ijr" for _ in self.__n_modes]) + "->...ij"
+            ','.join(["r...ij" for _ in self.__n_modes]) + "->...ij"
         self.__einsum_cmd:          str = \
             f"...ij,b...j->b...i"
                 
@@ -190,10 +189,7 @@ class SeparableFourierLayer(nn.Module):
             n_modes:        Sequence[int],
             in_channels:    int,
             out_channels:   Optional[int] = None,
-            rank:           Optional[int] = 2,
-            
-            activation_name:    str     = "relu",
-            activation_kwargs:  dict    = {},
+            rank:           Optional[int] = 4,
         ) -> Self:
         """The initializer of the class `FourierLayer`
         
@@ -205,14 +201,9 @@ class SeparableFourierLayer(nn.Module):
             `out_channels` (`int`, default: `None`):
                 * The number of the output features.
                 * If `None`, then `out_channels` is set `in_channels`.
-            `rank` (`int`, default: `2`):
+            `rank` (`int`, default: `4`):
                 * The rank of the kernel.
                 * This argument is not used in this class, but it is kept for compatibility with the `FactorizedSpectralConv` class.
-            `activation_name` (`str`, default: `"relu"`):
-                * The name of the activation function to be used in the MLP.
-                * The activation function is not included in this layer.
-            `activation_kwargs` (`dict`, default: `{}`):
-                * The keyword arguments to be passed to the activation function.
         """
         super().__init__()
         
@@ -220,9 +211,8 @@ class SeparableFourierLayer(nn.Module):
             out_channels    = in_channels
         
         # Define the subnetworks
+        self.linear     = nn.Linear(in_channels, out_channels)
         self.spectral   = SeparableSpectralConv(n_modes, in_channels, out_channels, rank)
-        self.mlp        = MLP([out_channels, 2*out_channels, out_channels])
-        self.activation = get_activation(activation_name, activation_kwargs)
         return
         
     
@@ -235,10 +225,11 @@ class SeparableFourierLayer(nn.Module):
                 * The shape of `X` is expected to be `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` are the spatial dimensions, and `C` is the number of channels.
         
         Returns:
-            `torch.Tensor`: The transformed tensor after applying the MLP and the spectral convolution, with the residual connection.
+            `torch.Tensor`: The transformed tensor after applying the linear and spectral convolutions.
         """
+        _linear     = self.linear.forward(X)
         _spectral   = self.spectral.forward(X)
-        return X + self.mlp.forward(_spectral)
+        return _linear + _spectral
     
     
     def __repr__(self) -> str:
