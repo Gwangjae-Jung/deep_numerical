@@ -797,254 +797,15 @@ class FastSM_Boltzmann(SpectralMethodBase):
         )
         return loss_fft
     
-
-##################################################
-##################################################
-class FastSM_Boltzmann__Advanced(SpectralMethodBase):
-    r"""## The base class for the fast spectral method for solving the Boltzmann equation.
     
-    -----
-    ### Description
-    This class provides features which can be used to solve the Boltzmann equation using the spectral method (to be specific, the Fourier-Galerkin method).
-    The construction of this base class is inspired by the idea of rewriting of the kernel modes:
-    This aims to implement the fast spectral method by exploiting a proper quadrature rule for the double integral on `[0, 2R] \times S^{d-1}`, where `R` is the radius of the support of the density function in the velocity space and `d` is the dimension of the domain.
-    
-    Nevertheless, alternative implementation of a fast spectral method can be done by overriding necessary methods.
-    
-    Reference: ["A Fast Spectral Method for the Boltzmann Collision Operator with General Collision Kernels" by Irene M. Gamba, Jeffrey R. Haack, Cory D. Hauck, and Jingwei Hu](https://epubs.siam.org/doi/10.1137/16M1096001)
-    """
-    def __init__(
-            self,
-            
-            dimension:  int,
-            
-            v_num_grid: int,
-            v_max:      float,
-            
-            x_num_grid: Optional[int],
-            x_max:      Optional[float],
-            
-            restitution:    float   = 1.0,
-            
-            quad_order_uniform:     Optional[int] = None,
-            quad_order_legendre:    Optional[int] = None,
-            quad_order_lebedev:     Optional[int] = None,
-            
-            dtype:      torch.dtype     = torch.float64,
-            device:     torch.device    = utils.TORCH_DEFAULT_DEVICE,
-        ) -> Self:
-        """The initializer of the class `FastSM_Base`.
-        
-        -----
-        ### Arguments
-        * `dimension` (`int`)
-            The dimension of the domain.
-        * `v_num_grid` (`int`)
-            The number of the grid points in each dimension.
-        * `v_max` (`float`)
-            The maximum velocity in the velocity space.
-        * `x_num_grid` (`int`)
-            The number of the grid points in each dimension.
-        * `x_max` (`float`)
-            The maximum velocity in the velocity space.
-        * `restitution` (`float`, default: `1.0`)
-            The restitution coefficient of the collision. This should be in the range of `[0, 1]`.
-        * `quad_order_uniform` (`Optional[int]`)
-            The number of the points required to do integration using uniform quadrature rule.
-        * `quad_order_legendre` (`Optional[int]`)
-            The number of the points required to do integration using Legendre quadrature rule.
-        * `quad_order_lebedev` (`Optional[int]`)
-            The number of the points required to do integration using Lebedev quadrature rule.
-        """
-        warnings.warn(
-            ' '.join(
-                [
-                    "The class 'FastSM_Boltzmann__Advanced' does not perform as expected.",
-                    "Use the class 'FastSM_Boltzmann' instead.",
-                ]
-            ),
-            Warning
-        )
-        
-        super().__init__(dimension, v_num_grid, v_max, x_num_grid, x_max, dtype=dtype, device=device)
-        self._restitution:   float = \
-            restitution if isinstance(restitution, float)\
-            else 1.0
-        self._quad_order_uniform    = \
-            quad_order_uniform  if isinstance(quad_order_uniform,   int)\
-            else int(1 + utils.LAMBDA * v_num_grid / (2**0.5))
-        self._quad_order_legendre   = \
-            quad_order_legendre if isinstance(quad_order_legendre,  int)\
-            else self._v_num_grid
-            # else int(1 + (dimension**0.5) * LAMBDA * num_grid)
-        self._quad_order_lebedev    = \
-            quad_order_lebedev  if isinstance(quad_order_lebedev,   int)\
-            else utils.DEFAULT_QUAD_ORDER_LEBEDEV
-        self._fsm_scale:    Optional[torch.Tensor] = None
-        self._fsm_phase_1:  Optional[torch.Tensor] = None
-        self._fsm_phase_2:  Optional[torch.Tensor] = None
-        self._kernel_diag:  Optional[torch.Tensor] = None
-        
-        # Advanced options
-        self._positivity_constant:  float = 1.0
-        return
-    
-    
-    @property
-    def quad_order_uniform(self) -> int:
-        """The number of the points required to do integration on S^1."""
-        return self._quad_order_uniform
-    @property
-    def quad_order_legendre(self) -> int:
-        """The number of the points required to do radial integration."""
-        return self._quad_order_legendre
-    @property
-    def quad_order_lebedev(self) -> int:
-        """The number of the points required to do integration on S^2."""
-        return self._quad_order_lebedev
-    @property
-    def fsm_scale(self) -> Optional[torch.Tensor]:
-        return torch.squeeze(self._fsm_scale, dim=tuple(range(1+self._dimension)))
-    @property
-    def fsm_phase_1(self) -> Optional[torch.Tensor]:
-        return torch.squeeze(self._fsm_phase_1, dim=tuple(range(1+self._dimension)))
-    @property
-    def fsm_phase_2(self) -> Optional[torch.Tensor]:
-        return torch.squeeze(self._fsm_phase_2, dim=tuple(range(1+self._dimension)))
-    @property
-    def kernel_diag(self) -> Optional[torch.Tensor]:
-        return torch.squeeze(self._kernel_diag, dim=tuple(range(1+self._dimension)))
-    @property
-    def approximation_level(self) -> int:
-        return int(self._fsm_phase_1.size(-2) * self._fsm_phase_1.size(-1))
-    
-    
-    def _dimension_error(self) -> None:
-        raise NotImplementedError(f"This class is supported only for 2D and 3D problems. (dimension: {self._dimension})")
-    
-    
-    def set_positivity_constant(self, density: torch.Tensor) -> torch.Tensor:
-        pass
-
-    
-    @override
-    def precompute(self) -> None:
-        """Precomputes the gain and loss parts of the kernel modes.
-        
-        -----
-        This method computes the gain and loss parts of the kernel modes.
-        Because the base class is mainly inspired by ["A Fast Spectral Method for the Boltzmann Collision Operator with General Collision Kernels" by Irene M. Gamba, Jeffrey R. Haack, Cory D. Hauck, and Jingwei Hu](https://epubs.siam.org/doi/10.1137/16M1096001), inside the implementation, there are two tensors which define the gain part of the kernel modes.
-        """
-        self._precompute_fsm_gain()
-        self._precompute_fsm_loss()
-        return
-    def _precompute_fsm_gain(self) -> None:
-        pass
-    def _precompute_fsm_loss(self) -> None:
-        pass
-    
-    
-    def compute_gain_fft(
+    def compute_loss_linear_fft(
             self,
             _PLACEHOLDER__t_curr:   float,
             fft_curr:   torch.Tensor,
         ) -> torch.Tensor:
-        terms1 = utils.convolve_freqs(
-            fft_curr[..., None, None] * self._fsm_phase_1,
-            fft_curr[..., None, None] * self._fsm_phase_2,
-            dim = self.v_axes,
-        )
-        gain_fft = torch.sum(self._fsm_scale*terms1, dim=(-2, -1))
-        return gain_fft
-    
-    
-    def compute_loss_fft(
-            self,
-            _PLACEHOLDER__t_curr:   float,
-            fft_curr:   torch.Tensor,
-        ) -> torch.Tensor:
-        loss_fft = utils.convolve_freqs(
-            fft_curr * self._kernel_diag,
-            fft_curr,
-            dim = self.v_axes,
-        )
-        return loss_fft
-    
-    
-    def compute_exponential(
-            self,
-            t_curr:     float,
-            fft_curr:   torch.Tensor,
-        ) -> torch.Tensor:
-        temporal_part = torch.tensor(
-            [+self._positivity_constant * t_curr],
-            **self.dtype_and_device,
-        ).exp()
-        term_for_positivity = self._positivity_constant * fft_curr
-        return temporal_part * (
-            term_for_positivity + \
-            self.compute_gain_fft(0.0, fft_curr) - \
-            self.compute_loss_fft(0.0, fft_curr)
-        )
-    
-    
-    @override
-    def forward(
-            self,
-            _PLACEHOLDER__t_curr:   float,
-            f_fft:      torch.Tensor,
-            delta_t:    float,
-            RK_fcn:     Callable[[float, torch.Tensor, float, Callable], torch.Tensor],
-        ) -> torch.Tensor:
-        scale = torch.tensor(
-            [-self._positivity_constant * delta_t],
-            **self.dtype_and_device,
-        ).exp()
-        homogeneous_result = scale * RK_fcn(0.0, f_fft, delta_t, self.compute_exponential)
-        if self._is_homogeneous:
-            return homogeneous_result
-        else:
-            # Frequency space -> Physical space
-            homogeneous_result: torch.Tensor = torch.fft.ifftn(homogeneous_result, dim=self.v_axes, norm=self.internal_fft_norm).real
-            
-            # Enforce the boundary condition
-            if self._boundary_condition in ("specular",):
-                homogeneous_result[:, *[self._arg_bd_inflow[:, k] for k in range(2*self._dimension)], :] = \
-                    homogeneous_result[:, *[self._arg_bd_inflow_spec[:, k] for k in range(2*self._dimension)], :]
-            # Conduct the transport stage (by interpolation)
-            homogeneous_result = homogeneous_result.transpose(
-                *tuple(range(1, (2*self._dimension+1)+1)), 0
-            )   ## Permutation for interpolation
-            homogeneous_result = torch.nn.functional.pad(
-                homogeneous_result,
-                pad_width = (
-                    *utils.repeat((1, 1), self._dimension), # space
-                    *utils.repeat((0, 0), self._dimension), # velocity
-                    (0, 0), # data
-                    (0, 0), # *batch* (transposed)
-                ),
-                # mode = "wrap",
-            )
-            interp = RegularGridInterpolator(
-                points  = self._xv_pad,
-                values  = homogeneous_result,
-                method          = 'linear',
-                bounds_error    = False,
-                fill_value      = None,
-            ).__call__
-            homogeneous_result = torch.tensor(interp(self._xv_query.data), dtype=self._dtype, device=self._device)
-            homogeneous_result = homogeneous_result.transpose(
-                2*self._dimension+1, *tuple(range(2*self._dimension+1))
-            )   ## Inverse permutation
-            ### End of the transport stage
-            
-            # Enforce the boundary condition, again
-            if self._boundary_condition in ("specular",):
-                homogeneous_result[:, *[self._arg_bd_inflow[:, k] for k in range(2*self._dimension)], :] = \
-                    homogeneous_result[:, *[self._arg_bd_inflow_spec[:, k] for k in range(2*self._dimension)], :]
-            
-            # Physical space -> Frequency space
-            return torch.fft.fftn(homogeneous_result, dim=self.v_axes, norm=self.internal_fft_norm)
+        """This method computes the FFT of the coefficient operator in the loss part of the collision operator."""
+        loss_linear_fft = fft_curr * self._kernel_diag
+        return loss_linear_fft
     
 
 ##################################################
@@ -1284,12 +1045,11 @@ class FastSM_Landau(SpectralMethodBase):
         # NOTE: By a property of the Fourier transform and the convention of FFT libraries, the output should be negated
         # NOTE: The collision term is zero for the 1-dimensional case
         if self._dimension in (2, 3):   
-            gain_fft_positive: torch.Tensor = \
-                utils.convolve_freqs(
-                    (self._freq_norms**2) * fft_curr,
-                    self._fpl_gain_tensor_1 * fft_curr,
-                    dim    = self.v_axes,
-                )
+            gain_fft_positive = utils.convolve_freqs(
+                (self._freq_norms**2) * fft_curr,
+                self._fpl_gain_tensor_1 * fft_curr,
+                dim    = self.v_axes,
+            )
             gain_fft_negative: torch.Tensor = \
                 torch.sum(
                     torch.stack(
@@ -1316,17 +1076,31 @@ class FastSM_Landau(SpectralMethodBase):
         # NOTE: Be careful to implement the truncated 'linear' convolution.     
         # NOTE: The collision term is zero for the 1-dimensional case
         if self._dimension in (2, 3):
-            loss_fft:  torch.Tensor = \
-                utils.convolve_freqs(
-                    fft_curr,
-                    fft_curr * self._fpl_loss_tensor,
-                    dim = self.v_axes,
-                )
+            loss_fft = utils.convolve_freqs(
+                fft_curr,
+                fft_curr * self._fpl_loss_tensor,
+                dim = self.v_axes,
+            )
             # NOTE: The negation is due to the differentiation of the Fourier transform of translated functions.
             return -loss_fft
         elif self._dimension==1:
             return torch.zeros_like(fft_curr, dtype=fft_curr.dtype, device=fft_curr.device)
 
+    
+    def compute_loss_linear_fft(
+            self,
+            _PLACEHOLDER__t_curr:   float,
+            fft_curr:   torch.Tensor,
+        ) -> torch.Tensor:
+        # NOTE: Be careful to implement the truncated 'linear' convolution.     
+        # NOTE: The collision term is zero for the 1-dimensional case
+        if self._dimension in (2, 3):
+            loss_linear_fft = fft_curr * self._fpl_loss_tensor
+            # NOTE: The negation is due to the differentiation of the Fourier transform of translated functions.
+            return -loss_linear_fft
+        elif self._dimension==1:
+            return torch.zeros_like(fft_curr, dtype=fft_curr.dtype, device=fft_curr.device)
+    
 
 ##################################################
 ##################################################

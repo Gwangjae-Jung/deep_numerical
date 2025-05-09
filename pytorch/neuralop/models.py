@@ -91,7 +91,7 @@ class ParameterizedSFNO(BaseModule):
         n_layers_prior      = n_layers // 2
         n_layers_posterior  = n_layers - n_layers_prior
         self.network_hidden_prior: torch.nn.Sequential = torch.nn.Sequential()
-        if n_layers <= 0:
+        if n_layers_prior <= 0:
             self.network_hidden_prior.append(torch.nn.Identity())
         else:
             __fl_kwargs = {'n_modes': n_modes, 'in_channels': hidden_channels, 'rank': rank}
@@ -99,13 +99,20 @@ class ParameterizedSFNO(BaseModule):
             for _ in range(n_layers_prior-1):
                 self.network_hidden_prior.append(get_activation(activation_name, activation_kwargs))
                 self.network_hidden_prior.append(SeparableFourierLayer(**__fl_kwargs))
-        ##### TODO: Check the channels
         self.network_hidden_posterior: torch.nn.Sequential = torch.nn.Sequential()
-        if n_layers <= 0:
+        if n_layers_posterior <= 0:
             self.network_hidden_posterior.append(torch.nn.Identity())
         else:
+            self.network_hidden_posterior.append(
+                SeparableFourierLayer(
+                    n_modes          = n_modes,
+                    in_channels      = 2*hidden_channels,
+                    out_channels     = hidden_channels,
+                    rank             = rank,
+                )
+                # `in_channels` is the double of `hidden_channels` because the output of the previous layer is concatenated with the hyperparameters
+            )
             __fl_kwargs = {'n_modes': n_modes, 'in_channels': hidden_channels, 'rank': rank}
-            self.network_hidden_posterior.append(SeparableFourierLayer(**__fl_kwargs))
             for _ in range(n_layers_prior-1):
                 self.network_hidden_posterior.append(get_activation(activation_name, activation_kwargs))
                 self.network_hidden_posterior.append(SeparableFourierLayer(**__fl_kwargs))
