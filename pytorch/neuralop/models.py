@@ -10,20 +10,19 @@ from    ..utils             import  get_activation, warn_redundant_arguments
 ##################################################
 ##################################################
 __all__ = [
-    "SeparableFourierNeuralOperator",
-    "SFNO",
+    "ParameterizedSFNO",
 ]
 
 
 ##################################################
 ##################################################
-class SeparableFourierNeuralOperator(BaseModule):
-    """## Separable Fourier Neural Operator (SFNO)
+class ParameterizedSFNO(BaseModule):
+    """## Parameterized Separable Fourier Neural Operator (SFNO)
     ### Integral operator via discrete Fourier transform
     
     -----
     ### Description
-    The Separable Fourier Neural Operator is an Integral Neural Operator with translation-invariant kernels, where the weight tensors in the Fourier space are replaced with low-rank approximations.
+    The Parameterized Separable Fourier Neural Operator is an Integral Neural Operator with translation-invariant kernels, where the weight tensors in the Fourier space are replaced with low-rank approximations.
     
     -----
     ### Note
@@ -37,7 +36,7 @@ class SeparableFourierNeuralOperator(BaseModule):
             in_channels:        int,
             hidden_channels:    int,
             out_channels:       int,
-            rank:               int = 2,
+            rank:               int = 4,
 
             lift_layer:         Sequence[int]   = [256],
             n_layers:           int             = 4,
@@ -58,7 +57,7 @@ class SeparableFourierNeuralOperator(BaseModule):
             `in_channels` (`int`): The number of the input channels.
             `hidden_channels` (`int`): The number of the hidden channels.
             `out_channels` (`int`): The number of the output channels.
-            `rank` (`int`, default: `2`): The rank of the low-rank approximation.
+            `rank` (`int`, default: `4`): The rank of the low-rank approximation.
             
             `lift_layer` (`Sequential[int]`, default: `(256)`): The numbers of channels inside the lift layer.
             `n_layers` (`int`, default: `4`): The number of hidden layers.
@@ -122,7 +121,7 @@ class SeparableFourierNeuralOperator(BaseModule):
 
 ##################################################
 ##################################################
-SFNO    = SeparableFourierNeuralOperator
+pSFNO = PSFNO = ParameterizedSFNO
 
 
 ##################################################

@@ -5,11 +5,9 @@ In this library, several numerical methods for solving kinetic equations (Fokker
 ### Supported numerical methods
 
 1. Discrete velocity method (DVM): To be constructed.
-
    1. Classical DVM
    2. Fast DVM
 2. Spectral method
-
    1. Classical spectral method for the Boltzmann equation
       1. Only the solver for the elastic Boltzmann equation is implemented.
    2. Fast spectral method
