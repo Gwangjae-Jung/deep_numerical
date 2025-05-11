@@ -18,10 +18,10 @@ class UnitGaussianNormalizer():
             self,
             x:      torch.Tensor,
             eps:    float           = 1e-12,
-            device: torch.device    = torch.device('cpu')
         ) -> Self:
-        self.__mean:    torch.Tensor    = torch.mean(x, 0).to(device).view(-1)
-        self.__std:     torch.Tensor    = torch.std(x, 0).to(device).view(-1)
+        self.__mean:    torch.Tensor    = torch.mean(x, 0, keepdim=True)
+        self.__std:     torch.Tensor    = torch.std(x, 0, keepdim=True)
+        self.__devie:   torch.device    = x.device
         self.__eps:     float           = eps
         return
     
@@ -32,14 +32,17 @@ class UnitGaussianNormalizer():
     @property
     def std(self) -> torch.Tensor:
         return self.__std
+    @property
+    def device(self) -> torch.device:
+        return self.__device
     
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         """Normalize the input tensor `x`."""
-        s = x.size()
-        x = x.view(s[0], -1)
+        # s = x.size()
+        # x = x.view(s[0], -1)
         x = (x - self.__mean) / (self.__std + self.__eps)
-        x = x.view(s)
+        # x = x.view(s)
         return x
     def decode(self, x: torch.Tensor, sample_idx: slice=None) -> torch.Tensor:
         if sample_idx is None:
@@ -48,10 +51,10 @@ class UnitGaussianNormalizer():
         else:
             std = self.__std[sample_idx]+ self.__eps # batch * n
             mean = self.__mean[sample_idx]
-        s = x.size()
-        x = x.view(s[0], -1)
+        # s = x.size()
+        # x = x.view(s[0], -1)
         x = (x * std) + mean
-        x = x.view(s)
+        # x = x.view(s)
         return x
 
 
@@ -75,10 +78,10 @@ class GaussianNormalizer():
             self,
             x:      torch.Tensor,
             eps:    float = 1e-12,
-            device: torch.device = torch.device('cpu')
         ) -> Self:
-        self.__mean:    torch.Tensor    = torch.mean(x).to(device)
-        self.__std:     torch.Tensor    = torch.std(x).to(device)
+        self.__mean:    torch.Tensor    = torch.mean(x)
+        self.__std:     torch.Tensor    = torch.std(x)
+        self.__device:  torch.device    = x.device
         self.__eps:     float           = eps
         return
     
@@ -89,6 +92,9 @@ class GaussianNormalizer():
     @property
     def std(self) -> torch.Tensor:
         return self.__std
+    @property
+    def device(self) -> torch.device:
+        return self.__device
     
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:

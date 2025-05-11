@@ -19,10 +19,7 @@ from    ._kernel_modes.boltzmann_VHS    import  Boltzmann_VHS_kernel_modes
 
 ##################################################
 ##################################################
-__all__ = [
-    'FastSM_Boltzmann_VHS',
-    'FastSM_Boltzmann_VHS__Advanced',
-]
+__all__ = ['FastSM_Boltzmann_VHS']
    
     
 ##################################################

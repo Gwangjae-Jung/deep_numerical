@@ -42,29 +42,25 @@ def space_grid(
     ) -> torch.Tensor:
     """Generates the spatial grid.
     
-    -----
+    Arguments:
+        `dimension` (`int`):
+            The spatial dimension.
+        `num_grids` (`Objects[int]`):
+            The number of the grids in each dimension.
+        `max_values` (`float`):
+            The maximum value in each direction.
+        `min_values` (`Optional[Objects[float]]`, default: `None`):
+            The minimum value in each direction, which is set `-max_value` by default.
+            An error is raised if `max_values[i] < min_values[i]` for some index `i`.
+        `where_closed` (`Optional[Objects[str]]`, default: `None`):
+            Determines which endpoint of each dimension is closed, i.e., contained in the grid. The value of this argument should be given as a single or a sequence of the following strings: `"both"`, `"left"`, `"right"`, or `"none"`. If `where_closed` is not a sequence, then the given configuration is applied for all dimensions.
+        `dtype` (`torch.dtype`, default: `torch.float32`):
+            The data type of the grid.
+        `device` (`torch.device`, default: `torch.device('cpu')`):
+            The device on which the grid is created.
+        
     ### Note
     This function is designed to generate a grid for the periodic case.
-    
-    -----
-    ### Arguments
-    * `dimension` (`int`)
-        The spatial dimension.
-    * `num_grids` (`Objects[int]`)
-        The number of the grids in each dimension.
-    * `max_values` (`float`)
-        The maximum value in each direction.
-    * `min_values` (`Optional[Objects[float]]`, default: `None`)
-        The minimum value in each direction, which is set `-max_value` by default.
-        An error is raised if `max_values[i] < min_values[i]` for some index `i`.
-    * `where_closed` (`Optional[Objects[str]]`, default: `None`)
-        Determines which endpoint of each dimension is closed, i.e., contained in the grid.
-        The value of this argument should be given as a single or a sequence of the following strings:
-            - `both`: Both endpoints are included.
-            - `left`: Only the left endpoint is included.
-            - `right`: Only the right endpoint is included.
-            - `none` (default): Both endpoints are excluded.
-        If `where_closed` is not a sequence, then the given configuration is applied for all dimensions.
     """
     ##### Redefine the arguments
     # Redefine `num_grids`
