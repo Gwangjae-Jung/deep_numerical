@@ -19,19 +19,18 @@ from    sys         import  path
 path.append( str(path_lib) )
 from    pytorch     import  utils
 from    pytorch.numerical   import  distribution
-from    pytorch.numerical.solvers     import  FastSM_Boltzmann_VHS
+from    pytorch.numerical.solvers     import  FastSM_Landau_VHS
 
 dtype:  torch.dtype     = torch.float64
-# device: torch.device    = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
-device: torch.device    = torch.device('cpu')
+device: torch.device    = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
 
 dtype_and_device = {'dtype': dtype, 'device': device}
 __dtype_str = str(dtype).split('.')[-1]
 
 # %%
-PART_INIT:  int     = 1
-N_REPEAT:   int     = 1
-NUM_INST:   int     = 1
+PART_INIT:  int     = 0
+N_REPEAT:   int     = 10
+NUM_INST:   int     = 2
 
 DELTA_T:    float   = 0.1
 MAX_T:      float   = 5.0
@@ -41,8 +40,8 @@ DATA_SIZE:  int     = NUM_INST * NUM_T
 T1__n_init  = T2__n_init    = T3__n_init    = NUM_INST
 T1__size    = T2__size      = T3__size      = DATA_SIZE
 
-DIMENSION:  int     = 3
-RESOLUTION: int     = 2**6
+DIMENSION:  int     = 2
+RESOLUTION: int     = (2**6)+1
 V_MAX:      float   = 3.0/utils.LAMBDA
 DELTA_V:    float   = (2*V_MAX) / RESOLUTION
 V_WHERE_CLOSED: str = 'left'
@@ -59,18 +58,20 @@ VHS_COEFF = 1 / utils.area_of_unit_sphere(DIMENSION)
 for part in range(PART_INIT, PART_INIT+N_REPEAT):
     print('+' + '='*30 + ' +')
     print(f"# part: {str(part).zfill(len(str(N_REPEAT)))}")
-    for VHS_ALPHA in [-2.0, -1.0, 0.0, 1.0]:
-        torch.cuda.empty_cache()
+    for VHS_ALPHA in [-2.0, -1.0, 0.0]:
         print('+' + '-'*30 + ' +')
         print(f"* vhs_alpha: {VHS_ALPHA:.2f}")
         # %%
-        solver = FastSM_Boltzmann_VHS(
+        solver = FastSM_Landau_VHS(
             dimension   = DIMENSION,
             v_num_grid  = RESOLUTION,
             v_max       = V_MAX,
             
             vhs_coeff   = VHS_COEFF,
             vhs_alpha   = VHS_ALPHA,
+            
+            quad_order_uniform  = 150,
+            quad_order_legendre = 150,
             
             **dtype_and_device,
         )
@@ -160,7 +161,6 @@ for part in range(PART_INIT, PART_INIT+N_REPEAT):
         # Type 3. Perturbed Maxwellian distributions
 
         # %%
-        print(f"# Type 3. Perturbed Maxwellian distributions")
         T3__data:   list[torch.Tensor] = []
         T3__gain:   list[torch.Tensor] = []
         T3__loss:   list[torch.Tensor] = []
@@ -179,10 +179,10 @@ for part in range(PART_INIT, PART_INIT+N_REPEAT):
             ##### 1. Save the distribution at the previous time step
             T3__data.append(arr_f_3)
             ##### 2. Save the collision term at the previous time step
-            _gain_3_fft = solver.compute_gain_fft(None, arr_f_3_fft)
-            _loss_3_fft = solver.compute_loss_fft(None, arr_f_3_fft)
-            gain_3 = torch.real(torch.fft.ifftn(_gain_3_fft, **FFT_CONFIG))
-            loss_3 = torch.real(torch.fft.ifftn(_loss_3_fft, **FFT_CONFIG))
+            _col_3_gain_fft = solver.compute_gain_fft(None, arr_f_3_fft)
+            _col_3_loss_fft = solver.compute_loss_fft(None, arr_f_3_fft)
+            gain_3 = torch.real(torch.fft.ifftn(_col_3_gain_fft, **FFT_CONFIG))
+            loss_3 = torch.real(torch.fft.ifftn(_col_3_loss_fft, **FFT_CONFIG))
             T3__gain.append(gain_3)
             T3__loss.append(loss_3)
             ##### 3. Compute the distribution at the current time step
@@ -203,7 +203,6 @@ for part in range(PART_INIT, PART_INIT+N_REPEAT):
         # Merge the data
 
         # %%
-        print(f"# Merge the data")
         data    = \
             torch.concatenate((T1__data, T2__data, T3__data), dim=0)
         gain    = \
@@ -222,7 +221,7 @@ for part in range(PART_INIT, PART_INIT+N_REPEAT):
             'collision_gain':       gain,
             'collision_loss':       loss,
             
-            'n_init':           T1__size+T2__size+T3__size,
+            'n_init':           3*NUM_INST,
             
             'max_t':            MAX_T,
             'delta_t':          DELTA_T,
@@ -234,23 +233,16 @@ for part in range(PART_INIT, PART_INIT+N_REPEAT):
             'vhs_coeff':    VHS_COEFF,
             'vhs_alpha':    VHS_ALPHA,
             
-            'equation':     'Boltzmann',
+            'equation':     'Landau',
             'dtype_str':    __dtype_str,
         }
         file_dir = path_data / __dtype_str
-        file_name = f"Boltzmann__{DIMENSION}D__res{str(RESOLUTION).zfill(3)}__alpha{float(VHS_ALPHA):.1e}__part{str(part).zfill(len(str(N_REPEAT)))}.pth"
+        file_name = f"Landau__{DIMENSION}D__res_{str(RESOLUTION).zfill(3)}__alpha_{float(VHS_ALPHA):.1e}__part{str(part).zfill(len(str(N_REPEAT)))}.pth"
         if not Path.exists(file_dir):
             Path.mkdir(file_dir, parents=True)
         torch.save(saved_data, file_dir/file_name)
-        del(
-            T1__data, T1__gain, T1__loss,
-            T2__data, T2__gain, T2__loss,
-            T3__data, T3__gain, T3__loss,
-            data, gain, loss,
-            saved_data,
-        )
-
         print('\n'*2)
+        
         # %% [markdown]
         # End of file
 

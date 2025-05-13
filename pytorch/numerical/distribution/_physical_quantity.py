@@ -456,7 +456,7 @@ def plot_quantities_homogeneous(
         axes[i,j].grid()
         axes[i,j].set_xlim(arr_t[0], arr_t[-1])
     axes[0,0].set_ylim(0, 2*mass[0,0])
-    axes[0,1].set_ylim(-2*momentum[0].norm(), +2*momentum[0].norm())
+    axes[0,1].set_ylim(-2*(momentum[0].norm()+0.1), +2*(momentum[0].norm()+0.1))
     axes[1,0].set_ylim(0, 2*energy[0,0])
     fig.tight_layout()
 

@@ -1,16 +1,14 @@
 # %%
 from    typing      import  Callable
-
 import  torch
-
 from    tqdm    import  tqdm
-
 from    kinetic_distribtutions      import  *
 
 from    pathlib             import  Path
 root_dir    = r"/media/junseung/47a90e46-3a9d-467c-bbee-066752b68532/GWANGJAE"
 path_root   = Path(root_dir)
 path_lib    = path_root / "python_deep_numerical"
+path_data   = path_root / "datasets"
 
 from    sys         import  path
 path.append( str(path_lib) )
@@ -19,24 +17,27 @@ from    pytorch.numerical   import  distribution
 from    pytorch.numerical.solvers     import  FastSM_Boltzmann_VHS
 
 dtype:  torch.dtype     = torch.float64
-device: torch.device    = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
-# device: torch.device    = torch.device('cpu')
+# device: torch.device    = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
+device: torch.device    = torch.device('cpu')
 
 dtype_and_device = {'dtype': dtype, 'device': device}
 __dtype_str = str(dtype).split('.')[-1]
 
 # %%
-NUM_INST:   int     = 20
+PART_INIT:  int     = 1
+N_REPEAT:   int     = 1
+PART_LAST:  int     = PART_INIT + N_REPEAT - 1
+NUM_INST:   int     = 1
 
 DELTA_T:    float   = 0.1
-MAX_T:      float   = 5.0
+MAX_T:      float   = 10.0
 NUM_T:      int     = 1 + int(MAX_T/DELTA_T + 0.1)
 DATA_SIZE:  int     = NUM_INST * NUM_T
 
 T1__n_init  = T2__n_init    = T3__n_init    = NUM_INST
 T1__size    = T2__size      = T3__size      = DATA_SIZE
 
-DIMENSION:  int     = 2
+DIMENSION:  int     = 3
 RESOLUTION: int     = 2**6
 V_MAX:      float   = 3.0/utils.LAMBDA
 DELTA_V:    float   = (2*V_MAX) / RESOLUTION
@@ -50,10 +51,10 @@ FFT_NORM:   str  = 'forward'
 sample_q: Callable[[int], tuple[torch.Tensor]] = \
     lambda batch_size: sample_quantities(DIMENSION, batch_size, **dtype_and_device)
 
-# VHS_COEFF = 1 / utils.area_of_unit_sphere(DIMENSION)
-VHS_COEFF = 1.0
-
-for part in [1,2,3]:
+VHS_COEFF = 1 / utils.area_of_unit_sphere(DIMENSION)
+for part in range(PART_INIT, PART_LAST+1):
+    print('+' + '='*30 + ' +')
+    print(f"# part: {str(part).zfill(len(str(PART_LAST)))}")
     for VHS_ALPHA in [-2.0, -1.0, 0.0, 1.0]:
         torch.cuda.empty_cache()
         print('+' + '-'*30 + ' +')
@@ -232,10 +233,8 @@ for part in [1,2,3]:
             'equation':     'Boltzmann',
             'dtype_str':    __dtype_str,
         }
-        
-        path_data   = path_root / "datasets" / f"Boltzmann_{DIMENSION}D" / "various"
-        file_dir = path_data / f"coeff{VHS_COEFF:.2e}"
-        file_name = f"res{str(RESOLUTION).zfill(3)}__alpha{float(VHS_ALPHA):.1e}__part{str(part).zfill(2)}.pth"
+        file_dir = path_data / __dtype_str
+        file_name = f"Boltzmann__{DIMENSION}D__res{str(RESOLUTION).zfill(3)}__alpha{float(VHS_ALPHA):.1e}__part{str(part).zfill(len(str(PART_LAST)))}.pth"
         if not Path.exists(file_dir):
             Path.mkdir(file_dir, parents=True)
         torch.save(saved_data, file_dir/file_name)
