@@ -8,10 +8,12 @@ from    ...utils    import  EPSILON, zeros, ones, repeat
 __all__: list[str] = [
     'compute_moments_homogeneous',
     'compute_moments_inhomogeneous',
+    'compute_mass_homogeneous',
+    'compute_mass_inhomogeneous',
+    'compute_momentum_homogeneous',
+    'compute_momentum_inhomogeneous',
     'compute_energy_homogeneous',
     'compute_energy_inhomogeneous',
-    # 'compute_invariants_homogeneous',
-    # 'compute_invariants_inhomogeneous',
     'compute_entropy_homogeneous',
     'compute_entropy_inhomogeneous',
 ]
@@ -41,26 +43,30 @@ def compute_moments_homogeneous(
             * `u` saves the mean velocity of each instance, which is of shape `(B, d)`.
             * `T` saves the mean temperature of each instance, which is of shape `(B, 1)`.
     """    
-    # Retrieve the dimension and dv
+    # Retrieve the dimension and `dV`
     dim = v.shape[-1]
-    dv  = float(torch.prod(v[ones(dim)] - v[zeros(dim)]))
+    dV  = float(torch.prod(v[ones(dim)] - v[zeros(dim)]))
     
     # Reshape `v` in this function for vectorized operations
     v = v[*repeat(None, 1+dim), ...]    # Shape: (1, *repeat(1, dim), K_1, ..., K_d, d)
     v_axes = tuple(range(1+dim, 1+2*dim)) # The following `dim` dimensions
     
     # Compute the density
-    density: torch.Tensor = f.sum(axis=v_axes, keepdims=True) * dv
+    density: torch.Tensor = f.sum(axis=v_axes, keepdims=True) * dV
     
     # Compute the average velocity
-    momentum: torch.Tensor = torch.sum(f*v, axis=v_axes, keepdims=True) * dv
+    momentum: torch.Tensor = torch.sum(f*v, axis=v_axes, keepdims=True) * dV
     velocity: torch.Tensor = momentum / (density + eps)
     
     # Compute the temperature
     _speed_sq:   torch.Tensor = torch.sum((v-velocity)**2, axis=-1, keepdims=True)
-    temperature: torch.Tensor = torch.sum(f*_speed_sq, axis=v_axes, keepdims=True) * dv / (dim*density + eps)
+    temperature: torch.Tensor = torch.sum(f*_speed_sq, axis=v_axes, keepdims=True) * dV / (dim*density + eps)
     
-    # Return
+    # Squeeze the dimensions (`...xvc->...c`) and return
+    dim_squeezed = tuple((-(2+k) for k in range(2*dim)))
+    density     = density.squeeze(dim_squeezed)
+    velocity    = velocity.squeeze(dim_squeezed)
+    temperature = temperature.squeeze(dim_squeezed)
     return (density, velocity, temperature)
 
 
@@ -84,12 +90,10 @@ def compute_moments_inhomogeneous(
             * `rho` saves the mean density of each instance, which is of shape `(B, N_1, ..., N_d, 1)`.
             * `u` saves the mean velocity of each instance, which is of shape `(B, N_1, ..., N_d, d)`.
             * `T` saves the mean temperature of each instance, which is of shape `(B, N_1, ..., N_d, 1)`.
-    
-    Unlike the global mean density and temperature as the output of the function `compute_moments_homogeneous(...)` are of type `float`, `rho` and `T` are treated as tensors of the same dimension as `u` so that the output quantities can be readily used as input arguments of the function `maxwellian_inhomogeneous(...)`. See the following example.
     """
-    # Retrieve the dimension and dv
+    # Retrieve the dimension and `dV`
     dim = v.shape[-1]
-    dv  = float(torch.prod(v[ones(dim)] - v[zeros(dim)]))
+    dV  = float(torch.prod(v[ones(dim)] - v[zeros(dim)]))
     
     # Reshape the velocity grid for vectorized operations
     v = v.reshape(1, *ones(dim), *v.shape)
@@ -97,21 +101,150 @@ def compute_moments_inhomogeneous(
     """The tuple of the velocity dimensions, where the last dimension of each tensor in this function is assumed to save values."""
     
     # Compute the density
-    density: torch.Tensor = f.sum(axis=v_axes, keepdims=True) * dv
+    density: torch.Tensor = f.sum(axis=v_axes, keepdims=True) * dV
     
     # Compute the average velocity
-    momentum: torch.Tensor = torch.sum(f*v, axis=v_axes, keepdims=True) * dv
+    momentum: torch.Tensor = torch.sum(f*v, axis=v_axes, keepdims=True) * dV
     velocity: torch.Tensor = momentum / (density + eps)
     
     # Compute the temperature
     _speed_sq:   torch.Tensor = torch.sum((v - velocity)**2, axis=-1, keepdims=True)
-    temperature: torch.Tensor = torch.sum(f*_speed_sq, axis=v_axes, keepdims=True) * dv / (dim*density + eps)
+    temperature: torch.Tensor = torch.sum(f*_speed_sq, axis=v_axes, keepdims=True) * dV / (dim*density + eps)
         
-    # Return
+    # Squeeze the dimensions (`...xvc->...xc`) and return
     density     = density.squeeze(v_axes)
     velocity    = velocity.squeeze(v_axes)
     temperature = temperature.squeeze(v_axes)
     return (density, velocity, temperature)
+
+
+##################################################
+##################################################
+# Mass
+def compute_mass_homogeneous(
+        f:      torch.Tensor,
+        dv:     float,
+        dim:    Optional[int] = None,
+    ) -> torch.Tensor:
+    """Computes the mass (the velocity integral of `f`.
+    
+    Arguments:
+        `f` (`torch.Tensor`):
+            The distribution function at a specific time, which is of shape `(B, K_1, ..., K_d, 1)`.
+        `dv` (`float`):
+            The size of the velocity grid.
+        `dim` (`Optioal[int]`, default: `None`):
+            The dimension of the velocity space. If `None`, `dim` is set `(f.ndim-2)//2`.
+    
+    Returns:
+        This function returns the mass of each instance, which is of shape `(B, 1)`.
+    """
+    # Retrieve the dimension and `dV`
+    if dim is None:
+        dim = (f.ndim-2)//2
+    dV = dv**dim
+    axes_v = tuple((-(2+k) for k in range(dim)))
+    # Compute the momentum
+    mass = torch.sum(f, axis=axes_v) * dV
+    mass = mass.squeeze(axis=axes_v)
+    return mass
+
+
+def compute_mass_inhomogeneous(
+        f:      torch.Tensor,
+        dx:     float,
+        dv:     float,
+        dim:    Optional[int] = None,
+    ) -> torch.Tensor:
+    """Computes the momentum (the space-velocity integral of `f * v`.
+    
+    Arguments:
+        `f` (`torch.Tensor`):
+            The distribution function at a specific time, which is of shape `(B, N_1, ..., N_d, K_1, ..., K_d, 1)`.
+        `dx` (`float`):
+            The spatial grid size.
+        `dv` (`float`):
+            The size of the velocity grid.
+        `dim` (`Optioal[int]`, default: `None`):
+            The dimension of the velocity space. If `None`, `dim` is set `(f.ndim-2)//2`.
+
+    Returns:
+        This function returns the mass of each instance, which is of shape `(B, 1)`.
+    """
+    # Retrieve the dimension, `dX`, and `dV`
+    if dim is None:
+        dim = (f.ndim-2)//2
+    dX = dx**dim
+    dV = dv**dim
+    axes_x = tuple((+(1+k) for k in range(dim)))
+    axes_v = tuple((-(2+k) for k in range(dim)))
+    # Compute the momentum
+    mass = torch.sum(f, axis=(*axes_x, *axes_v)) * (dX*dV)
+    return mass
+
+
+##################################################
+##################################################
+# Momentum
+def compute_momentum_homogeneous(
+        f:  torch.Tensor,
+        v:  torch.Tensor,
+    ) -> torch.Tensor:
+    """Computes the momentum (the velocity integral of `f * v`.
+    
+    Arguments:
+        `f` (`torch.Tensor`):
+            The distribution function at a specific time, which is of shape `(B, K_1, ..., K_d, 1)`.
+        `v` (`torch.Tensor`):
+            The velocity grid, which is of shape `(K_1, ..., K_d, d)`.
+    
+    Returns:
+        This function returns the momentum of each instance, which is of shape `(B, d)`.
+    """
+    # Retrieve the dimension and `dV`
+    dim = v.shape[-1]
+    dV = torch.prod(v[ones(dim)] - v[zeros(dim)])
+    # Reshape `f` and `v` in this function for vectorized operations
+    # NOTE: (batch, v1, ..., vd, value)
+    v = v[None, ...]
+    axes_v = tuple((-(2+k) for k in range(dim)))
+    # Compute the momentum
+    momentum = torch.sum(f*v, axis=axes_v) * dV
+    momentum = momentum.squeeze(axis=axes_v)
+    return momentum
+
+
+def compute_momentum_inhomogeneous(
+        f:  torch.Tensor,
+        v:  torch.Tensor,
+        dx: float,
+    ) -> torch.Tensor:
+    """Computes the momentum (the space-velocity integral of `f * v`.
+    
+    Arguments:
+        `f` (`torch.Tensor`):
+            The distribution function at a specific time, which is of shape `(B, N_1, ..., N_d, K_1, ..., K_d, 1)`.
+        `v` (`torch.Tensor`):
+            The velocity grid, which is of shape `(K_1, ..., K_d, d)`.
+        `dx` (`float`):
+            The spatial grid size.
+
+    Returns:
+        This function returns the momentum of each instance, which is of shape `(B, d)`.
+    """
+    # Retrieve the dimension, `dX`, and `dV`
+    dim = v.shape[-1]
+    dX = dx**dim
+    dV  = torch.prod(v[ones(dim)] - v[zeros(dim)])
+    # Reshape `f` and `v` in this function for vectorized operations
+    # NOTE: (batch, x1, ..., xd, v1, ..., vd, value)
+    v = v.reshape(1, *ones(dim), *v.shape)
+    axes_x = tuple((+(1+k) for k in range(dim)))
+    axes_v = tuple((-(2+k) for k in range(dim)))
+    # Compute the momentum
+    momentum = torch.sum(f*v, axis=(*axes_x, *axes_v), keepdims=True) * (dX*dV)
+    momentum = torch.squeeze(momentum, axis=(*axes_x, *axes_v))
+    return momentum
 
 
 ##################################################
@@ -132,16 +265,16 @@ def compute_energy_homogeneous(
     Returns:
         This function returns the kinetic energy of each instance, which is of shape `(B, 1)`.
     """
-    # Retrieve the dimension and dv
+    # Retrieve the dimension and `dV`
     dim = v.shape[-1]
-    dv = torch.prod(v[ones(dim)] - v[zeros(dim)])
+    dV = torch.prod(v[ones(dim)] - v[zeros(dim)])
     # Reshape `f` and `v` in this function for vectorized operations
     # NOTE: (batch, v1, ..., vd, value)
     v = v[None, ...]
     axes_v = tuple((-(2+k) for k in range(dim)))
-    # Compute
+    # Compute the energy
     speed_sq = torch.sum(v**2, axis=-1, keepdims=True)
-    energy = torch.sum(f*speed_sq, axis=axes_v, keepdims=True) * dv / 2
+    energy = torch.sum(f*speed_sq, axis=axes_v) * dV / 2
     energy = energy.squeeze(axis=axes_v)
     return energy
 
@@ -164,17 +297,18 @@ def compute_energy_inhomogeneous(
     Returns:
         This function returns the kinetic energy of each instance, which is of shape `(B, 1)`.
     """
-    # Retrieve the dimension and dv
+    # Retrieve the dimension, `dX`, and `dV`
     dim = v.shape[-1]
-    dv  = torch.prod(v[ones(dim)] - v[zeros(dim)])
+    dX = dx**dim
+    dV = torch.prod(v[ones(dim)] - v[zeros(dim)])
     # Reshape `f` and `v` in this function for vectorized operations
     # NOTE: (batch, x1, ..., xd, v1, ..., vd, value)
     v = v.reshape(1, *ones(dim), *v.shape)
     axes_x = tuple((+(1+k) for k in range(dim)))
     axes_v = tuple((-(2+k) for k in range(dim)))
-    # Compute
+    # Compute the energy
     speed_sq = torch.sum(v**2, axis=-1, keepdims=True)
-    energy = torch.sum(f*speed_sq, axis=(*axes_x, *axes_v), keepdims=True) * dv * dx / 2
+    energy = torch.sum(f*speed_sq, axis=(*axes_x, *axes_v), keepdims=True) * (dX*dV) / 2
     energy = torch.squeeze(energy, axis=(*axes_x, *axes_v))
     return energy
 
@@ -203,14 +337,15 @@ def compute_entropy_homogeneous(
     Returns:
         This function returns the entropy of each instance, which is of shape `(B, 1)`.
     """
-    # Retrieve the dimension and dv
+    # Retrieve the dimension and `dV`
     if dim is None:
         dim = (f.ndim-2)//2
     axes_v = tuple((-(2+k) for k in range(dim)))
+    dV = dv**dim
     # Compute the entropy
     if f.min() <= 0:
         f = f - f.min() + eps
-    entropy = torch.sum(f * f.log(), axis=axes_v) * (dv**dim)
+    entropy = torch.sum(f * f.log(), axis=axes_v) * dV
     entropy = entropy.squeeze(axis=axes_v)
     return entropy
 
@@ -239,15 +374,17 @@ def compute_entropy_inhomogeneous(
     Returns:
         This function returns the entropy of each instance, which is of shape `(B, 1)`.
     """
-    # Retrieve the dimension and dv
+    # Retrieve the dimension, `dX`, and `dV`
     if dim is None:
         dim = (f.ndim-2)//2
     axes_x = tuple((-(2+k+dim)  for k in range(dim)))
     axes_v = tuple((-(2+k)      for k in range(dim)))
+    dX = dx**dim
+    dV = dv**dim
     # Compute the entropy
     if f.min() <= 0:
         f = f - f.min() + eps
-    entropy = torch.sum(f * f.log(), axis=(*axes_x, *axes_v), keepdims=True) * ((dx*dv)**dim)
+    entropy = torch.sum(f * f.log(), axis=(*axes_x, *axes_v), keepdims=True) * (dX*dV)
     entropy = torch.squeeze(entropy, dim=(*axes_x, *axes_v))
     return entropy
 
