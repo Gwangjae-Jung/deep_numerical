@@ -402,34 +402,45 @@ def plot_quantities_homogeneous(
         v_grid: torch.Tensor,
         dim:    Optional[int]   = None,
         eps:    float           = EPSILON,
+        ##############################
+        figsize: tuple[int, int]    = (10, 7),
+        dpi:     int                = 100,
+        suptitle_fontsize:  int     = 20,
+        title_fontsize:     int     = 12,
     ) -> tuple[Figure, Sequence[Axes]]:
-    import  matplotlib.pyplot   as  plt
+    from    itertools           import  product
+    import  matplotlib.pyplot   as      plt
+    
     if dim is None:
         dim = (arr_f.ndim-2)//2
-    dv = torch.prod(v_grid[ones(dim)] - v_grid[zeros(dim)])
+    dv = (v_grid[ones(dim)] - v_grid[zeros(dim)])[0].item()
     mass        = compute_mass_homogeneous(arr_f, dv=dv, dim=dim)
     momentum    = compute_momentum_homogeneous(arr_f, v_grid)
     energy      = compute_energy_homogeneous(arr_f, v_grid)
     entropy     = compute_entropy_homogeneous(arr_f, dv=dv, eps=eps)
 
-    fig, axes = plt.subplots(2,2, figsize=(10,10))
-    fig.suptitle(f"Plot of several physical quantities")
+    fig, axes = plt.subplots(2,2, figsize=figsize, dpi=dpi)
+    fig.suptitle(f"Plot of several physical quantities", fontsize=suptitle_fontsize)
     
     arr_t       = arr_t.cpu()
     mass        = mass.cpu()
     momentum    = momentum.cpu()
     energy      = energy.cpu()
     entropy     = entropy.cpu()
-    axes[0,0].set_title("Mass")
-    axes[0,1].set_title("Momentum")
-    axes[1,0].set_title("Energy")
-    axes[1,1].set_title("Entropy")
+    axes[0,0].set_title("Mass",     fontsize = title_fontsize)
+    axes[0,1].set_title("Momentum", fontsize = title_fontsize)
+    axes[1,0].set_title("Energy",   fontsize = title_fontsize)
+    axes[1,1].set_title("Entropy",  fontsize = title_fontsize)
     axes[0,0].plot(arr_t, mass[:, 0], 'k-', linewidth=1)
     axes[0,1].plot(arr_t, momentum[:, 0], 'r-', linewidth=1, label='$x$')
     axes[0,1].plot(arr_t, momentum[:, 1], 'g-', linewidth=1, label='$y$')
     axes[1,0].plot(arr_t, energy[:, 0], 'b-', linewidth=1)
     axes[1,1].plot(arr_t, entropy[:, 0], 'm-', linewidth=1)
     axes[0,1].legend()
+    for i, j in product(range(2), range(2)):
+        axes[i,j].set_xlabel("$t$")
+        axes[i,j].grid()
+        axes[i,j].set_xlim(arr_t[0], arr_t[-1])
     axes[0,0].set_ylim(0, 2*mass[0,0])
     axes[0,1].set_ylim(-2*momentum[0].norm(), +2*momentum[0].norm())
     axes[1,0].set_ylim(0, 2*energy[0,0])
