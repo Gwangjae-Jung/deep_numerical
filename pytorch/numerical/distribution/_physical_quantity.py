@@ -194,7 +194,7 @@ def compute_entropy_homogeneous(
         `f` (`torch.Tensor`):
             The distribution function at a specific time, which is of shape `(B, *ones(d), K_1, ..., K_d, 1)`.
         `dv` (`float`):
-            The volume of each velocity grid-box.
+            The size of the velocity grid.
         `dim` (`Optioal[int]`, default: `None`):
             The dimension of the velocity space. If `None`, `dim` is set `(f.ndim-2)//2`.
         `eps` (`float`, default: `_EPSILON`):
@@ -208,9 +208,10 @@ def compute_entropy_homogeneous(
         dim = (f.ndim-2)//2
     axes_v = tuple((-(2+k) for k in range(dim)))
     # Compute the entropy
-    if float(f.min()) + eps <= 0:
-        f = f + eps
-    entropy = torch.sum(f * f.log(), axis=axes_v) * dv
+    if f.min() <= 0:
+        f = f - f.min() + eps
+    entropy = torch.sum(f * f.log(), axis=axes_v) * (dv**dim)
+    entropy = entropy.squeeze(axis=axes_v)
     return entropy
 
 
@@ -227,9 +228,9 @@ def compute_entropy_inhomogeneous(
         `f` (`torch.Tensor`):
             The distribution function at a specific time, which is of shape `(B, K_1, ..., K_d, 1)`.
         `dx` (`float`):
-            The volume of each spatial grid-box.
+            The size of the space grid.
         `dv` (`float`):
-            The volume of each velocity grid-box.
+            The size of the velocity grid.
         `dim` (`Optioal[int]`, default: `None`):
             The dimension of the velocity space. If `None`, `dim` is set `(f.ndim-2)//2`.
         `eps` (`float`, default: `_EPSILON`):
@@ -244,9 +245,9 @@ def compute_entropy_inhomogeneous(
     axes_x = tuple((-(2+k+dim)  for k in range(dim)))
     axes_v = tuple((-(2+k)      for k in range(dim)))
     # Compute the entropy
-    if float(f.min()) + eps <= 0:
-        f = f + eps
-    entropy = torch.sum(f * f.log(), axis=(*axes_x, *axes_v), keepdims=True) * (dx*dv)
+    if f.min() <= 0:
+        f = f - f.min() + eps
+    entropy = torch.sum(f * f.log(), axis=(*axes_x, *axes_v), keepdims=True) * ((dx*dv)**dim)
     entropy = torch.squeeze(entropy, dim=(*axes_x, *axes_v))
     return entropy
 
