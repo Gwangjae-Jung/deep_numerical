@@ -1,3 +1,4 @@
+from    typing      import  Optional
 import  torch
 from    ...utils    import  EPSILON, zeros, ones, repeat
 
@@ -9,6 +10,8 @@ __all__: list[str] = [
     'compute_moments_inhomogeneous',
     'compute_energy_homogeneous',
     'compute_energy_inhomogeneous',
+    # 'compute_invariants_homogeneous',
+    # 'compute_invariants_inhomogeneous',
     'compute_entropy_homogeneous',
     'compute_entropy_inhomogeneous',
 ]
@@ -24,21 +27,19 @@ def compute_moments_homogeneous(
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Computes the physical quantities which determine the local Maxwellian distribution - mass, velocity, and temperature.
     
-    -----
-    ### Arguments
-    * `f` (`torch.Tensor`)
-        The distribution function at a specific time, which is of shape `(B, *repeat(1, dim), K_1, ..., K_d, 1)`.
-    * `v` (`torch.Tensor`)
-       The velocity grid, which is of shape `(K_1, ..., K_d, d)`.
-    * `eps` (`float`, default: `_EPSILON`)
-        The value which is used to prevent divisions by zero.
+    Arguments:
+        `f` (`torch.Tensor`):
+            The distribution function at a specific time, which is of shape `(B, *repeat(1, dim), K_1, ..., K_d, 1)`.
+        `v` (`torch.Tensor`):
+            The velocity grid, which is of shape `(K_1, ..., K_d, d)`.
+        `eps` (`float`, default: `_EPSILON`):
+            The value which is used to prevent divisions by zero.
     
-    -----
-    ### Return
-    This function returns the tuple `(rho, u, T)`, where `rho`, `u`, and `T` are `torch.Tensor` objects described below.
-    * `rho` saves the mean density of each instance, which is of shape `(B, 1)`.
-    * `u` saves the mean velocity of each instance, which is of shape `(B, d)`.
-    * `T` saves the mean temperature of each instance, which is of shape `(B, 1)`.
+    Returns:
+        This function returns the tuple `(rho, u, T)`, where `rho`, `u`, and `T` are `torch.Tensor` objects described below.
+            * `rho` saves the mean density of each instance, which is of shape `(B, 1)`.
+            * `u` saves the mean velocity of each instance, which is of shape `(B, d)`.
+            * `T` saves the mean temperature of each instance, which is of shape `(B, 1)`.
     """    
     # Retrieve the dimension and dv
     dim = v.shape[-1]
@@ -70,22 +71,19 @@ def compute_moments_inhomogeneous(
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Computes the physical quantities which determine the local Maxwellian distribution - mass, velocity, and temperature.
     
-    -----
-    ### Arguments
-    * `f` (`torch.Tensor`)
-        The distribution function at a specific time, which is of shape `(B, N_1, ..., N_d, K_1, ..., K_d, 1)`.
-    * `v` (`torch.Tensor`)
-        * The velocity grid.
-        The velocity grid, which is of shape `(K_1, ..., K_d, d)`.
-    * `eps` (`float`, default: `_EPSILON`)
-        The value which is used to prevent divisions by zero.
+    Arguments:
+        `f` (`torch.Tensor`):
+            The distribution function at a specific time, which is of shape `(B, N_1, ..., N_d, K_1, ..., K_d, 1)`.
+        `v` (`torch.Tensor`):
+            The velocity grid, which is of shape `(K_1, ..., K_d, d)`.
+        `eps` (`float`, default: `_EPSILON`):
+            The value which is used to prevent divisions by zero.
 
-    -----
-    ### Return
-    This function returns the tuple `(rho, u, T)`, where `rho`, `u`, and `T` are `torch.Tensor` objects described below.
-    * `rho` saves the mean density of each instance, which is of shape `(B, N_1, ..., N_d, 1)`.
-    * `u` saves the mean velocity of each instance, which is of shape `(B, N_1, ..., N_d, d)`.
-    * `T` saves the mean temperature of each instance, which is of shape `(B, N_1, ..., N_d, 1)`.
+    Returns:
+        This function returns the tuple `(rho, u, T)`, where `rho`, `u`, and `T` are `torch.Tensor` objects described below.
+            * `rho` saves the mean density of each instance, which is of shape `(B, N_1, ..., N_d, 1)`.
+            * `u` saves the mean velocity of each instance, which is of shape `(B, N_1, ..., N_d, d)`.
+            * `T` saves the mean temperature of each instance, which is of shape `(B, N_1, ..., N_d, 1)`.
     
     Unlike the global mean density and temperature as the output of the function `compute_moments_homogeneous(...)` are of type `float`, `rho` and `T` are treated as tensors of the same dimension as `u` so that the output quantities can be readily used as input arguments of the function `maxwellian_inhomogeneous(...)`. See the following example.
     """
@@ -123,14 +121,16 @@ def compute_energy_homogeneous(
         f:  torch.Tensor,
         v:  torch.Tensor,
     ) -> torch.Tensor:
-    """Computes the kinetic energy (the velocity integral of `f * (abs(v)**2) / 2`).
+    """Computes the kinetic energy (the velocity integral of `f * (abs(v)**2) / 2)`.
     
-    -----
-    ### Arguments
-    * `f` (`torch.Tensor`)
-        The distribution function at a specific time, which is of shape `(B, K_1, ..., K_d, 1)`.
-    * `v` (`torch.Tensor`)
-        The velocity grid, which is of shape `(K_1, ..., K_d, d)`.
+    Arguments:
+        `f` (`torch.Tensor`):
+            The distribution function at a specific time, which is of shape `(B, K_1, ..., K_d, 1)`.
+        `v` (`torch.Tensor`):
+            The velocity grid, which is of shape `(K_1, ..., K_d, d)`.
+    
+    Returns:
+        This function returns the kinetic energy of each instance, which is of shape `(B, 1)`.
     """
     # Retrieve the dimension and dv
     dim = v.shape[-1]
@@ -151,16 +151,18 @@ def compute_energy_inhomogeneous(
         v:  torch.Tensor,
         dx: float,
     ) -> torch.Tensor:
-    """Computes the kinetic energy (the velocity integral of `f * (abs(v)**2) / 2`).
+    """Computes the kinetic energy (the space-velocity integral of `f * (abs(v)**2) / 2)`.
     
-    -----
-    ### Arguments
-    * `f` (`torch.Tensor`)
-        The distribution function at a specific time, which is of shape `(B, N_1, ..., N_d, K_1, ..., K_d, 1)`.
-    * `v` (`torch.Tensor`)
-        The velocity grid, which is of shape `(K_1, ..., K_d, d)`.
-    * `dx` (`float`)
-        The spatial grid size.
+    Arguments:
+        `f` (`torch.Tensor`):
+            The distribution function at a specific time, which is of shape `(B, N_1, ..., N_d, K_1, ..., K_d, 1)`.
+        `v` (`torch.Tensor`):
+            The velocity grid, which is of shape `(K_1, ..., K_d, d)`.
+        `dx` (`float`):
+            The spatial grid size.
+
+    Returns:
+        This function returns the kinetic energy of each instance, which is of shape `(B, 1)`.
     """
     # Retrieve the dimension and dv
     dim = v.shape[-1]
@@ -182,50 +184,71 @@ def compute_energy_inhomogeneous(
 # Entropy
 def compute_entropy_homogeneous(
         f:      torch.Tensor,
-        v:      torch.Tensor,
-        eps:    float = EPSILON,
+        dv:     torch.Tensor,
+        dim:    Optional[int]   = None,
+        eps:    float           = EPSILON,
     ) -> torch.Tensor:
-    # Retrieve the dimension and dv
-    dim = v.shape[-1]
-    dv = torch.prod(v[ones(dim)] - v[zeros(dim)])
-    # Reshape `f` and `v` in this function for vectorized operations
-    # NOTE: (batch, v1, ..., vd, value)
-    f = f[..., None]
-    v = v[None, ...]
-    axes_v = tuple((-(2+k) for k in range(dim)))
-    # Compute
-    _integrand: torch.Tensor
-    if float(f.min()) + eps > 0:
-        _integrand = f * torch.log(f)
-    else:
-        _integrand = f * torch.log(f + eps)
+    """Computes the kinetic energy (the velocity integral of `f * log(f))`.
     
-    return torch.sum(_integrand, axis=axes_v) * dv
+    Arguments:
+        `f` (`torch.Tensor`):
+            The distribution function at a specific time, which is of shape `(B, *ones(d), K_1, ..., K_d, 1)`.
+        `dv` (`float`):
+            The volume of each velocity grid-box.
+        `dim` (`Optioal[int]`, default: `None`):
+            The dimension of the velocity space. If `None`, `dim` is set `(f.ndim-2)//2`.
+        `eps` (`float`, default: `_EPSILON`):
+            The value which is used to prevent the computation of the logarithm of non-positive numbers.
+    
+    Returns:
+        This function returns the entropy of each instance, which is of shape `(B, 1)`.
+    """
+    # Retrieve the dimension and dv
+    if dim is None:
+        dim = (f.ndim-2)//2
+    axes_v = tuple((-(2+k) for k in range(dim)))
+    # Compute the entropy
+    if float(f.min()) + eps <= 0:
+        f = f + eps
+    entropy = torch.sum(f * f.log(), axis=axes_v) * dv
+    return entropy
 
 
 def compute_entropy_inhomogeneous(
         f:      torch.Tensor,
-        v:      torch.Tensor,
         dx:     float,
-        eps:    float = EPSILON,
+        dv:     float,
+        dim:    Optional[int]   = None,
+        eps:    float           = EPSILON,
     ) -> torch.Tensor:
-        # Retrieve the dimension and dv
-    dim = v.shape[-1]
-    dv  = torch.prod(v[ones(dim)] - v[zeros(dim)])
-    # Reshape `f` and `v` in this function for vectorized operations
-    # NOTE: (batch, x1, ..., xd, v1, ..., vd, value)
-    f = f[..., None]
-    v = v.reshape(1, *ones(dim), *v.shape)
-    axes_x = tuple((+(1+k) for k in range(dim)))
-    axes_v = tuple((-(2+k) for k in range(dim)))
-    # Compute
-    _integrand: torch.Tensor
-    if float(f.min()) + eps > 0:
-        _integrand = f * torch.log(f)
-    else:
-        _integrand = f * torch.log(f + eps)
+    """Computes the kinetic energy (the space-velocity integral of `f * log(f))`.
     
-    return torch.sum(_integrand, axis=(*axes_x, *axes_v)) * dx * dv
+    Arguments:
+        `f` (`torch.Tensor`):
+            The distribution function at a specific time, which is of shape `(B, K_1, ..., K_d, 1)`.
+        `dx` (`float`):
+            The volume of each spatial grid-box.
+        `dv` (`float`):
+            The volume of each velocity grid-box.
+        `dim` (`Optioal[int]`, default: `None`):
+            The dimension of the velocity space. If `None`, `dim` is set `(f.ndim-2)//2`.
+        `eps` (`float`, default: `_EPSILON`):
+            The value which is used to prevent the computation of the logarithm of non-positive numbers.
+    
+    Returns:
+        This function returns the entropy of each instance, which is of shape `(B, 1)`.
+    """
+    # Retrieve the dimension and dv
+    if dim is None:
+        dim = (f.ndim-2)//2
+    axes_x = tuple((-(2+k+dim)  for k in range(dim)))
+    axes_v = tuple((-(2+k)      for k in range(dim)))
+    # Compute the entropy
+    if float(f.min()) + eps <= 0:
+        f = f + eps
+    entropy = torch.sum(f * f.log(), axis=(*axes_x, *axes_v), keepdims=True) * (dx*dv)
+    entropy = torch.squeeze(entropy, dim=(*axes_x, *axes_v))
+    return entropy
 
 
 ##################################################

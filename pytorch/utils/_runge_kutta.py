@@ -5,6 +5,8 @@ from    ._dtype         import  ArrayData
 ##################################################
 ##################################################
 __all__: list[str] = [
+    # Order 1
+    'one_step_RK1_Euler',
     # Order 2
     'one_step_RK2_Heun',
     'one_step_RK2_Ralston',
@@ -19,6 +21,19 @@ __all__: list[str] = [
 ##################################################
 ##################################################
 # Runge-Kutta methods (one-step)
+def one_step_RK1_Euler(
+        t_curr:     float,
+        y_curr:     ArrayData,
+        delta_t:    float,
+        derivative: Callable[[float, ArrayData], ArrayData],
+    ) -> ArrayData:
+    """
+    Reference: The Butcher's tableaux can be found in [Wikipedia](https://en.wikipedia.org/wiki/List_of_Runge%E2%80%93Kutta_methods#Forward_Euler).
+    """
+    k1  = derivative(t_curr, y_curr)
+    return y_curr + delta_t * k1
+
+
 def one_step_RK2_Heun(
         t_curr:     float,
         y_curr:     ArrayData,
