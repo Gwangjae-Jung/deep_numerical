@@ -1,4 +1,4 @@
-from    typing      import  Optional
+from    typing      import  Optional, Sequence
 import  torch
 from    ...utils    import  EPSILON, zeros, ones, repeat
 
@@ -16,6 +16,8 @@ __all__: list[str] = [
     'compute_energy_inhomogeneous',
     'compute_entropy_homogeneous',
     'compute_entropy_inhomogeneous',
+    
+    'plot_quantities_homogeneous',
 ]
 
 
@@ -387,6 +389,53 @@ def compute_entropy_inhomogeneous(
     entropy = torch.sum(f * f.log(), axis=(*axes_x, *axes_v), keepdims=True) * (dX*dV)
     entropy = torch.squeeze(entropy, dim=(*axes_x, *axes_v))
     return entropy
+
+
+##################################################
+##################################################
+# Plot
+from    matplotlib.axes     import Axes
+from    matplotlib.figure   import Figure
+def plot_quantities_homogeneous(
+        arr_f:  torch.Tensor,
+        arr_t:  torch.Tensor,
+        v_grid: torch.Tensor,
+        dim:    Optional[int]   = None,
+        eps:    float           = EPSILON,
+    ) -> tuple[Figure, Sequence[Axes]]:
+    import  matplotlib.pyplot   as  plt
+    if dim is None:
+        dim = (arr_f.ndim-2)//2
+    dv = torch.prod(v_grid[ones(dim)] - v_grid[zeros(dim)])
+    mass        = compute_mass_homogeneous(arr_f, dv=dv, dim=dim)
+    momentum    = compute_momentum_homogeneous(arr_f, v_grid)
+    energy      = compute_energy_homogeneous(arr_f, v_grid)
+    entropy     = compute_entropy_homogeneous(arr_f, dv=dv, eps=eps)
+
+    fig, axes = plt.subplots(2,2, figsize=(10,10))
+    fig.suptitle(f"Plot of several physical quantities")
+    
+    arr_t       = arr_t.cpu()
+    mass        = mass.cpu()
+    momentum    = momentum.cpu()
+    energy      = energy.cpu()
+    entropy     = entropy.cpu()
+    axes[0,0].set_title("Mass")
+    axes[0,1].set_title("Momentum")
+    axes[1,0].set_title("Energy")
+    axes[1,1].set_title("Entropy")
+    axes[0,0].plot(arr_t, mass[:, 0], 'k-', linewidth=1)
+    axes[0,1].plot(arr_t, momentum[:, 0], 'r-', linewidth=1, label='$x$')
+    axes[0,1].plot(arr_t, momentum[:, 1], 'g-', linewidth=1, label='$y$')
+    axes[1,0].plot(arr_t, energy[:, 0], 'b-', linewidth=1)
+    axes[1,1].plot(arr_t, entropy[:, 0], 'm-', linewidth=1)
+    axes[0,1].legend()
+    axes[0,0].set_ylim(0, 2*mass[0,0])
+    axes[0,1].set_ylim(-2*momentum[0].norm(), +2*momentum[0].norm())
+    axes[1,0].set_ylim(0, 2*energy[0,0])
+    fig.tight_layout()
+
+    return fig, axes
 
 
 ##################################################
