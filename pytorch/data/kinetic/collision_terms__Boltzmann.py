@@ -1,9 +1,7 @@
 # %%
 from    typing      import  Callable
 
-import  numpy               as      np
 import  torch
-import  matplotlib.pyplot   as      plt
 
 from    tqdm    import  tqdm
 
@@ -219,7 +217,7 @@ for part in [1,2,3]:
             'collision_gain':       gain,
             'collision_loss':       loss,
             
-            'n_init':           3*NUM_INST,
+            'n_init':           T1__size+T2__size+T3__size,
             
             'max_t':            MAX_T,
             'delta_t':          DELTA_T,

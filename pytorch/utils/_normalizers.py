@@ -70,6 +70,10 @@ class UnitGaussianNormalizer():
         self.__mean = self.__mean.cpu()
         self.__std  = self.__std.cpu()
         return
+    
+    
+    def __str__(self) -> str:
+        return f"UnitGaussianNormalizer(mean.shape={tuple(self.__mean.shape)}, std.shape={tuple(self.__std.shape)})"
 
 
 class GaussianNormalizer():
@@ -115,6 +119,10 @@ class GaussianNormalizer():
         self.__mean = self.__mean.cpu()
         self.__std  = self.__std.cpu()
         return
+    
+    
+    def __str__(self) -> str:
+        return f"GaussianNormalizer(mean={self.__mean.item():.4e}, std={self.__std.item():.4e})"
 
 
 ##################################################

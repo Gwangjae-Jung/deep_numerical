@@ -222,7 +222,7 @@ for part in range(PART_INIT, PART_INIT+N_REPEAT):
             'collision_gain':       gain,
             'collision_loss':       loss,
             
-            'n_init':           3*NUM_INST,
+            'n_init':           T1__size+T2__size+T3__size,
             
             'max_t':            MAX_T,
             'delta_t':          DELTA_T,

@@ -1,4 +1,4 @@
-"""# A package for numerical methods for solving kinetic equations
+"""# (`Deprecated`) A package for numerical methods for solving kinetic equations
 
 -----
 ### Description
@@ -11,6 +11,12 @@ In this package, the following features are provided:
 ### Note
 1. When using this package, users should be aware that every input tensor is assumed to be a collection of multiple instances. Hence, even if a tensor of one instance should be given, it should be reshaped to have the shape of `(1, ...)`.
 """
+import  warnings
+warnings.warn(
+    'This package will no longer be maintained, and any reported errors raised in this package will not be fixed. Please use the new package `python_deep_numerical.pytorch.numerical` instead.',
+    DeprecationWarning
+)
+
 from    .   import  distribution
 from    .   import  solvers
 from    .   import  utils

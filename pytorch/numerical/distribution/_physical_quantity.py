@@ -147,8 +147,8 @@ def compute_mass_homogeneous(
     dV = dv**dim
     axes_v = tuple((-(2+k) for k in range(dim)))
     # Compute the momentum
-    mass = torch.sum(f, axis=axes_v) * dV
-    mass = mass.squeeze(axis=axes_v)
+    mass = torch.sum(f, dim=axes_v) * dV
+    mass = torch.squeeze(mass, dim=axes_v)
     return mass
 
 
@@ -181,7 +181,7 @@ def compute_mass_inhomogeneous(
     axes_x = tuple((+(1+k) for k in range(dim)))
     axes_v = tuple((-(2+k) for k in range(dim)))
     # Compute the momentum
-    mass = torch.sum(f, axis=(*axes_x, *axes_v)) * (dX*dV)
+    mass = torch.sum(f, dim=(*axes_x, *axes_v)) * (dX*dV)
     return mass
 
 
@@ -211,8 +211,8 @@ def compute_momentum_homogeneous(
     v = v[None, ...]
     axes_v = tuple((-(2+k) for k in range(dim)))
     # Compute the momentum
-    momentum = torch.sum(f*v, axis=axes_v) * dV
-    momentum = momentum.squeeze(axis=axes_v)
+    momentum = torch.sum(f*v, dim=axes_v) * dV
+    momentum = torch.squeeze(momentum, dim=axes_v)
     return momentum
 
 
@@ -244,8 +244,8 @@ def compute_momentum_inhomogeneous(
     axes_x = tuple((+(1+k) for k in range(dim)))
     axes_v = tuple((-(2+k) for k in range(dim)))
     # Compute the momentum
-    momentum = torch.sum(f*v, axis=(*axes_x, *axes_v), keepdims=True) * (dX*dV)
-    momentum = torch.squeeze(momentum, axis=(*axes_x, *axes_v))
+    momentum = torch.sum(f*v, dim=(*axes_x, *axes_v), keepdims=True) * (dX*dV)
+    momentum = torch.squeeze(momentum, dim=(*axes_x, *axes_v))
     return momentum
 
 
@@ -275,9 +275,9 @@ def compute_energy_homogeneous(
     v = v[None, ...]
     axes_v = tuple((-(2+k) for k in range(dim)))
     # Compute the energy
-    speed_sq = torch.sum(v**2, axis=-1, keepdims=True)
-    energy = torch.sum(f*speed_sq, axis=axes_v) * dV / 2
-    energy = energy.squeeze(axis=axes_v)
+    speed_sq = torch.sum(v**2, dim=-1, keepdims=True)
+    energy = torch.sum(f*speed_sq, dim=axes_v) * dV / 2
+    energy = torch.squeeze(energy, dim=axes_v)
     return energy
 
 
@@ -309,9 +309,9 @@ def compute_energy_inhomogeneous(
     axes_x = tuple((+(1+k) for k in range(dim)))
     axes_v = tuple((-(2+k) for k in range(dim)))
     # Compute the energy
-    speed_sq = torch.sum(v**2, axis=-1, keepdims=True)
-    energy = torch.sum(f*speed_sq, axis=(*axes_x, *axes_v), keepdims=True) * (dX*dV) / 2
-    energy = torch.squeeze(energy, axis=(*axes_x, *axes_v))
+    speed_sq = torch.sum(v**2, dim=-1, keepdims=True)
+    energy = torch.sum(f*speed_sq, dim=(*axes_x, *axes_v), keepdims=True) * (dX*dV) / 2
+    energy = torch.squeeze(energy, dim=(*axes_x, *axes_v))
     return energy
 
 
@@ -347,8 +347,8 @@ def compute_entropy_homogeneous(
     # Compute the entropy
     if f.min() <= 0:
         f = f - f.min() + eps
-    entropy = torch.sum(f * f.log(), axis=axes_v) * dV
-    entropy = entropy.squeeze(axis=axes_v)
+    entropy = torch.sum(f * f.log(), dim=axes_v) * dV
+    entropy = torch.squeeze(entropy, dim=axes_v)
     return entropy
 
 
@@ -386,7 +386,7 @@ def compute_entropy_inhomogeneous(
     # Compute the entropy
     if f.min() <= 0:
         f = f - f.min() + eps
-    entropy = torch.sum(f * f.log(), axis=(*axes_x, *axes_v), keepdims=True) * (dX*dV)
+    entropy = torch.sum(f * f.log(), dim=(*axes_x, *axes_v), keepdims=True) * (dX*dV)
     entropy = torch.squeeze(entropy, dim=(*axes_x, *axes_v))
     return entropy
 
@@ -398,21 +398,28 @@ from    matplotlib.axes     import Axes
 from    matplotlib.figure   import Figure
 def plot_quantities_homogeneous(
         arr_f:  torch.Tensor,
-        arr_t:  torch.Tensor,
         v_grid: torch.Tensor,
-        dim:    Optional[int]   = None,
-        eps:    float           = EPSILON,
+        arr_t:  Optional[torch.Tensor]  = None,
+        dim:    Optional[int]           = None,
+        eps:    float                   = EPSILON,
         ##############################
         figsize: tuple[int, int]    = (10, 7),
         dpi:     int                = 100,
+        mode:    str                = 'plot',
         suptitle_fontsize:  int     = 20,
         title_fontsize:     int     = 12,
+        plot_linewidth:     float   = 1.0,
+        scatter_size:       float   = 10.0,
     ) -> tuple[Figure, Sequence[Axes]]:
+    mode = mode.lower()
+    assert mode in ('plot', 'scatter'), f"Invalid mode: {mode}. Choose 'plot' or 'scatter'."
     from    itertools           import  product
     import  matplotlib.pyplot   as      plt
     
     if dim is None:
         dim = (arr_f.ndim-2)//2
+    if arr_t is None:
+        arr_t = torch.arange(arr_f.shape[0], dtype=torch.long, device=arr_f.device)
     dv = (v_grid[ones(dim)] - v_grid[zeros(dim)])[0].item()
     mass        = compute_mass_homogeneous(arr_f, dv=dv, dim=dim)
     momentum    = compute_momentum_homogeneous(arr_f, v_grid)
@@ -431,14 +438,21 @@ def plot_quantities_homogeneous(
     axes[0,1].set_title("Momentum", fontsize = title_fontsize)
     axes[1,0].set_title("Energy",   fontsize = title_fontsize)
     axes[1,1].set_title("Entropy",  fontsize = title_fontsize)
-    axes[0,0].plot(arr_t, mass[:, 0], 'k-', linewidth=1)
-    axes[0,1].plot(arr_t, momentum[:, 0], 'r-', linewidth=1, label='$x$')
-    axes[0,1].plot(arr_t, momentum[:, 1], 'g-', linewidth=1, label='$y$')
-    axes[1,0].plot(arr_t, energy[:, 0], 'b-', linewidth=1)
-    axes[1,1].plot(arr_t, entropy[:, 0], 'm-', linewidth=1)
+    if mode=="plot":
+        axes[0,0].plot(arr_t, mass[:, 0],       linewidth=plot_linewidth)
+        axes[0,1].plot(arr_t, momentum[:, 0],   linewidth=plot_linewidth, ls='-', c='r', label='$x$')
+        axes[0,1].plot(arr_t, momentum[:, 1],   linewidth=plot_linewidth, ls='-', c='g', label='$y$')
+        axes[1,0].plot(arr_t, energy[:, 0],     linewidth=plot_linewidth)
+        axes[1,1].plot(arr_t, entropy[:, 0],    linewidth=plot_linewidth)
+    elif mode=="scatter":
+        axes[0,0].scatter(arr_t, mass[:, 0],        s=scatter_size,)
+        axes[0,1].scatter(arr_t, momentum[:, 0],    s=scatter_size, c='r', label='$x$')
+        axes[0,1].scatter(arr_t, momentum[:, 1],    s=scatter_size, c='g', label='$y$')
+        axes[1,0].scatter(arr_t, energy[:, 0],      s=scatter_size,)
+        axes[1,1].scatter(arr_t, entropy[:, 0],     s=scatter_size,)
     axes[0,1].legend()
     for i, j in product(range(2), range(2)):
-        axes[i,j].set_xlabel("$t$")
+        axes[i,j].set_xlabel("time index" if arr_t.dtype==torch.long else "$t$")
         axes[i,j].grid()
         axes[i,j].set_xlim(arr_t[0], arr_t[-1])
     axes[0,0].set_ylim(0, 2*mass[0,0])
