@@ -203,7 +203,7 @@ class SeparableFourierLayer(nn.Module):
             `in_channels` (`int`):
                 * The number of the input features.
             `out_channels` (`int`, default: `None`):
-                * The number of the output features.
+                * The number of the output features of the `SeparableSpectralConv` class.
                 * If `None`, then `out_channels` is set `in_channels`.
             `rank` (`int`, default: `2`):
                 * The rank of the kernel.
@@ -221,7 +221,7 @@ class SeparableFourierLayer(nn.Module):
         
         # Define the subnetworks
         self.spectral   = SeparableSpectralConv(n_modes, in_channels, out_channels, rank)
-        self.mlp        = MLP([out_channels, 2*out_channels, out_channels], activation_name=activation_name, activation_kwargs=activation_kwargs)
+        self.mlp        = MLP([out_channels, out_channels+in_channels, in_channels], activation_name=activation_name, activation_kwargs=activation_kwargs)
         return
         
     

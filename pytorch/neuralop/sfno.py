@@ -4,7 +4,7 @@ from    typing_extensions   import  Self
 import  torch
 
 from    ..layers            import  BaseModule, MLP, SeparableFourierLayer
-from    ..utils             import  get_activation, warn_redundant_arguments
+from    ..utils             import  warn_redundant_arguments
 
 
 ##################################################

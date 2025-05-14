@@ -18,15 +18,16 @@ from    pytorch.numerical.solvers     import  FastSM_Boltzmann_VHS
 
 dtype:  torch.dtype     = torch.float32
 device: torch.device    = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
+device: torch.device    = torch.device('cpu')
 
 dtype_and_device = {'dtype': dtype, 'device': device}
 __dtype_str = str(dtype).split('.')[-1]
 
 # %%
 PART_INIT:  int     = 1
-N_REPEAT:   int     = 3
+N_REPEAT:   int     = 1
 PART_LAST:  int     = PART_INIT + N_REPEAT - 1
-NUM_INST:   int     = 20
+NUM_INST:   int     = 5
 
 DELTA_T:    float   = 0.1
 MAX_T:      float   = 10.0
@@ -36,7 +37,7 @@ DATA_SIZE:  int     = NUM_INST * NUM_T
 T1__n_init  = T2__n_init    = T3__n_init    = NUM_INST
 T1__size    = T2__size      = T3__size      = DATA_SIZE
 
-DIMENSION:  int     = 2
+DIMENSION:  int     = 3
 RESOLUTION: int     = 2**6
 V_MAX:      float   = 3.0/utils.LAMBDA
 DELTA_V:    float   = (2*V_MAX) / RESOLUTION

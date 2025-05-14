@@ -227,7 +227,7 @@ class FactorizedFourierLayer(nn.Module):
     
     
     def __repr__(self) -> str:
-        return f"FourierLayer(n_modes={self.n_modes}, in_channels={self.__in_channels}, out_channels={self.__out_channels})"
+        return f"FactorizedFourierLayer(n_modes={self.n_modes}, in_channels={self.__in_channels}, out_channels={self.__out_channels})"
     
     
     @property
