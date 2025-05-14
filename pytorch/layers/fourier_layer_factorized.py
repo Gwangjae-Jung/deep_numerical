@@ -27,14 +27,11 @@ class FactorizedSpectralConv(nn.Module):
             n_modes:        Sequence[int],
             in_channels:    int,
             out_channels:   Optional[int] = None,
-            mlp_channels:   Optional[Sequence[int]] = None,
         ) -> Self:
         if out_channels is None:
             out_channels = in_channels
-        if mlp_channels is None:
-            mlp_channels = [in_channels, in_channels+out_channels, out_channels]
         
-        self.__check_arguments(n_modes, in_channels, out_channels, mlp_channels)
+        self.__check_arguments(n_modes, in_channels, out_channels)
         
         super().__init__()
         n_modes     = tuple(n_modes)
@@ -44,8 +41,6 @@ class FactorizedSpectralConv(nn.Module):
         self.__dim_domain   = dim_domain
         self.__in_channels  = in_channels
         self.__out_channels = out_channels
-        # domain_str  = EINSUM_STRING[:dim_domain]
-        # self.__einsum_cmd   = f"{domain_str}ij,b{domain_str}j->b{domain_str}i"
         self.__fft_dim      = tuple(range(-(1+dim_domain), -1, 1))
         self.__fft_norm     = "forward"
         self.__config_kernel()
@@ -62,7 +57,6 @@ class FactorizedSpectralConv(nn.Module):
                 for n_mode in self.__kernel_shape
             ]
         )
-        self.mlp = MLP(mlp_channels)
         
         return
     
@@ -86,7 +80,6 @@ class FactorizedSpectralConv(nn.Module):
             n_modes:        tuple[int],
             in_channels:    int,
             out_channels:   int,
-            mlp_channels:   Sequence[int],
         ) -> None:
         if (len(n_modes) > len(EINSUM_STRING)):
             raise NotImplementedError(
@@ -101,9 +94,6 @@ class FactorizedSpectralConv(nn.Module):
         for ch, name in zip((in_channels, out_channels), ('in_channels', 'out_channels')):
             if not isinstance(ch, int) or ch<1:
                 raise ValueError(f"The value of '{name}' is {ch}, which is not a positive integer.")
-        for ch in mlp_channels:
-            if not isinstance(ch, int) or ch<1:
-                raise ValueError(f"The value of 'mlp_channels' is {mlp_channels}, which is not a positive integer.")
         return
     
     
@@ -163,8 +153,7 @@ class FactorizedSpectralConv(nn.Module):
             # Add to the output
             summand = torch.fft.irfft(Y, dim=fft_dim, norm=self.__fft_norm, n=X_size_d)
             out += summand
-        
-        out = self.mlp.forward(out)
+
         return out
     
 
@@ -182,6 +171,8 @@ class FactorizedFourierLayer(nn.Module):
             in_channels:    int,
             out_channels:   Optional[int] = None,
             mlp_channels:   Optional[Sequence[int]] = None,
+            activation_name:    str             = "relu",
+            activation_kwargs:  Optional[dict]  = None,
         ) -> Self:
         """The initializer of the class `FourierLayer`
         
@@ -195,18 +186,24 @@ class FactorizedFourierLayer(nn.Module):
                 * If `None`, then `out_channels` is set `in_channels`.
             `mlp_channels` (`Sequence[int]`, default: `None`):
                 * The number of the channels in the MLP.
-                * If `None`, then `mlp_channels` is set to `[in_channels, in_channels+out_channels, out_channels]`.
+                * If `None`, then `mlp_channels` is set to `[out_channels, out_channels+in_channels, in_channels]`.
+            `activation_name` (`str`, default: `"relu"`):
+                * The name of the activation function, which is applied after the spectral convolution.
+            `activation_kwargs` (`dict`, default: `None`):
+                * The keyword arguments for the activation function.
         """
         super().__init__()
-        
         if out_channels is None:
             out_channels    = in_channels
+        if mlp_channels is None:
+            mlp_channels    = [out_channels, out_channels+in_channels, in_channels]
         self.__in_channels  = in_channels
         self.__out_channels = out_channels
         
         # Define the subnetworks
-        self.linear     = nn.Linear(in_channels, out_channels)
-        self.spectral   = FactorizedSpectralConv(n_modes, in_channels, out_channels, mlp_channels)
+        self.spectral   = FactorizedSpectralConv(n_modes, in_channels, out_channels)
+        self.mlp        = MLP(mlp_channels, activation_name=activation_name, activation_kwargs=activation_kwargs)
+
         return
         
     
@@ -221,9 +218,8 @@ class FactorizedFourierLayer(nn.Module):
         Returns:
             `torch.Tensor`: The transformed tensor after applying the linear and spectral convolutions.
         """
-        _linear     = self.linear.forward(X)
         _spectral   = self.spectral.forward(X)
-        return _linear + _spectral
+        return X + self.mlp.forward(_spectral)
     
     
     def __repr__(self) -> str:
