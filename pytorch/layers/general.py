@@ -2,6 +2,7 @@ from    typing                  import  Sequence, Optional
 from    typing_extensions       import  Self
 
 from    math        import  prod
+from    itertools   import  product
 
 import  torch
 from    torch       import  nn
@@ -14,6 +15,7 @@ from    ..utils     import  Objects, get_activation, ones
 __all__ = [
     "MLP", "HyperMLP",
     "PatchEmbedding",
+    "FourierReshape",
 ]
 
 

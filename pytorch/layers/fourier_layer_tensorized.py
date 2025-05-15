@@ -142,7 +142,11 @@ class TensorizedSpectralConv(nn.Module):
         
         # Set einsum command
         self.__kernel_einsum_cmd:   str = \
-            ','.join(["...ijd" for _ in self.__n_modes]) + "->...ij"
+            ','.join(
+                ["...idr" for _ in self.__n_modes] + 
+                ["...jdr" for _ in self.__n_modes]
+            ) + "->...ij"
+            # ','.join(["...ijd" for _ in self.__n_modes]) + "->...ij"
         self.__einsum_cmd = f"...ij,b...j->b...i"
                 
         # Set `self.__kernel_slices`
@@ -161,13 +165,14 @@ class TensorizedSpectralConv(nn.Module):
     
     
     def __get_kernel(self) -> torch.Tensor:
-        low_rank_summands = [
-            torch.einsum(
-                "...idr, ...jdr -> ...ijd", _out, _in
-            )
-            for (_out, _in) in zip(self.kernel_component_out, self.kernel_component_in)
-        ]
-        return torch.einsum(self.__kernel_einsum_cmd, *low_rank_summands)
+        return torch.einsum(self.__kernel_einsum_cmd, *self.kernel_component_out, *self.kernel_component_in)
+        # low_rank_summands = [
+        #     torch.einsum(
+        #         "...idr, ...jdr -> ...ijd", _out, _in
+        #     )
+        #     for (_out, _in) in zip(self.kernel_component_out, self.kernel_component_in)
+        # ]
+        # return torch.einsum(self.__kernel_einsum_cmd, *low_rank_summands)
     
     
     def forward(self, X: torch.Tensor) -> torch.Tensor:
