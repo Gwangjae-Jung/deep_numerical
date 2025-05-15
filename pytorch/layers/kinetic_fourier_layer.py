@@ -22,14 +22,6 @@ __all__: list[str]  = [
 ##################################################
 # Layers for spectral methods for solving kinetic equations
 class FourierBoltzmannLayer(BaseModule):
-    """## Fourier-Boltzmann layer
-    
-    -----
-    ### Description
-    Based on the rewriting of the expression of the kernel modes, this module aims to implement the fast spectral method by exploiting a proper quadrature rule for the double integral on `[0, 2R] \times S^{d-1}`, where `R` is the radius of the support of the density function in the velocity space and `d` is the dimension of the domain.
-    
-    Reference: [Irene M. Gamba, Jeffrey R. Haack, Cory D. Hauck, and Jingwei Hu, A Fast Spectral Method for the Boltzmann Collision Operator with General Collision Kernels, SIAM Journal on Scientific Computing, Volume 39, Issue 1, 2017, Pages B658-B674](https://epubs.siam.org/doi/10.1137/16M1096001)
-    """
     def __init__(
             self,
             dimension:      int,
@@ -95,7 +87,7 @@ class FourierBoltzmannLayer(BaseModule):
     def __config_convolution(self) -> None:
         dim = self.__dimension
         self.__conv_dim_gain:   tuple[int]  = tuple(range(-2-dim, -2))  # 2 tail dimensions `ct`
-        self.__conv_dim_loss:   tuple[int]  = tuple(range(-1-dim, -1))  # 1 tail dimension `c`
+        self.__conv_dim_loss:   tuple[int]  = tuple(range(-1-dim, -1))  # NOTE: 1 tail dimension `c`
         return
     
     
@@ -131,7 +123,7 @@ class FourierBoltzmannLayer(BaseModule):
         aX      = torch.zeros(**_data_init_kwargs)
         bX      = torch.zeros(**_data_init_kwargs)
         conv    = torch.zeros(**_data_init_kwargs)
-        X_fft   = X_fft[..., None]
+        X_fft   = X_fft[..., None]  # Make a new dimension for the summands
         # Conduct convolution
         for kernel_slice in product(*self.__kernel_slices):
             data_slice = (..., *kernel_slice, slice(None), slice(None))  # (..., v, c, t)

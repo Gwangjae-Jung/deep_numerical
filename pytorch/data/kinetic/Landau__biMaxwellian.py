@@ -14,7 +14,7 @@ from    sys         import  path
 path.append( str(path_lib) )
 from    pytorch     import  utils
 from    pytorch.numerical   import  distribution
-from    pytorch.numerical.solvers     import  FastSM_Boltzmann_VHS
+from    pytorch.numerical.solvers     import  FastSM_Landau_VHS
 
 dtype:  torch.dtype     = torch.float32
 device: torch.device    = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
@@ -29,8 +29,8 @@ N_REPEAT:   int     = 1
 PART_LAST:  int     = PART_INIT + N_REPEAT - 1
 NUM_INST:   int     = 5
 
-DELTA_T:    float   = 0.1
-MAX_T:      float   = 10.0
+DELTA_T:    float   = 5e-3
+MAX_T:      float   = 3.0
 NUM_T:      int     = 1 + int(MAX_T/DELTA_T + 0.1)
 DATA_SIZE:  int     = NUM_INST * NUM_T
 
@@ -40,7 +40,10 @@ V_MAX:      float   = 3.0/utils.LAMBDA
 DELTA_V:    float   = (2*V_MAX) / RESOLUTION
 V_WHERE_CLOSED: str = 'left'
 
-v_grid = utils.velocity_grid(DIMENSION, RESOLUTION, V_MAX, where_closed=V_WHERE_CLOSED, **dtype_and_device)
+v_grid = utils.velocity_grid(
+    DIMENSION, RESOLUTION, V_MAX,
+    where_closed=V_WHERE_CLOSED, **dtype_and_device
+)
 
 FFT_AXES:   tuple[int] = tuple(range(-(1+DIMENSION), -1))
 FFT_NORM:   str  = 'forward'
@@ -59,7 +62,7 @@ for part in range(PART_INIT, PART_LAST+1):
         print(f"* vhs_alpha: {VHS_ALPHA:.2f}")
         # %%
         elapsed_time: float = time()
-        solver = FastSM_Boltzmann_VHS(
+        solver = FastSM_Landau_VHS(
             dimension   = DIMENSION,
             v_num_grid  = RESOLUTION,
             v_max       = V_MAX,
@@ -115,13 +118,13 @@ for part in range(PART_INIT, PART_LAST+1):
             'vhs_coeff':    VHS_COEFF,
             'vhs_alpha':    VHS_ALPHA,
             
-            'equation':     'Boltzmann',
+            'equation':     'Landau',
             'dtype_str':    __dtype_str,
             
             'elapsed_time': elapsed_time,
         }
         
-        file_dir   = path_root / "datasets" / f"Boltzmann_{DIMENSION}D" / "biMaxwellian" / f"coeff{VHS_COEFF:.2e}"
+        file_dir   = path_root / "datasets" / f"Landau_{DIMENSION}D" / "biMaxwellian" / f"coeff{VHS_COEFF:.2e}"
         file_name = f"res{str(RESOLUTION).zfill(3)}__alpha{float(VHS_ALPHA):.1e}__part{str(part).zfill(len(str(PART_LAST)))}.pth"
         if not Path.exists(file_dir):
             Path.mkdir(file_dir, parents=True)

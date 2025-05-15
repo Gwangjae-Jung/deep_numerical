@@ -6,12 +6,14 @@ from    torch       import  nn
 from    itertools   import  product
 
 from    .general    import  MLP
-from    ..utils     import  EINSUM_STRING, get_activation
+from    ..utils     import  EINSUM_STRING
 
 
 ##################################################
 ##################################################
-__all__: list[str] = ["SeparableSpectralConv", "SeparableFourierLayer"]
+__all__: list[str] = [
+    "SeparableSpectralConv", "SeparableFourierLayer",
+]
 
 
 ##################################################
@@ -134,7 +136,7 @@ class SeparableSpectralConv(nn.Module):
         Arguments:
             `X` (`torch.Tensor`):
                 * The input tensor to be transformed.
-                * The shape of `X` is expected to be `(B, s_1, ..., s_d, C)`, where `B` is the batch size, s_i` are the spatial dimensions, and `C` is the number of channels.
+                * The shape of `X` is expected to be `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` are the spatial dimensions, and `C` is the number of channels.
         
         Returns:
             `torch.Tensor`: The transformed tensor after applying the spectral convolution.
