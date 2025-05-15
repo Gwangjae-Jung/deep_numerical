@@ -1,11 +1,13 @@
-from    typing              import  *
+from    typing              import  Sequence, Optional
 from    typing_extensions   import  Self
+
+from    itertools           import  product
 
 import  torch
 
 from    ..layers            import  (
     BaseModule,
-    MLP, HyperMLP,
+    MLP,
     SeparableFourierLayer, TensorizedFourierLayer
 )
 from    ..utils             import  warn_redundant_arguments
@@ -82,7 +84,9 @@ class ParameterizedSFNO(BaseModule):
             raise RuntimeError(f"'dim_parameters' is chosen {dim_parameters}, which is not a positive integer.")
         
         # Save some member variables for representation
-        self.__dim_domain = len(n_modes)
+        self.__dim_domain   = len(n_modes)
+        self.__n_modes          = n_modes
+        self.__hidden_channels  = hidden_channels
         
         # Define the subnetworks
         ## Lift
@@ -94,32 +98,38 @@ class ParameterizedSFNO(BaseModule):
         ## Hidden layers
         n_layers_prior      = n_layers // 2
         n_layers_posterior  = n_layers - n_layers_prior
+        ### Prior
         self.network_hidden_prior: torch.nn.Sequential = torch.nn.Sequential()
         if n_layers_prior <= 0:
             self.network_hidden_prior.append(torch.nn.Identity())
         else:
             __fl_kwargs = {'n_modes': n_modes, 'in_channels': hidden_channels, 'rank': rank}
-            self.network_hidden_prior.append(SeparableFourierLayer(**__fl_kwargs))
-            for _ in range(n_layers_prior-1):
+            for _ in range(n_layers_prior):
                 self.network_hidden_prior.append(SeparableFourierLayer(**__fl_kwargs))
+        ### Posterior
+        posterior_hidden_channels = 2*hidden_channels
         self.network_hidden_posterior: torch.nn.Sequential = torch.nn.Sequential()
         if n_layers_posterior <= 0:
             self.network_hidden_posterior.append(torch.nn.Identity())
         else:
-            __fl_kwargs = {'n_modes': n_modes, 'in_channels': 2*hidden_channels, 'rank': rank}
+            __fl_kwargs = {'n_modes': n_modes, 'in_channels': posterior_hidden_channels, 'rank': rank}
             for _ in range(n_layers_posterior):
                 self.network_hidden_posterior.append(SeparableFourierLayer(**__fl_kwargs))
         ## Projection
         self.network_projection = MLP(
-            [2*hidden_channels] + project_layer + [out_channels],
+            [posterior_hidden_channels] + project_layer + [out_channels],
             activation_name     = activation_name,
             activation_kwargs   = activation_kwargs
         )
         
         # Define the branches (the networks for the hyperparameters)
-        self.hypernet = HyperMLP(
-            [self.__dim_domain] + [2*hidden_channels]*3 + [hidden_channels],
-            [dim_parameters, hidden_channels//4, hidden_channels//2],
+        self.branch = MLP(
+            [
+                dim_parameters,
+                hidden_channels*2,
+                hidden_channels*2,
+                hidden_channels,
+            ],
             activation_name     = activation_name,
             activation_kwargs   = activation_kwargs,
         )
@@ -142,29 +152,21 @@ class ParameterizedSFNO(BaseModule):
         # Prior computation
         X = self.network_lift.forward(X)
         X = self.network_hidden_prior.forward(X)
-        coords = self.generate_coordinates(X.shape[1:-1]).to(X.device)
-        p = self.hypernet.forward(coords, p)
-        X = torch.cat([X, p], dim=-1)
+        p = self.compute_branch(p)
+        X = torch.cat([X, X*p], dim=-1)
         # Posterior computation
         X = self.network_hidden_posterior.forward(X)
         X = self.network_projection.forward(X)
         return X
     
     
-    def generate_coordinates(self, shape: Sequence[int]) -> torch.Tensor:
-        """## Generate the coordinates for the hyperparameters
-        
-        Arguments:
-            `shape` (`Sequence[int]`):
-                * The shape of the coordinates to be generated.
-                * The length of `shape` is equal to the dimension of the domain.
-        
-        Returns:
-            `torch.Tensor`: The coordinates of shape `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` is the size of the `i`-th dimension of the domain, and `C` is the number of channels.
-        """
-        coords = torch.meshgrid([torch.arange(s)/s for s in shape], indexing="ij")
-        coords = torch.stack(coords, dim=-1)
-        return coords
+    def compute_branch(
+            self,
+            p:          torch.Tensor,
+        ) -> torch.Tensor:
+        out = self.branch.forward(p)
+        out = out.reshape((out.size(0), *(1 for _ in range(self.__dim_domain)), out.size(-1)))
+        return out
     
     
     @property
@@ -250,20 +252,24 @@ class ParameterizedTFNO(BaseModule):
             activation_kwargs   = activation_kwargs
         )
         ## Hidden layers
-        self.network_hidden: torch.nn.Sequential = torch.nn.Sequential()
-        if n_layers <= 0:
-            self.network_hidden.append(torch.nn.Identity())
+        n_layers_prior      = n_layers // 2
+        n_layers_posterior  = n_layers - n_layers_prior
+        ### Prior
+        self.network_hidden_prior: torch.nn.Sequential = torch.nn.Sequential()
+        if n_layers_prior <= 0:
+            self.network_hidden_prior.append(torch.nn.Identity())
         else:
-            __fl_kwargs = {
-                'n_modes':      n_modes,
-                'in_channels':  hidden_channels,
-                'kernel_degree':    kernel_degree,
-                'kernel_rank':      kernel_rank,
-                'activation_name':      activation_name,
-                'activation_kwargs':    activation_kwargs,
-            }
-            for _ in range(n_layers):
-                self.network_hidden.append(TensorizedFourierLayer(**__fl_kwargs))
+            __fl_kwargs = {'n_modes': n_modes, 'in_channels': hidden_channels, 'kernel_degree': kernel_degree, 'kernel_rank': kernel_rank}
+            for _ in range(n_layers_prior):
+                self.network_hidden_prior.append(TensorizedFourierLayer(**__fl_kwargs))
+        ### Posterior
+        self.network_hidden_posterior: torch.nn.Sequential = torch.nn.Sequential()
+        if n_layers_posterior <= 0:
+            self.network_hidden_posterior.append(torch.nn.Identity())
+        else:
+            __fl_kwargs = {'n_modes': n_modes, 'in_channels': 3*hidden_channels, 'kernel_degree': kernel_degree, 'kernel_rank': kernel_rank}
+            for _ in range(n_layers_posterior):
+                self.network_hidden_posterior.append(SeparableFourierLayer(**__fl_kwargs))
         ## Projection
         self.network_projection = MLP(
             [hidden_channels] + project_layer + [out_channels],
@@ -274,16 +280,26 @@ class ParameterizedTFNO(BaseModule):
         return
     
         
-    def forward(self, X: torch.Tensor) -> torch.Tensor:
+    def forward(self, X: torch.Tensor, p: Sequence[torch.Tensor]) -> torch.Tensor:
         """
         Arguments:
-            `X` (`torch.Tensor`): The input tensor of shape `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` is the size of the `i`-th dimension of the domain, and `C` is the number of channels.
+            `X` (`torch.Tensor`):
+                * The input tensor of shape `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` is the size of the `i`-th dimension of the domain, and `C` is the number of channels.
+            `p` (`Sequence[torch.Tensor]`):
+                * The sequence of hyperparameters, where the shape of each tensor is `(B, ...)` and need not be the same.
+                * The length of the sequence is equal to the number of branches.
         
         Returns:
             `torch.Tensor`: The output tensor of shape `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` is the size of the `i`-th dimension of the domain, and `C` is the number of channels.
         """
+        # Prior computation
         X = self.network_lift.forward(X)
-        X = self.network_hidden.forward(X)
+        X = self.network_hidden_prior.forward(X)
+        coords = self.generate_coordinates(X.shape[1:-1]).to(X.device)
+        p = self.hypernet.forward(coords, p)
+        X = torch.cat([X, p, X*p], dim=-1)
+        # Posterior computation
+        X = self.network_hidden_posterior.forward(X)
         X = self.network_projection.forward(X)
         return X
     
