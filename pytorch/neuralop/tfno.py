@@ -3,26 +3,27 @@ from    typing_extensions   import  Self
 
 import  torch
 
-from    ..layers            import  BaseModule, MLP, SeparableFourierLayer
+from    ..layers            import  BaseModule, MLP, TensorizedFourierLayer
 from    ..utils             import  warn_redundant_arguments
 
 
 ##################################################
 ##################################################
 __all__ = [
-    "HyperSFNO",
+    "TensorizedFourierNeuralOperator",
+    "TFNO",
 ]
 
 
 ##################################################
 ##################################################
-class HyperSFNO(BaseModule):
-    """## Hyper Separable Fourier Neural Operator (SFNO)
+class TensorizedFourierNeuralOperator(BaseModule):
+    """## Tensorized Fourier Neural Operator (TFNO)
     ### Integral operator via discrete Fourier transform
     
     -----
     ### Description
-    The Hyper Separable Fourier Neural Operator is an Integral Neural Operator with translation-invariant kernels, where the weight tensors in the Fourier space are replaced with low-rank approximations.
+    The Tensorized Fourier Neural Operator is an Integral Neural Operator with translation-invariant kernels, where the weight tensors in the Fourier space are replaced with low-rank approximations.
     
     -----
     ### Note
@@ -36,7 +37,9 @@ class HyperSFNO(BaseModule):
             in_channels:        int,
             hidden_channels:    int,
             out_channels:       int,
-            rank:               int = 2,
+            
+            kernel_degree:      int = 2,
+            kernel_rank:        Optional[int]   = None,
 
             lift_layer:         Sequence[int]   = [256],
             n_layers:           int             = 4,
@@ -57,7 +60,9 @@ class HyperSFNO(BaseModule):
             `in_channels` (`int`): The number of the input channels.
             `hidden_channels` (`int`): The number of the hidden channels.
             `out_channels` (`int`): The number of the output channels.
-            `rank` (`int`, default: `2`): The rank of the low-rank approximation.
+            
+            `kernel_degree` (`int`, default: `2`): The degree (the number of the summands comprising each kernel) of the polynomial kernel.
+            `kernel_rank` (`int`, default: `None`): The rank of the kernel. If `None`, then the rank is set to be the half of `min(in_channels, out_channels)`.
             
             `lift_layer` (`Sequential[int]`, default: `(256)`): The numbers of channels inside the lift layer.
             `n_layers` (`int`, default: `4`): The number of hidden layers.
@@ -89,12 +94,13 @@ class HyperSFNO(BaseModule):
             __fl_kwargs = {
                 'n_modes':      n_modes,
                 'in_channels':  hidden_channels,
-                'rank':         rank,
+                'kernel_degree':    kernel_degree,
+                'kernel_rank':      kernel_rank,
                 'activation_name':      activation_name,
                 'activation_kwargs':    activation_kwargs,
             }
             for _ in range(n_layers):
-                self.network_hidden.append(SeparableFourierLayer(**__fl_kwargs))
+                self.network_hidden.append(TensorizedFourierLayer(**__fl_kwargs))
         ## Projection
         self.network_projection = MLP(
             [hidden_channels] + project_layer + [out_channels],
@@ -105,17 +111,16 @@ class HyperSFNO(BaseModule):
         return
     
         
-    def forward(self, X: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
+    def forward(self, X: torch.Tensor) -> torch.Tensor:
         """
         Arguments:
             `X` (`torch.Tensor`): The input tensor of shape `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` is the size of the `i`-th dimension of the domain, and `C` is the number of channels.
-            `p` (`torch.Tensor`): The input tensor of shape `(B, ...)` for hyperparameters.
         
         Returns:
             `torch.Tensor`: The output tensor of shape `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` is the size of the `i`-th dimension of the domain, and `C` is the number of channels.
         """
         X = self.network_lift.forward(X)
-        X = self.network_hidden.forward(X, p)
+        X = self.network_hidden.forward(X)
         X = self.network_projection.forward(X)
         return X
     
@@ -123,6 +128,11 @@ class HyperSFNO(BaseModule):
     @property
     def dim_domain(self) -> int:
         return self.__dim_domain
+
+
+##################################################
+##################################################
+TFNO    = TensorizedFourierNeuralOperator
 
 
 ##################################################

@@ -26,7 +26,7 @@ __dtype_str = str(dtype).split('.')[-1]
 PART_INIT:  int     = 1
 N_REPEAT:   int     = 6
 PART_LAST:  int     = PART_INIT + N_REPEAT - 1
-NUM_INST:   int     = 10
+NUM_INST:   int     = 20
 
 DELTA_T:    float   = 0.1
 MAX_T:      float   = 10.0
@@ -37,7 +37,7 @@ T1__n_init  = T2__n_init    = T3__n_init    = NUM_INST
 T1__size    = T2__size      = T3__size      = DATA_SIZE
 
 DIMENSION:  int     = 2
-RESOLUTION: int     = 2**6
+RESOLUTION: int     = 2**5
 V_MAX:      float   = 3.0/utils.LAMBDA
 DELTA_V:    float   = (2*V_MAX) / RESOLUTION
 V_WHERE_CLOSED: str = 'none'

@@ -16,6 +16,7 @@ This submodule provides some classes of neural operators which can be used to ap
 from    .fno    import  *
 from    .ffno   import  *
 from    .sfno   import  *
+from    .tfno   import  *
 from    .onet   import  *
 from    .gt     import  *
 from    .gnot   import  *
