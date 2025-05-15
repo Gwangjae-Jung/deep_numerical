@@ -16,18 +16,17 @@ from    pytorch     import  utils
 from    pytorch.numerical   import  distribution
 from    pytorch.numerical.solvers     import  FastSM_Boltzmann_VHS
 
-dtype:  torch.dtype     = torch.float32
+dtype:  torch.dtype     = torch.double
 device: torch.device    = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
-device: torch.device    = torch.device('cpu')
 
 dtype_and_device = {'dtype': dtype, 'device': device}
 __dtype_str = str(dtype).split('.')[-1]
 
 # %%
 PART_INIT:  int     = 1
-N_REPEAT:   int     = 1
+N_REPEAT:   int     = 6
 PART_LAST:  int     = PART_INIT + N_REPEAT - 1
-NUM_INST:   int     = 5
+NUM_INST:   int     = 10
 
 DELTA_T:    float   = 0.1
 MAX_T:      float   = 10.0
@@ -37,7 +36,7 @@ DATA_SIZE:  int     = NUM_INST * NUM_T
 T1__n_init  = T2__n_init    = T3__n_init    = NUM_INST
 T1__size    = T2__size      = T3__size      = DATA_SIZE
 
-DIMENSION:  int     = 3
+DIMENSION:  int     = 2
 RESOLUTION: int     = 2**6
 V_MAX:      float   = 3.0/utils.LAMBDA
 DELTA_V:    float   = (2*V_MAX) / RESOLUTION
@@ -51,14 +50,14 @@ FFT_NORM:   str  = 'forward'
 sample_q: Callable[[int], tuple[torch.Tensor]] = \
     lambda batch_size: sample_quantities(DIMENSION, batch_size, **dtype_and_device)
 
-VHS_COEFF = 1.5 / utils.area_of_unit_sphere(DIMENSION)
+VHS_COEFF = 1 / utils.area_of_unit_sphere(DIMENSION)
 for part in range(PART_INIT, PART_LAST+1):
     print('+' + '='*30 + ' +')
     print(f"# part: {str(part).zfill(len(str(PART_LAST)))}")
     for VHS_ALPHA in [-2.0, -1.0, 0.0, 1.0]:
         torch.cuda.empty_cache()
         print('+' + '-'*30 + ' +')
-        print(f"* vhs_alpha: {VHS_ALPHA:.2f}")
+        print(f"* VHS model (coeff, alpha): {VHS_COEFF:.2f}, {VHS_ALPHA:.2f}")
         # %%
         elapsed_time: float = time()
         solver = FastSM_Boltzmann_VHS(
@@ -138,6 +137,9 @@ for part in range(PART_INIT, PART_LAST+1):
         file_name = f"res{str(RESOLUTION).zfill(3)}__alpha{float(VHS_ALPHA):.1e}__part{str(part).zfill(len(str(PART_LAST)))}.pth"
         if not Path.exists(file_dir):
             Path.mkdir(file_dir, parents=True)
+        print(f"Saving data as follows:")
+        print(f"* Directory: {file_dir}")
+        print(f"* File name: {file_name}")
         torch.save(saved_data, file_dir/file_name)
         del(data, saved_data)
 
