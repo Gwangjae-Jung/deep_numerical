@@ -3,22 +3,21 @@ from    typing_extensions   import  Self
 
 import  torch
 
-from    ..layers            import  BaseModule, MLP, SeparableFourierLayer
+from    ..layers            import  BaseModule, MLP, HyperSeparableFourierLayer
 from    ..utils             import  warn_redundant_arguments
 
 
 ##################################################
 ##################################################
 __all__ = [
-    "SeparableFourierNeuralOperator",
-    "SFNO",
+    "HyperSFNO",
 ]
 
 
 ##################################################
 ##################################################
-class SeparableFourierNeuralOperator(BaseModule):
-    """## Separable Fourier Neural Operator (SFNO)
+class HyperSFNO(BaseModule):
+    """## Separable Fourier Neural Operator with hypernetworks (Hyper-SFNO)
     ### Integral operator via discrete Fourier transform
     
     -----
@@ -46,6 +45,8 @@ class SeparableFourierNeuralOperator(BaseModule):
             activation_name:    str                 = "relu",
             activation_kwargs:  dict[str, object]   = {},
             
+            n_parameters:       int             = 0,
+            
             **kwargs,
         ) -> Self:
         """## The initializer of the class `SeparableFourierNeuralOperator`
@@ -66,6 +67,8 @@ class SeparableFourierNeuralOperator(BaseModule):
             
             `activation_name` (`str`, default: `"relu"`): The name of the activation function.
             `activation_kwargs` (`dict[str, object]`, default: `{}`): The keyword arguments of the activation function.
+            
+            `n_parameters` (`int`, default: `0`): The number of parameters in the model. This is used for the `__repr__` function.
         """        
         super().__init__()
         warn_redundant_arguments(type(self), kwargs=kwargs)
@@ -96,9 +99,10 @@ class SeparableFourierNeuralOperator(BaseModule):
                 'rank':         rank,
                 'activation_name':      activation_name,
                 'activation_kwargs':    activation_kwargs,
+                'n_parameters': n_parameters,
             }
             for _ in range(n_layers):
-                self.network_hidden.append(SeparableFourierLayer(**__fl_kwargs))
+                self.network_hidden.append(HyperSeparableFourierLayer(**__fl_kwargs))
         ## Projection
         self.network_projection = MLP(
             [hidden_channels] + project_layer + [out_channels],
@@ -109,28 +113,24 @@ class SeparableFourierNeuralOperator(BaseModule):
         return
     
         
-    def forward(self, X: torch.Tensor) -> torch.Tensor:
+    def forward(self, X: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
         """
         Arguments:
             `X` (`torch.Tensor`): The input tensor of shape `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` is the size of the `i`-th dimension of the domain, and `C` is the number of channels.
+            `p` (`torch.Tensor`): The tensor of the hyperparameters of shape `(B, n_parameters)`.
         
         Returns:
             `torch.Tensor`: The output tensor of shape `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` is the size of the `i`-th dimension of the domain, and `C` is the number of channels.
         """
-        X = self.network_lift.forward(X)
-        X = self.network_hidden.forward(X)
-        X = self.network_projection.forward(X)
+        X       = self.network_lift.forward(X)
+        X, _    = self.network_hidden.forward(X, p)
+        X       = self.network_projection.forward(X)
         return X
     
     
     @property
     def dim_domain(self) -> int:
         return self.__dim_domain
-
-
-##################################################
-##################################################
-SFNO    = SeparableFourierNeuralOperator
 
 
 ##################################################

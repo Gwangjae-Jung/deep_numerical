@@ -1,6 +1,7 @@
 from    typing              import  Sequence, Optional
 from    typing_extensions   import  Self
 
+from    math                import  prod
 from    itertools           import  product
 
 import  torch
@@ -18,6 +19,57 @@ from    ..utils             import  warn_redundant_arguments
 __all__ = [
     "ParameterizedSFNO",
 ]
+
+
+##################################################
+##################################################
+class ParameterBranch(torch.nn.Module):
+    """## Parameter branch for the parameterized neural operators.
+    
+    -----
+    ### Note
+    1. Unlike the implementation in [the paper (MIFNO)](https://www.sciencedirect.com/science/article/pii/S0021999125000968), the convolution operation is implemented using the standard `SpectralConv` class in `pytorch.layers`, which can be applied to arbitrary-dimensional tensors.
+    """
+    def __init__(
+            self,
+            n_modes:        Sequence[int],
+            in_channels:    int,
+            out_channels:   int,
+        ) -> Self:
+        super().__init__()
+        self.__n_modes:         tuple[int]  = tuple(n_modes)
+        self.__dim_domain:      int         = len(n_modes)
+        self.__in_channels:     int         = in_channels
+        self.__out_channels:    int         = out_channels
+        self.__fft_dim:         tuple[int]  = tuple(range(-1-self.__dim_domain, -1))
+        self.__fft_norm:        str         = "forward"
+        
+        num_modes: int  = prod(n_modes)
+        self.__hidden_channels = int(2**self.__dim_domain)
+        self.branch = torch.nn.ModuleDict(
+            {
+                'mlp': MLP(
+                    [in_channels, num_modes*self.__hidden_channels, num_modes*self.__hidden_channels],
+                    activation_name='relu',
+                ),
+                'cnn': ...
+            }
+        )
+        return
+    
+    
+    def compute_branch(self, p: torch.Tensor) -> torch.Tensor:
+        """
+        Arguments:
+            `p` (`torch.Tensor`):
+                * The sequence of hyperparameters, where the shape of each tensor is `(B, in_channels)`.
+        
+        Returns:
+            `torch.Tensor`: The output tensor of shape `(B, *n_modes, out_channels)`.
+        """
+        p = self.branch['mlp'].forward(p)
+        p = p.reshape((p.size(0), ))
+    
 
 
 ##################################################

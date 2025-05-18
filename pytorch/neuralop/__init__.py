@@ -23,6 +23,7 @@ from    .gnot   import  *
 from    .gno    import  *
 
 from    .hyper_onet     import  *
+from    .hyper_sfno     import  *
 
 
 ##################################################
