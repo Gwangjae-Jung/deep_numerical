@@ -102,8 +102,14 @@ class FourierNeuralOperator(BaseModule):
                 'activation_name':      activation_name,
                 'activation_kwargs':    activation_kwargs,
             }
-            for _ in range(n_layers):
+            if weighted_residual:
                 self.network_hidden.append(FourierLayer(**__fl_kwargs))
+                for _ in range(n_layers-1):
+                    self.network_hidden.append(get_activation(activation_name, activation_kwargs))
+                    self.network_hidden.append(FourierLayer(**__fl_kwargs))
+            else:
+                for _ in range(n_layers):
+                    self.network_hidden.append(FourierLayer(**__fl_kwargs))
         ## Projection
         self.network_projection = MLP(
             [hidden_channels] + project_layer + [out_channels],

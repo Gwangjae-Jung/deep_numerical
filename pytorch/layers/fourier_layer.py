@@ -259,20 +259,13 @@ class FourierLayer(nn.Module):
         self.__out_channels = out_channels
         
         # Define the subnetworks
-        self.linear:    nn.Module
-        self.spectral:  nn.Module
-        if weighted_residual:
-            self.linear     = nn.Linear(in_channels, out_channels)
-            self.spectral   = SpectralConv(n_modes, in_channels, out_channels)
-            self.post_activation = get_activation(activation_name, activation_kwargs)
-        else:
-            self.linear     = nn.Identity()
-            self.spectral   = nn.Sequential(
-                SpectralConv(n_modes, in_channels, out_channels),
-                MLP([out_channels, 2*out_channels, out_channels], activation_name=activation_name, activation_kwargs=activation_kwargs),
+        self.linear     = nn.Linear(in_channels, out_channels) if weighted_residual else nn.Identity()
+        self.mlp        = nn.Identity() if weighted_residual else \
+            MLP(
+                [out_channels, 2*out_channels, out_channels],
+                activation_name     = activation_name,
+                activation_kwargs   = activation_kwargs,
             )
-            self.post_activation = nn.Identity()
-        self.linear     = nn.Linear(in_channels, out_channels)
         self.spectral   = SpectralConv(n_modes, in_channels, out_channels)
         return
         
@@ -288,9 +281,9 @@ class FourierLayer(nn.Module):
         Returns:
             `torch.Tensor`: The transformed tensor after applying the linear and spectral convolutions.
         """
-        _linear:     torch.Tensor = self.linear.forward(X)
-        _spectral:   torch.Tensor = self.spectral.forward(X)
-        return self.post_activation.forward(_linear + _spectral)
+        _linear     = self.linear.forward(X)
+        _spectral   = self.spectral.forward(X)
+        return _linear + self.mlp.forward(_spectral)
     
     
     def __repr__(self) -> str:
