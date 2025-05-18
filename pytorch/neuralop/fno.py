@@ -48,6 +48,8 @@ class FourierNeuralOperator(BaseModule):
             n_layers:           int             = 4,
             project_layer:      Sequence[int]   = [256],
 
+            weighted_residual:  bool            = True,
+            
             activation_name:    str                 = "relu",
             activation_kwargs:  dict[str, object]   = {},
             
@@ -67,6 +69,8 @@ class FourierNeuralOperator(BaseModule):
             `lift_layer` (`Sequential[int]`, default: `(256)`): The numbers of channels inside the lift layer.
             `n_layers` (`int`, default: `4`): The number of hidden layers.
             `project_layer` (`Sequential[int]`, default: `(256)`): The numbers of channels inside the projection layer.
+            
+            `weighted_residual` (`bool`, default: `True`): Whether to use a linear layer in the skip connection.
         """        
         super().__init__()
         warn_redundant_arguments(type(self), kwargs=kwargs)
@@ -91,10 +95,14 @@ class FourierNeuralOperator(BaseModule):
         if n_layers <= 0:
             self.network_hidden.append(torch.nn.Identity())
         else:
-            __fl_kwargs = {'n_modes': n_modes, 'in_channels': hidden_channels}
-            self.network_hidden.append(FourierLayer(**__fl_kwargs))
-            for _ in range(n_layers-1):
-                self.network_hidden.append(get_activation(activation_name, activation_kwargs))
+            __fl_kwargs = {
+                'n_modes':              n_modes,
+                'in_channels':          hidden_channels,
+                'weighted_residual':    weighted_residual,
+                'activation_name':      activation_name,
+                'activation_kwargs':    activation_kwargs,
+            }
+            for _ in range(n_layers):
                 self.network_hidden.append(FourierLayer(**__fl_kwargs))
         ## Projection
         self.network_projection = MLP(

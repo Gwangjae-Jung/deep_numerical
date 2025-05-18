@@ -83,9 +83,7 @@ class FactorizedFourierNeuralOperator(nn.Module):
             self.network_hidden.append(torch.nn.Identity())
         else:
             __fl_kwargs = {'n_modes': n_modes, 'in_channels': hidden_channels}
-            self.network_hidden.append(FactorizedFourierLayer(**__fl_kwargs))
-            for _ in range(n_layers-1):
-                self.network_hidden.append(get_activation(activation_name, activation_kwargs))
+            for _ in range(n_layers):
                 self.network_hidden.append(FactorizedFourierLayer(**__fl_kwargs))
         ## Projection
         self.network_projection = MLP(

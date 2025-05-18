@@ -5,7 +5,8 @@ import  torch
 from    torch       import  nn
 from    itertools   import  product
 
-from    ..utils         import  EINSUM_STRING
+from    ..utils         import  EINSUM_STRING, get_activation
+from    ..layers        import  MLP
 
 
 ##################################################
@@ -228,9 +229,13 @@ class FourierLayer(nn.Module):
     """
     def __init__(
             self,
-            n_modes:        Sequence[int],
-            in_channels:    int,
-            out_channels:   Optional[int] = None,
+            n_modes:            Sequence[int],
+            in_channels:        int,
+            out_channels:       Optional[int] = None,
+            weighted_residual:  bool = True,
+            
+            activation_name:    str     = 'relu',
+            activation_kwargs:  dict    = {},
         ) -> Self:
         """The initializer of the class `FourierLayer`
         
@@ -242,6 +247,9 @@ class FourierLayer(nn.Module):
             `out_channels` (`int`, default: `None`):
                 * The number of the output features.
                 * If `None`, then `out_channels` is set `in_channels`.
+            `weighted_residual` (`bool`, default: `True`):
+                * If `True`, a linear layer is used in the skip connection.
+                * If `False`, the skip connection is a simple addition. Instead, a 2-layer MLP will be used after the spectral convolution.
         """
         super().__init__()
         
@@ -251,6 +259,19 @@ class FourierLayer(nn.Module):
         self.__out_channels = out_channels
         
         # Define the subnetworks
+        self.linear:    nn.Module
+        self.spectral:  nn.Module
+        if weighted_residual:
+            self.linear     = nn.Linear(in_channels, out_channels)
+            self.spectral   = SpectralConv(n_modes, in_channels, out_channels)
+            self.post_activation = get_activation(activation_name, activation_kwargs)
+        else:
+            self.linear     = nn.Identity()
+            self.spectral   = nn.Sequential(
+                SpectralConv(n_modes, in_channels, out_channels),
+                MLP([out_channels, 2*out_channels, out_channels], activation_name=activation_name, activation_kwargs=activation_kwargs),
+            )
+            self.post_activation = nn.Identity()
         self.linear     = nn.Linear(in_channels, out_channels)
         self.spectral   = SpectralConv(n_modes, in_channels, out_channels)
         return
@@ -267,9 +288,9 @@ class FourierLayer(nn.Module):
         Returns:
             `torch.Tensor`: The transformed tensor after applying the linear and spectral convolutions.
         """
-        _linear     = self.linear.forward(X)
-        _spectral   = self.spectral.forward(X)
-        return _linear + _spectral
+        _linear:     torch.Tensor = self.linear.forward(X)
+        _spectral:   torch.Tensor = self.spectral.forward(X)
+        return self.post_activation.forward(_linear + _spectral)
     
     
     def __repr__(self) -> str:
