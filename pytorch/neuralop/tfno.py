@@ -82,7 +82,7 @@ class TensorizedFourierNeuralOperator(BaseModule):
         # Define the subnetworks
         ## Lift
         self.network_lift   = MLP(
-            [in_channels] + lift_layer + [hidden_channels],
+            [in_channels, *lift_layer, hidden_channels],
             activation_name     = activation_name,
             activation_kwargs   = activation_kwargs
         )
@@ -103,7 +103,7 @@ class TensorizedFourierNeuralOperator(BaseModule):
                 self.network_hidden.append(TensorizedFourierLayer(**__fl_kwargs))
         ## Projection
         self.network_projection = MLP(
-            [hidden_channels] + project_layer + [out_channels],
+            [hidden_channels, *project_layer, out_channels],
             activation_name     = activation_name,
             activation_kwargs   = activation_kwargs
         )

@@ -58,6 +58,9 @@ def space_grid(
             The data type of the grid.
         `device` (`torch.device`, default: `torch.device('cpu')`):
             The device on which the grid is created.
+    
+    Returns:
+        `torch.Tensor`: The generated grid of shape `(*num_grids, dimension)`.
         
     ### Note
     This function is designed to generate a grid for the periodic case.

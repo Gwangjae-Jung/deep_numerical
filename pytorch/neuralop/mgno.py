@@ -2,19 +2,16 @@ from    typing                  import  *
 from    typing_extensions       import  Self
 
 import  torch
-from    torch                   import  nn
 from    torch_geometric.data    import  Data
 
 from    ..layers                import  BaseModule, MLP, MultipoleGraphKernelLayer
-from    ..utils                 import  get_activation, warn_redundant_arguments
 
 
 ##################################################
 ##################################################
 __all__ = [
-    # "BETA_MultipoleGraphNeuralOperator",
-    # "BETA_MultipoleGraphNeuralOperatorLite",
     "MultipoleGraphNeuralOperator",
+    "MGNO",
 ]
 
 
@@ -23,6 +20,7 @@ __all__ = [
 class MultipoleGraphNeuralOperator(BaseModule):
     """## Multipole Graph Neural Operator (MGNO)
     ### Integral operator via graph neural network with the V-cycle algorithm
+    
     -----
     ### Description
     The Multipole Graph Neural Operator is an Integral Neural Operator, whose kernel is defined on radius graphs.
@@ -55,38 +53,18 @@ class MultipoleGraphNeuralOperator(BaseModule):
             
             activation_name:    str = "relu",
             activation_kwargs:  dict[str, object] = {},
-            
-            **kwargs,
         ) -> Self:
         """## The initializer of the class `MultipoleGraphNeuralOperator`
-        -----
-        ### Arguments
-        @ `in_channels`, `hidden_channels`, `out_channels` (`int`)
-            * The number of the channels in the input, hidden, and output spaces.
-            
-        @ `edge_channels` (`int`)
-            * The number of the edge channels.
         
-        @ `n_layers` (`int`)
-            * The number of the hidden layers.
+        Arguments:
         
-        @ `lift_layer` (`Sequence[int]`, default: `None`), `kernel_layer` (`Sequence[int]`, default: `(512, 1024)`), and `project_layer` (`Sequence[int]`, default: `None`)
-            * The hidden layers in the lift function, kernel function, and the projection function, respectively.
-        
-        @ `attr_name_*` (`str`)
-            * The names of the attributes to be called from the input of the forward method.
-            * These shoulb be given in the instantiation, since the corresponding attributes are not provided by `torch_geometric.data.Data`.
-        
-        @ `activation_name` (`str`, default: "tanh") and `activation_kwargs` (`dict[str, object]`, defaule: `{}`)
-            * The activation function which shall be used in each hidden layer.
         """
         super().__init__()
-        warn_redundant_arguments(type(self), kwargs = kwargs)
+        if n_layers <= 0:
+            raise ValueError(f"'n_layers' should be a positive integer, but got {n_layers}.")
         
         # Initialize the member variables
-        self.activation         = get_activation(activation_name, activation_kwargs)
         self.__n_layers         = n_layers
-        self.__activation_name  = activation_name
         self.__attr_names: dict[str, str] = {
             'mask_node':            attr_name_mask_node,
             'mask_edge':            attr_name_mask_edge,
@@ -95,29 +73,26 @@ class MultipoleGraphNeuralOperator(BaseModule):
         
         # Define the subnetworks
         ## Lift
-        self.network_lift       = MLP(
-                                        [in_channels] + lift_layer + [hidden_channels],
-                                        activation_name     = activation_name,
-                                        activation_kwargs   = activation_kwargs
-                                    )
+        self.network_lift = MLP(
+            [in_channels] + lift_layer + [hidden_channels],
+            activation_name     = activation_name,
+            activation_kwargs   = activation_kwargs,
+        )
         # Hidden layers
-        if n_layers <= 0:
-            self.network_hidden = nn.Identity()
-        else:
-            self.network_hidden = MultipoleGraphKernelLayer(
-                                        node_channels       = hidden_channels,
-                                        edge_channels       = edge_channels,
-                                        n_poles             = n_poles,
-                                        kernel_layer        = kernel_layer,
-                                        activation_name     = activation_name,
-                                        activation_kwargs   = activation_kwargs,
-                                    )
+        self.network_hidden = MultipoleGraphKernelLayer(
+            node_channels       = hidden_channels,
+            edge_channels       = edge_channels,
+            n_poles             = n_poles,
+            kernel_layer        = kernel_layer,
+            activation_name     = activation_name,
+            activation_kwargs   = activation_kwargs,
+        )
         ## Projection
         self.network_projection = MLP(
-                                        [hidden_channels] + project_layer + [out_channels],
-                                        activation_name     = activation_name,
-                                        activation_kwargs   = activation_kwargs
-                                    )
+            [hidden_channels] + project_layer + [out_channels],
+            activation_name     = activation_name,
+            activation_kwargs   = activation_kwargs,
+        )
         
         return
     
@@ -175,6 +150,11 @@ class MultipoleGraphNeuralOperator(BaseModule):
     @property
     def n_layers(self) -> int:
         return self.__n_layers
+
+
+##################################################
+##################################################
+MGNO = MultipoleGraphNeuralOperator
 
 
 ##################################################

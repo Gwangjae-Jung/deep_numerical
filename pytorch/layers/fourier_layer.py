@@ -234,6 +234,7 @@ class FourierLayer(nn.Module):
             out_channels:       Optional[int] = None,
             weighted_residual:  bool = True,
             
+            activate:           bool    = True,
             activation_name:    str     = 'relu',
             activation_kwargs:  dict    = {},
         ) -> Self:
@@ -249,24 +250,39 @@ class FourierLayer(nn.Module):
                 * If `None`, then `out_channels` is set `in_channels`.
             `weighted_residual` (`bool`, default: `True`):
                 * If `True`, a linear layer is used in the skip connection.
-                * If `False`, the skip connection is a simple addition. Instead, a 2-layer MLP will be used after the spectral convolution.
+                * If `False`, the skip connection is a simple addition. Instead, a 2-layer MLP will be used after the spectral convolution, and the activation function is not applied after the residual connection.
+                
+            `activate` (`bool`, default: `True`):
+                * If `True`, the activation function is applied.
+                * If `False`, the activation function is not applied.
+            `activation_name` (`str`, default: `'relu'`):
+                * The name of the activation function to be used.
+            `activation_kwargs` (`dict`, default: `{}`):
+                * The keyword arguments for the activation function.
         """
         super().__init__()
         
         if out_channels is None:
             out_channels    = in_channels
+        if weighted_residual == False:
+            activate = False
         self.__in_channels  = in_channels
         self.__out_channels = out_channels
+        self.__activate     = activate
         
         # Define the subnetworks
-        self.linear     = nn.Linear(in_channels, out_channels) if weighted_residual else nn.Identity()
-        self.mlp        = nn.Identity() if weighted_residual else \
+        self.linear = nn.Linear(in_channels, out_channels) if weighted_residual else \
+            nn.Identity()
+        self.mlp    = nn.Identity() if weighted_residual else \
             MLP(
                 [out_channels, 2*out_channels, out_channels],
                 activation_name     = activation_name,
                 activation_kwargs   = activation_kwargs,
             )
         self.spectral   = SpectralConv(n_modes, in_channels, out_channels)
+        
+        # Define the activation function
+        self.activation = get_activation(activation_name, activation_kwargs) if activate else nn.Identity()
         return
         
     
@@ -283,7 +299,10 @@ class FourierLayer(nn.Module):
         """
         _linear     = self.linear.forward(X)
         _spectral   = self.spectral.forward(X)
-        return _linear + self.mlp.forward(_spectral)
+        out: torch.Tensor = _linear + self.mlp.forward(_spectral)
+        if self.__activate:
+            out = self.activation.forward(out)
+        return out
     
     
     def __repr__(self) -> str:

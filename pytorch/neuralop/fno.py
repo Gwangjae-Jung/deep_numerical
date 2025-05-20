@@ -4,16 +4,13 @@ from    typing_extensions   import  Self
 import  torch
 
 from    ..layers            import  BaseModule, MLP, FourierLayer
-from    ..utils             import  get_activation, warn_redundant_arguments
 
 
 ##################################################
 ##################################################
 __all__ = [
     "FourierNeuralOperator",
-    "FourierNeuralOperatorLite",
     "FNO",
-    "FNOLite",
 ]
 
 
@@ -47,20 +44,15 @@ class FourierNeuralOperator(BaseModule):
             lift_layer:         Sequence[int]   = [256],
             n_layers:           int             = 4,
             project_layer:      Sequence[int]   = [256],
-
             weighted_residual:  bool            = True,
             
             activation_name:    str                 = "relu",
             activation_kwargs:  dict[str, object]   = {},
-            
-            **kwargs,
         ) -> Self:
         """## The initializer of the class `FourierNeuralOperator`
         
         Arguments:
-            `n_modes` (`Sequence[int]`):
-                * The maximum degree of the Fourier modes to be preserved. To be precise, after performing the FFT, for the `i`-th Fourier transform, only the modes in `[-n_modes[i], +n_modes[i]]` will be preserved.
-                * Note that the length of `n_modes` is the dimension of the domain.
+            `n_modes` (`Sequence[int]`): The maximum degree of the Fourier modes to be preserved. To be precise, after performing the FFT, for the `i`-th Fourier transform, only the modes in `[-n_modes[i], +n_modes[i]]` will be preserved. Note that the length of `n_modes` is the dimension of the domain.
                     
             `in_channels` (`int`): The number of the input channels.
             `hidden_channels` (`int`): The number of the hidden channels.
@@ -70,15 +62,19 @@ class FourierNeuralOperator(BaseModule):
             `n_layers` (`int`, default: `4`): The number of hidden layers.
             `project_layer` (`Sequential[int]`, default: `(256)`): The numbers of channels inside the projection layer.
             
-            `weighted_residual` (`bool`, default: `True`): Whether to use a linear layer in the skip connection.
+            `weighted_residual` (`bool`, default: `True`): Whether to use a linear layer in the skip connection. If `False`, the skip connection is a simple addition. Instead, a 2-layer MLP will be used after the spectral convolution, and the activation function is not applied after the residual connection.
+            
+            `activation_name` (`str`, default: `"relu"`): The name of the activation function.
+            `activation_kwargs` (`dict[str, object]`, default: `{}`): The keyword arguments for the activation function.
         """        
         super().__init__()
-        warn_redundant_arguments(type(self), kwargs=kwargs)
         
         # Check the argument validity
         for cnt, item in enumerate(n_modes, 1):
             if not (type(item) == int and item > 0):
-                raise RuntimeError(f"'n_modes[{cnt}]' is chosen {item}, which is not positive.")
+                raise ValueError(f"'n_modes[{cnt}]' is chosen {item}, which is not positive.")
+        if n_layers <= 0:
+            raise ValueError(f"'n_layers' is chosen {n_layers}, which is not positive.")
         
         # Save some member variables for representation
         self.__dim_domain = len(n_modes)
@@ -86,33 +82,26 @@ class FourierNeuralOperator(BaseModule):
         # Define the subnetworks
         ## Lift
         self.network_lift   = MLP(
-            [in_channels] + lift_layer + [hidden_channels],
+            [in_channels, *lift_layer, hidden_channels],
             activation_name     = activation_name,
             activation_kwargs   = activation_kwargs
         )
         ## Hidden layers
         self.network_hidden: torch.nn.Sequential = torch.nn.Sequential()
-        if n_layers <= 0:
-            self.network_hidden.append(torch.nn.Identity())
-        else:
+        for idx in range(n_layers):
+            activate = True if idx<n_layers-1 else False
             __fl_kwargs = {
                 'n_modes':              n_modes,
                 'in_channels':          hidden_channels,
                 'weighted_residual':    weighted_residual,
+                'activate':             activate,
                 'activation_name':      activation_name,
                 'activation_kwargs':    activation_kwargs,
             }
-            if weighted_residual:
-                self.network_hidden.append(FourierLayer(**__fl_kwargs))
-                for _ in range(n_layers-1):
-                    self.network_hidden.append(get_activation(activation_name, activation_kwargs))
-                    self.network_hidden.append(FourierLayer(**__fl_kwargs))
-            else:
-                for _ in range(n_layers):
-                    self.network_hidden.append(FourierLayer(**__fl_kwargs))
+            self.network_hidden.append(FourierLayer(**__fl_kwargs))
         ## Projection
         self.network_projection = MLP(
-            [hidden_channels] + project_layer + [out_channels],
+            [hidden_channels, *project_layer, out_channels],
             activation_name     = activation_name,
             activation_kwargs   = activation_kwargs
         )
@@ -139,114 +128,9 @@ class FourierNeuralOperator(BaseModule):
         return self.__dim_domain
 
 
-
-
-class FourierNeuralOperatorLite(BaseModule):
-    """## Fourier Neural Operator (FNO Lite)
-    ### Integral operator via discrete Fourier transform
-    
-    -----
-    ### Description
-    The Fourier Neural Operator is an Integral Neural Operator with translation-invariant kernels.
-    By the convolution theorem, the kernel integration can be computed by a convolution under some mild conditions.
-    Ignoring the Fourier modes of high frequencies, the Fourier Neural Operator reduces its quadratic computational complexity to quasilinear computational complexity.
-    
-    Reference: https://openreview.net/pdf?id=c8P9NQVtmnO
-    
-    -----
-    ### Note
-    Given `n_layers`, this class instantiates a single `FourierLayer` object and reuse it for `n_layers` times.
-    To use `n_layers` distinct `FourierLayer` instances, use `FourierNeuralOperator`, instead.
-    """
-    def __init__(
-            self,
-            n_modes:            Sequence[int],
-
-            in_channels:        int,
-            hidden_channels:    int,
-            out_channels:       int,
-
-            lift_layer:         Sequence[int]   = [256],
-            n_layers:           int             = 4,
-            project_layer:      Sequence[int]   = [256],
-
-            activation_name:    str                 = "relu",
-            activation_kwargs:  dict[str, object]   = {},
-            
-            **kwargs,
-        ) -> Self:
-        """## The initializer of the class `FourierNeuralOperatorLite`
-        
-        Arguments:
-            `n_modes` (`Sequence[int]`):
-                * The maximum degree of the Fourier modes to be preserved. To be precise, after performing the FFT, for the `i`-th Fourier transform, only the modes in `[-n_modes[i], +n_modes[i]]` will be preserved.
-                * Note that the length of `n_modes` is the dimension of the domain.
-                    
-            `in_channels` (`int`): The number of the input channels.
-            `hidden_channels` (`int`): The number of the hidden channels.
-            `out_channels` (`int`): The number of the output channels.
-            
-            `lift_layer` (`Sequential[int]`, default: `(256)`): The numbers of channels inside the lift layer.
-            `n_layers` (`int`, default: `4`): The number of hidden layers.
-            `project_layer` (`Sequential[int]`, default: `(256)`): The numbers of channels inside the projection layer.
-        """        
-        super().__init__()
-        warn_redundant_arguments(type(self), kwargs=kwargs)
-        
-        # Check the argument validity
-        for cnt, item in enumerate(n_modes, 1):
-            if not (type(item) == int and item > 0):
-                raise RuntimeError(f"'n_modes[{cnt}]' is chosen {item}, which is not positive.")
-        
-        # Save some member variables for representation
-        self.__dim_domain       = len(n_modes)
-        self.__n_layers         = n_layers
-        
-        # Define the subnetworks
-        ## Lift
-        self.network_lift   = MLP(
-            [in_channels] + lift_layer + [hidden_channels],
-            activation_name     = activation_name,
-            activation_kwargs   = activation_kwargs
-        )
-        ## Hidden layers
-        self.network_hidden     = torch.nn.Identity()
-        if n_layers > 0:
-            self.network_hidden = FourierLayer(n_modes=n_modes, channels=hidden_channels)
-            self.activation     = get_activation(activation_name, activation_kwargs)
-        ## Projection
-        self.network_projection = MLP(
-            [hidden_channels] + project_layer + [out_channels],
-            activation_name     = activation_name,
-            activation_kwargs   = activation_kwargs
-        )
-                        
-        return
-    
-        
-    def forward(self, X: torch.Tensor) -> torch.Tensor:
-        """
-        ### Note
-        1. This class assumes that the input tensor `X` has the shape `(B, s_1, ..., s_d, C)`.
-        """
-        X = self.network_lift.forward(X)
-        for _ in range(self.__n_layers - 1):
-            X = self.network_hidden.forward(X)
-            X = self.activation.forward(X)
-        X = self.network_hidden.forward(X)
-        X = self.network_projection.forward(X)
-        return X
-    
-    
-    @property
-    def dim_domain(self) -> int:
-        return len(self.__dim_domain)
-
-
 ##################################################
 ##################################################
 FNO     = FourierNeuralOperator
-FNOLite = FourierNeuralOperatorLite
 
 
 ##################################################

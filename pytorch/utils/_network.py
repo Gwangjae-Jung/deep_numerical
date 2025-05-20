@@ -33,15 +33,15 @@ TORCH_ACTIVATION_DICT: dict[str, nn.Module]= {
     "tanh":         nn.Tanh,
 }
 """Supported activation functions in `torch`:
-* elu
-* gelu
-* identity
-* leaky relu
-* relu
-* silu
-* sigmoid
-* softmax
-* tanh
+* "elu"
+* "gelu"
+* "identity"
+* "leaky relu"
+* "relu"
+* "silu"
+* "sigmoid"
+* "softmax"
+* "tanh"
 """
 
 TORCH_INITIALIZER_DICT: dict[str, Callable[[Tensor, Any], Tensor]] = {
