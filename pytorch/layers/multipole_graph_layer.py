@@ -5,28 +5,19 @@ import  torch
 from    torch                   import  nn
 from    torch_geometric.nn      import  MessagePassing
 
-from    ..layers        import  MLP, GraphKernelLayer
+from    .        import  MLP, GraphKernelLayer
 from    ..utils         import  get_activation
 
 
+##################################################
+##################################################
+__all__: list[str] = ["MultipoleGraphKernelLayer",]
 
 
 ##################################################
 ##################################################
-
-
-__all__ = [
-    # "BETA_MultipoleGraphKernelLayer",
-    "MultipoleGraphKernelLayer",
-]
-
-
-##################################################
-##################################################
-
-
 class _InterLevelFlow(MessagePassing):
-    """An auxiliiary class to implement the V-cycle algorithm in Multipole Graph Neural Operator
+    """An auxiliiary class to implement the V-cycle algorithm in the Multipole Graph Neural Operator
     
     This class aims to implement the upward (without isolevel transform) and the downward pass of a graph in the V-cycle algorithm in Multipole Graph Neural Operator.
     For the forward propagation, the following information is given to the method `forward`:
@@ -43,6 +34,7 @@ class _InterLevelFlow(MessagePassing):
             activation_kwargs:  dict[str, object] = {},
         ) -> Self:
         """The initializer of `_InterLevelFlow`
+        
         ### Arguments
         @ `node_channels` (`int`) and `edge_channels` (`int`):
             * The number of the node and edge features.
@@ -53,12 +45,12 @@ class _InterLevelFlow(MessagePassing):
         @ `activation_name` (`str`, default: "tanh") and `activation_kwargs` (`dict[str, object]`, defaule: `{}`)
             * The activation function which shall be used in each hidden layer.
         """
-        super().__init__(aggr = 'mean')
+        super().__init__(aggr='mean')
         # Save some member variables for representation
         self.__node_channels = node_channels
         # Define the subnetworks
         self.kernel_fcn = MLP(
-            [edge_channels] + list(kernel_layer) + [node_channels ** 2],
+            [edge_channels, *kernel_layer, node_channels**2],
             activation_name     = activation_name,
             activation_kwargs   = activation_kwargs
         )
@@ -106,11 +98,12 @@ class _InterLevelFlow(MessagePassing):
         return x + aggr_out
 
 
-
-
+##################################################
+##################################################
 class MultipoleGraphKernelLayer(MessagePassing):
     """## Multipole Graph kernel layer
     ### Kernel integration via message passing with fast multipole method
+    
     -----
     ### Description
     Given a batch of graph-based data of discretized functions, this class computes kernel integration via message passing.
@@ -130,17 +123,9 @@ class MultipoleGraphKernelLayer(MessagePassing):
             activation_kwargs:  dict[str, object]   = {},
         ) -> Self:
         """## The initializer of `GraphKernelLayer`
-        -----
-        ### Arguments
-        @ `node_channels` (`int`) and `edge_channels` (`int`):
-            * The number of the node and edge features.
         
-        @ `kernel_layer` (`Sequence[int]`, default: `[512, 256, 128]`)
-            * The sequence of the hidden channels of the kernel functions in each inner/inter level.
-            * If `len(kernel_layer) > n_poles`, the redundant terms are ignored; if `len(kernel_layer) < n_poles`, the remaining terms are padded by the last dimension.
+        Arguments:
         
-        @ `activation_name` (`str`, default: "relu") and `activation_kwargs` (`dict[str, object]`, defaule: `{}`)
-            * The activation function which shall be used in each hidden layer.
         """
         super().__init__(aggr = 'mean')
         # Save some member variables for representation
