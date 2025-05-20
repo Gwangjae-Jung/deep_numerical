@@ -57,7 +57,9 @@ class GraphKernelLayer(MessagePassing):
             activate = False
         
         # Save some member variables for representation
-        self.__node_channels = node_channels
+        self.__node_channels    = node_channels
+        self.__weigted_residual = weighted_residual
+        self.__activate         = activate
         
         # Define the subnetworks
         self.linear     = nn.Linear(node_channels, node_channels) if weighted_residual else nn.Identity()
@@ -111,7 +113,7 @@ class GraphKernelLayer(MessagePassing):
     
     
     def __repr__(self) -> str:
-        return f"GraphKernelLayer(node_dim={self.__node_channels}, kernel_layer={self.kernel_fcn})"
+        return f"GraphKernelLayer(node_dim={self.__node_channels}, kernel_layer={self.kernel_fcn}, weighted_residual={self.__weigted_residual}, activate={self.__activate})"
 
 
 ##################################################
