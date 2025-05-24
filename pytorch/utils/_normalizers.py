@@ -13,7 +13,11 @@ __all__ = [
 ##################################################
 ##################################################
 class UnitGaussianNormalizer():
-    """Pointwise normalization of the input tensor `x`."""
+    """Pointwise normalization of the input tensor `x`.
+    
+    Note
+    1. The input tensor `x` is assumed to be aligned as `(batch, ..., channels)`.
+    """
     def __init__(
             self,
             x:      torch.Tensor,
@@ -77,14 +81,18 @@ class UnitGaussianNormalizer():
 
 
 class GaussianNormalizer():
-    """Instance-wise normalization of the input tensor `x`."""
+    """Instance-wise normalization of the input tensor `x`.
+    
+    Note
+    1. The input tensor `x` is assumed to be aligned as `(batch, ..., channels)`.
+    """
     def __init__(
             self,
             x:      torch.Tensor,
             eps:    float = 1e-12,
         ) -> Self:
         self.__ndim:        int     = x.ndim
-        self.__norm_config: dict    = {'dim': tuple(range(self.__ndim-1)), 'keepdim': True}
+        self.__norm_config: dict    = {'dim': tuple(range(self.__ndim-1)), 'keepdim': False}
         self.__mean:    torch.Tensor    = torch.mean(x, **self.__norm_config)
         self.__std:     torch.Tensor    = torch.std( x, **self.__norm_config)
         self.__device:  torch.device    = x.device
