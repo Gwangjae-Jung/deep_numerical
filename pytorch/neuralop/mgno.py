@@ -2,9 +2,9 @@ from    typing                  import  *
 from    typing_extensions       import  Self
 
 import  torch
-from    torch_geometric.data    import  Data
 
-from    ..layers                import  BaseModule, MLP, MultipoleGraphKernelLayer
+from    ..layers        import  BaseModule, MLP, MultipoleGraphKernelLayer
+from    ..utils._dtype  import  MultiLevelGraph
 
 
 ##################################################
@@ -47,9 +47,6 @@ class MultipoleGraphNeuralOperator(BaseModule):
             kernel_layer:       Sequence[int] = [512, 1024],
             project_layer:      Sequence[int] = [256],
             
-            attr_name_mask_node:    str = "mask_node",
-            attr_name_mask_edge:    str = "mask_edge",
-            
             activation_name:    str = "relu",
             activation_kwargs:  dict[str, object] = {},
         ) -> Self:
@@ -67,9 +64,6 @@ class MultipoleGraphNeuralOperator(BaseModule):
             `kernel_layer` (`Sequence[int]`, default: `[512, 1024]`): The hidden layers of the kernel function.
             `project_layer` (`Sequence[int]`, default: `[256]`): The hidden layers of the projection function.
             
-            `attr_name_mask_node` (`str`, default: `"mask_node"`): The name of the node masking tensor in the input graph. This tensor is used to mask out the nodes that are not needed for training or inference.
-            `attr_name_mask_edge` (`str`, default: `"mask_edge"`): The name of the edge masking tensor in the input graph. This tensor is used to mask out the edges that are not needed for training or inference.
-            
             `activation_name` (`str`, default: `"relu"`): The name of the activation function. Available: `"relu"`, `"tanh"`, `"sigmoid"`.
             `activation_kwargs` (`dict[str, object]`, defaule: `{}`): The keyword arguments for the activation function.
         """
@@ -78,11 +72,7 @@ class MultipoleGraphNeuralOperator(BaseModule):
             raise ValueError(f"'n_layers' should be a positive integer, but got {n_layers}.")
         
         # Initialize the member variables
-        self.__n_layers         = n_layers
-        self.__attr_names: dict[str, str] = {
-            'mask_node':    attr_name_mask_node,
-            'mask_edge':    attr_name_mask_edge,
-        }
+        self.__n_layers = n_layers
         
         # Define the subnetworks
         ## Lift
@@ -108,17 +98,9 @@ class MultipoleGraphNeuralOperator(BaseModule):
         )
         
         return
-    
-    
-    def attr_names(self, key=str) -> str:
-        """
-        Arguments:
-            `key` (`str`): Available: `'mask_node'`, `'mask_edge'`
-        """
-        return self.__attr_names[key]
 
     
-    def forward(self, G: Data) -> torch.Tensor:
+    def forward(self, G: MultiLevelData) -> torch.Tensor:
         """The forward propagation in the class `MultipoleGraphNeuralOperator`
         
         Given a graph, the forward method extracts the node attributes, edge indices and attributes, together with the multigrid information, and compute the kernel integration.
