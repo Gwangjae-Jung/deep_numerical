@@ -92,6 +92,7 @@ class GaussianNormalizer():
             eps:    float = 1e-12,
         ) -> Self:
         self.__ndim:        int     = x.ndim
+        # self.__norm_config: dict    = {'dim': tuple(range(self.__ndim-1)), 'keepdim': True}
         self.__norm_config: dict    = {'dim': tuple(range(self.__ndim-1)), 'keepdim': False}
         self.__mean:    torch.Tensor    = torch.mean(x, **self.__norm_config)
         self.__std:     torch.Tensor    = torch.std( x, **self.__norm_config)

@@ -99,10 +99,10 @@ def relative_error(
         `preds` (`torch.Tensor`): The predictions.
         `targets` (`torch.Tensor`): The targets.
         `p` (`float` or `str`): The order of the error. If `p` is a string, it must be one of the following: 'inf', '1', '2'.
-        `dim` (`Sequence[int]`, optional): The dimensions to compute the error over. If `None`, all dimensions are used.
+        `dim` (`Sequence[int]`, optional): The dimensions to compute the error over. If `None`, all dimensions except for the batch dimension are used.
     
     Returns:
-        `torch.Tensor`: The tensor of the relative errors.
+        `torch.Tensor`: The tensor of the relative errors of shape `(N,)`.
     
     ### Note
     To compute the error using the maximum function, pass `ord='inf'`.
