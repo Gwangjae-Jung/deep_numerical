@@ -217,7 +217,8 @@ class ParameterizedSFNO(BaseModule):
             p:          torch.Tensor,
         ) -> torch.Tensor:
         out = self.branch.forward(p)
-        out = out.reshape((out.size(0), *(1 for _ in range(self.__dim_domain)), out.size(-1)))
+        batch_size, n_channels = out.size(0), out.size(-1)
+        out = out.reshape((batch_size, *(1 for _ in range(self.__dim_domain)), n_channels))
         return out
     
     
