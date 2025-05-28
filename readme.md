@@ -4,8 +4,7 @@
 This library provides a collection of numerical methods for solving kinetic equations, such as the Fokker-Planck-Landau equation and the Boltzmann equation. It also provides a collection of neural network architectures.
 
 ### A. Numerical methods
-The numerical methods provided by this library can be found in the submodule `deep_numerical.numerical`, which includes the following methods:
-
+The numerical methods provided by this library can be found in the submodule `deep_numerical.numerical`, which includes the following methods.
 1. Discrete velocity method (DVM): To be constructed.
     1. Classical DVM
     2. Fast DVM
