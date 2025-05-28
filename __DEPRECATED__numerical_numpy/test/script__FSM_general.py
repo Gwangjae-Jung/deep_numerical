@@ -7,10 +7,10 @@ import  numpy                   as      np
 import  os
 
 import  find_library
-from    numerical_numpy.config          import  SpectralMethodArguments
-from    numerical_numpy.utils           import  *
-from    numerical_numpy.distribution    import  *
-from    numerical_numpy.solvers         import  *
+from    __DEPRECATED__numerical_numpy.config          import  SpectralMethodArguments
+from    __DEPRECATED__numerical_numpy.utils           import  *
+from    __DEPRECATED__numerical_numpy.distribution    import  *
+from    __DEPRECATED__numerical_numpy.solvers         import  *
 
 
 # %%

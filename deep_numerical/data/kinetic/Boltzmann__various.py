@@ -12,9 +12,9 @@ path_lib    = path_root / "python_deep_numerical"
 
 from    sys         import  path
 path.append( str(path_lib) )
-from    pytorch     import  utils
-from    pytorch.numerical   import  distribution
-from    pytorch.numerical.solvers     import  FastSM_Boltzmann_VHS
+from    deep_numerical     import  utils
+from    deep_numerical.numerical   import  distribution
+from    deep_numerical.numerical.solvers     import  FastSM_Boltzmann_VHS
 
 dtype:  torch.dtype     = torch.double
 device: torch.device    = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
