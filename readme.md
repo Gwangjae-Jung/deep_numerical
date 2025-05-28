@@ -22,4 +22,5 @@ The neural network architectures provided by this library can be found in the su
 -----
 ### References
 [1] G. Dimarco and L. Pareschi, Numerical methods for kinetic equations, Acta Numer., 23 (2014), pp. 369–520, https://doi.org/10.1017/S0962492914000063.
+
 [2] I. M. Gamba, J. R. Haack, C. D. Hauck, and J. Hu, A fast spectral method for the Boltzmann collision operator with general collision kernels, SIAM J. Sci. Comput., 39 (2017), pp. B658–B674, https://doi.org/10.1137/16M1096001.
