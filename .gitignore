@@ -1,7 +1,6 @@
 **/__pycache__/
 *.py[cod]
 
-/datasets
-/einsum.ipynb
-/_utils_main
-/__deprecated__numerical_v1
+.vscode
+__DEPRECATED__data_generators
+__DEPRECATED__numerical_numpy
