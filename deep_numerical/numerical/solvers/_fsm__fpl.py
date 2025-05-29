@@ -66,6 +66,7 @@ class FastSM_Landau_VHS(FastSM_Landau):
         )
         self._vhs_coeff:    float   = vhs_coeff
         self._vhs_alpha:    float   = vhs_alpha
+        self.precompute()
         return
     
     

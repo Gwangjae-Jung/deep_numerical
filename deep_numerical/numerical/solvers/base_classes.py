@@ -912,9 +912,6 @@ class FastSM_Landau(SpectralMethodBase):
         self._fpl_gain_tensor_1:    Optional[torch.Tensor] = None
         self._fpl_gain_tensor_2:    Optional[torch.Tensor] = None
         self._fpl_loss_tensor:      Optional[torch.Tensor] = None
-
-        # Precompute
-        self.precompute()
         
         return
     
