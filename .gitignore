@@ -1,5 +1,7 @@
+**/__pycache__/
+*.py[cod]
+
 /datasets
 /einsum.ipynb
 /_utils_main
 /__deprecated__numerical_v1
-/__pycache__
