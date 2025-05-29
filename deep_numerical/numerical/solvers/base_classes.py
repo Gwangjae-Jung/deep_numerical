@@ -590,8 +590,8 @@ class DirectSM_Base(SpectralMethodBase):
         ret = torch.zeros_like(fft_curr, dtype=torch.complex128)
         
         # Compute the derivatives of the Fourier coefficients using multiple loops
-        for freq_target in self._freqs:
-            for freq_1 in self._freqs:
+        for freq_target in self._freqs.type(torch.long):
+            for freq_1 in self._freqs.type(torch.long):
                 freq_2 = freq_target - freq_1
                 
                 # Check if the second frequency is allowed
@@ -624,8 +624,8 @@ class DirectSM_Base(SpectralMethodBase):
         ret = torch.zeros_like(fft_curr, dtype=torch.complex128)
         
         # Compute the derivatives of the Fourier coefficients using multiple loops
-        for freq_target in self._freqs:
-            for freq_1 in self._freqs:
+        for freq_target in self._freqs.type(torch.long):
+            for freq_1 in self._freqs.type(torch.long):
                 freq_2 = freq_target - freq_1
                 
                 # Check if the second frequency is allowed

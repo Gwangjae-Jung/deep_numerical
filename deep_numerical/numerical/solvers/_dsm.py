@@ -50,7 +50,7 @@ class DirectSM_Boltzmann_VHS(DirectSM_Base):
             device:     torch.device    = TORCH_DEFAULT_DEVICE,
         ) -> Self:
         super().__init__(
-            dim         = dim,
+            dimension   = dim,
             v_num_grid  = v_num_grid,
             v_max       = v_max,
             x_num_grid  = x_num_grid,
