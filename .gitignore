@@ -2,5 +2,3 @@
 *.py[cod]
 
 .vscode
-__DEPRECATED__data_generators
-__DEPRECATED__numerical_numpy
