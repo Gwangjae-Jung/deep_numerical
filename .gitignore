@@ -2,3 +2,9 @@
 *.py[cod]
 
 .vscode
+.variable_kernels
+.variable_kernels__base
+
+.datasets
+.datasets__left
+.datasets_short__left
