@@ -758,6 +758,54 @@ class FastSM_Boltzmann(SpectralMethodBase):
     @property
     def approximation_level(self) -> int:
         return int(self._fsm_phase_1.size(-2) * self._fsm_phase_1.size(-1))
+    ##################################################
+    # Reshaping properties for precomputation
+    @property
+    def _freqs_reshape(self) -> tuple[int]:
+        return (
+            1,
+            *utils.ones(self._dimension),
+            *utils.repeat(self._v_num_grid, self._dimension),
+            self._dimension,
+            *utils.ones(2)
+        )
+    @property
+    def _r_roots_reshape(self) -> tuple[int]:
+        return (
+            1,
+            *utils.ones(self._dimension),
+            *utils.ones(self._dimension),
+            1,
+            *(self._quad_order_legendre, 1)
+        )
+    @property
+    def _r_weights_reshape(self) -> tuple[int]:
+        return (
+            1,
+            *utils.ones(self._dimension),
+            *utils.ones(self._dimension),
+            1,
+            *(self._quad_order_legendre, 1)
+        )
+    @property
+    def _s_roots_reshape(self) -> tuple[int]:
+        return (
+            1,
+            *utils.ones(self._dimension),
+            *utils.ones(self._dimension),
+            self._dimension,
+            *(1, -1)
+        )
+    @property
+    def _s_weights_reshape(self) -> tuple[int]:
+        return (
+            1,
+            *utils.ones(self._dimension),
+            *utils.ones(self._dimension),
+            1,
+            *(1, -1)
+        )
+    ##################################################
     
     
     def _dimension_error(self) -> None:
