@@ -371,52 +371,70 @@ class SpectralMethodBase():
         
         -----
         (`SpectralMethodBase`) This method is already implemented."""
-        homogeneous_result = RK_fcn(0.0, f_fft, delta_t, self.compute_fft)
         if self._is_homogeneous:
-            return homogeneous_result
+            return self._forward_homogeneous(_PLACEHOLDER__t_curr, f_fft, delta_t, RK_fcn)
         else:
-            # Frequency space -> Physical space
-            homogeneous_result: torch.Tensor = torch.fft.ifftn(homogeneous_result, dim=self.v_axes, norm=self.internal_fft_norm).real
-            
-            # Enforce the boundary condition
-            if self._boundary_condition in ("specular",):
-                homogeneous_result[:, *[self._arg_bd_inflow[:, k] for k in range(2*self._dimension)], :] = \
-                    homogeneous_result[:, *[self._arg_bd_inflow_spec[:, k] for k in range(2*self._dimension)], :]
-            # Conduct the transport stage (by interpolation)
-            homogeneous_result = homogeneous_result.transpose(
-                *tuple(range(1, (2*self._dimension+1)+1)), 0
-            )   ## Permutation for interpolation
-            homogeneous_result = torch.nn.functional.pad(
-                homogeneous_result,
-                pad_width = (
-                    *utils.repeat((1, 1), self._dimension), # space
-                    *utils.repeat((0, 0), self._dimension), # velocity
-                    (0, 0), # data
-                    (0, 0), # *batch* (transposed)
-                ),
-                # mode = "wrap",
-            )
-            interp = RegularGridInterpolator(
-                points  = self._xv_pad,
-                values  = homogeneous_result,
-                method          = 'linear',
-                bounds_error    = False,
-                fill_value      = None,
-            ).__call__
-            homogeneous_result = torch.tensor(interp(self._xv_query.data), dtype=self._dtype, device=self._device)
-            homogeneous_result = homogeneous_result.transpose(
-                2*self._dimension+1, *tuple(range(2*self._dimension+1))
-            )   ## Inverse permutation
-            ### End of the transport stage
-            
-            # Enforce the boundary condition, again
-            if self._boundary_condition in ("specular",):
-                homogeneous_result[:, *[self._arg_bd_inflow[:, k] for k in range(2*self._dimension)], :] = \
-                    homogeneous_result[:, *[self._arg_bd_inflow_spec[:, k] for k in range(2*self._dimension)], :]
-            
-            # Physical space -> Frequency space
-            return torch.fft.fftn(homogeneous_result, dim=self.v_axes, norm=self.internal_fft_norm)
+            return self._forward_inhomogeneous(_PLACEHOLDER__t_curr, f_fft, delta_t, RK_fcn)
+        
+        
+    def _forward_homogeneous(
+            self,
+            _PLACEHOLDER__t_curr:     float,
+            f_fft:      torch.Tensor,
+            delta_t:    float,
+            RK_fcn:     Callable[[float, torch.Tensor, float, Callable], torch.Tensor],
+        ) -> torch.Tensor:
+        return RK_fcn(0.0, f_fft, delta_t, self.compute_fft)
+    
 
+    def _forward_inhomogeneous(
+            self,
+            _PLACEHOLDER__t_curr:     float,
+            f_fft:      torch.Tensor,
+            delta_t:    float,
+            RK_fcn:     Callable[[float, torch.Tensor, float, Callable], torch.Tensor],
+        ) -> torch.Tensor:
+        homogeneous_result = RK_fcn(0.0, f_fft, delta_t, self.compute_fft)
+        homogeneous_result: torch.Tensor = torch.fft.ifftn(homogeneous_result, dim=self.v_axes, norm=self.internal_fft_norm).real
+        
+        # Enforce the boundary condition
+        if self._boundary_condition in ("specular",):
+            homogeneous_result[:, *[self._arg_bd_inflow[:, k] for k in range(2*self._dimension)], :] = \
+                homogeneous_result[:, *[self._arg_bd_inflow_spec[:, k] for k in range(2*self._dimension)], :]
+        # Conduct the transport stage (by interpolation)
+        homogeneous_result = homogeneous_result.transpose(
+            *tuple(range(1, (2*self._dimension+1)+1)), 0
+        )   ## Permutation for interpolation
+        homogeneous_result = torch.nn.functional.pad(
+            homogeneous_result,
+            pad_width = (
+                *utils.repeat((1, 1), self._dimension), # space
+                *utils.repeat((0, 0), self._dimension), # velocity
+                (0, 0), # data
+                (0, 0), # *batch* (transposed)
+            ),
+            # mode = "wrap",
+        )
+        interp = RegularGridInterpolator(
+            points  = self._xv_pad,
+            values  = homogeneous_result,
+            method          = 'linear',
+            bounds_error    = False,
+            fill_value      = None,
+        ).__call__
+        homogeneous_result = torch.tensor(interp(self._xv_query.data), dtype=self._dtype, device=self._device)
+        homogeneous_result = homogeneous_result.transpose(
+            2*self._dimension+1, *tuple(range(2*self._dimension+1))
+        )   ## Inverse permutation
+        ### End of the transport stage
+        
+        # Enforce the boundary condition, again
+        if self._boundary_condition in ("specular",):
+            homogeneous_result[:, *[self._arg_bd_inflow[:, k] for k in range(2*self._dimension)], :] = \
+                homogeneous_result[:, *[self._arg_bd_inflow_spec[:, k] for k in range(2*self._dimension)], :]
+        
+        # Physical space -> Frequency space
+        return torch.fft.fftn(homogeneous_result, dim=self.v_axes, norm=self.internal_fft_norm)
     
     def solve(
             self,
@@ -576,8 +594,8 @@ class DirectSM_Base(SpectralMethodBase):
                     ]
                 )
             )
-        idx1 = torch.sum(torch.power(freq1+freq2, 2), dim=-1)
-        idx2 = torch.sum(torch.power(freq1-freq2, 2), dim=-1)
+        idx1 = torch.sum(torch.pow(freq1+freq2, 2), dim=-1)
+        idx2 = torch.sum(torch.pow(freq1-freq2, 2), dim=-1)
         return torch.stack((idx1, idx2), dim=-1)
         
     
