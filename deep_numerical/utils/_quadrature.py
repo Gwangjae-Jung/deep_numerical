@@ -86,6 +86,7 @@ def roots_uniform_shifted(
         dtype:          torch.dtype     = TORCH_DEFAULT_DTYPE,
         device:         torch.device    = TORCH_DEFAULT_DEVICE,
     ) -> tuple[torch.Tensor, torch.Tensor]:
+    """Returns 1-dimensional arrays of the Legendre quadrature points and weights."""
     _check_interval(n, a, b)
     delta = (b-a) / n
     roots: torch.Tensor
@@ -107,6 +108,7 @@ def roots_linspace(
         dtype:  torch.dtype     = TORCH_DEFAULT_DTYPE,
         device: torch.device    = TORCH_DEFAULT_DEVICE,
     ) -> tuple[torch.Tensor, torch.Tensor]:
+    """Returns 1-dimensional arrays of the uniform quadrature points and weights."""
     _check_interval(n, a, b)
     roots = torch.linspace(a, b, n, dtype=dtype, device=device)
     weights = (b-a) * torch.ones_like(roots, dtype=dtype, device=device) / (n-1)
@@ -120,6 +122,7 @@ def roots_legendre_shifted(
         dtype:  torch.dtype     = TORCH_DEFAULT_DTYPE,
         device: torch.device    = TORCH_DEFAULT_DEVICE,
     ) -> tuple[torch.Tensor, torch.Tensor]:
+    """Returns 1-dimensional arrays of the Legendre quadrature points and weights."""
     _check_interval(n, a, b)
     roots, weights = roots_legendre(n)
     roots   = torch.tensor((a+b)/2 + (b-a)*roots/2, dtype=dtype, device=device)
@@ -132,6 +135,7 @@ def roots_lebedev(
         dtype:  torch.dtype     = TORCH_DEFAULT_DTYPE,
         device: torch.device    = TORCH_DEFAULT_DEVICE,
     ) -> tuple[torch.Tensor, torch.Tensor]:
+    """Returns a 2-dimensional array of the Lebedev quadrature points on the unit sphere of shape `(N, 3)` and a 1-dimensional array of weights, where `N` is the number of points in the quadrature."""
     roots, weights = lebedev_rule(order)
     roots   = torch.tensor(roots,   dtype=dtype, device=device).transpose(1, 0)
     weights = torch.tensor(weights, dtype=dtype, device=device)
@@ -143,6 +147,7 @@ def roots_circle(
         dtype:  torch.dtype     = TORCH_DEFAULT_DTYPE,
         device: torch.device    = TORCH_DEFAULT_DEVICE,
     ) -> tuple[torch.Tensor, torch.Tensor]:
+    """Returns a 2-dimensional array of the uniform quadrature points on the unit circle of shape `(N, 2)` and a 1-dimensional array of weights, where `N` is the number of points in the quadrature."""
     _thetas, weights = roots_uniform(n, 0, 2*torch.pi, dtype=dtype, device=device)
     roots = torch.stack((torch.cos(_thetas), torch.sin(_thetas)), dim=-1)
     return (roots, weights)

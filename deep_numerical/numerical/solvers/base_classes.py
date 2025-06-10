@@ -71,6 +71,15 @@ class SpectralMethodBase():
         `SpectralMethodBase` and all classes which inherits `SpectralMethodBase` discretizes the velocity space in such a way that both `+v_max` and `-v_max` are *not* included as entries.
         In contrast, they discretizes the space, containing both `x_max` and `-x_max` as entries.
         """
+        if dimension not in (2, 3):
+            raise NotImplementedError(
+                ' '.join(
+                    [
+                        f"The spectral method for the Boltzmann equation is considered only for dimensions 2 and 3.",
+                        f"(dimension={dimension})",
+                    ]
+                )
+            )
         # Dimension
         self._dimension:    int = dimension
         
@@ -775,54 +784,30 @@ class FastSM_Boltzmann(SpectralMethodBase):
         return torch.squeeze(self._kernel_diag, dim=tuple(range(1+self._dimension)))
     @property
     def approximation_level(self) -> int:
-        return int(self._fsm_phase_1.size(-2) * self._fsm_phase_1.size(-1))
+        pass
     ##################################################
     # Reshaping properties for precomputation
     @property
     def _freqs_reshape(self) -> tuple[int]:
-        return (
-            1,
-            *utils.ones(self._dimension),
-            *utils.repeat(self._v_num_grid, self._dimension),
-            self._dimension,
-            *utils.ones(2)
-        )
+        pass
     @property
     def _r_roots_reshape(self) -> tuple[int]:
-        return (
-            1,
-            *utils.ones(self._dimension),
-            *utils.ones(self._dimension),
-            1,
-            *(self._quad_order_legendre, 1)
-        )
+        pass
     @property
     def _r_weights_reshape(self) -> tuple[int]:
-        return (
-            1,
-            *utils.ones(self._dimension),
-            *utils.ones(self._dimension),
-            1,
-            *(self._quad_order_legendre, 1)
-        )
+        pass
     @property
     def _s_roots_reshape(self) -> tuple[int]:
-        return (
-            1,
-            *utils.ones(self._dimension),
-            *utils.ones(self._dimension),
-            self._dimension,
-            *(1, -1)
-        )
+        pass
     @property
     def _s_weights_reshape(self) -> tuple[int]:
-        return (
-            1,
-            *utils.ones(self._dimension),
-            *utils.ones(self._dimension),
-            1,
-            *(1, -1)
-        )
+        pass
+    @property
+    def _g_roots_reshape(self) -> tuple[int]:
+        pass
+    @property
+    def _g_weights_reshape(self) -> tuple[int]:
+        pass
     ##################################################
     
     
