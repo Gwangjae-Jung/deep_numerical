@@ -505,73 +505,37 @@ class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
         return
     @override
     def _precompute_fsm_loss(self) -> None:
-        if True:
-            """TODO: Optimization"""
-            from    scipy.special   import  gamma
-            from    ...utils        import  area_of_unit_sphere
-            _scale: float
-            if self._dimension==2:
-                _scale = 2**(self._vss_exp_angle+1) * (torch.pi**0.5) * (
-                    gamma(self._vss_exp_angle+0.5) / gamma(self._vss_exp_angle+1.0)
-                )
-            elif self._dimension==3:
-                _scale = 2**(self._vss_exp_angle+2) * torch.pi / (self._vss_exp_angle+1)
-            _scale /= area_of_unit_sphere(self._dimension)
-            
-            _kernel_diag_base = Boltzmann_VHS_kernel_modes(
-                dimension       = self._dimension,
-                num_grid        = self._v_num_grid,
-                v_max           = self._v_max,
-                vhs_coeff       = self._vss_coeff,
-                vhs_alpha       = self._vss_exp_speed,
-                num_roots       = self._quad_order_legendre,
-                diagonal_only   = True,
-                dtype           = self._dtype,
-                device          = self._device,
-            )[*utils.repeat(None, 1+self._dimension), ..., None]
-            # Append one extra dimension
-            
-            self._kernel_diag = _scale * _kernel_diag_base
-        else:
-            """Currently, the computation of the kernel modes for the VSS model is not implemented as an independent function."""
-            # Get the frequency tensor
-            freqs = utils.freq_tensor(self._dimension, self._v_num_grid, True, dtype=self._dtype, device=self._device)
-            freqs = freqs.reshape(self._freqs_reshape)
-
-            # Get the reshaped arrays of the values of `radius, circle`
-            r_roots, r_weights  = utils.roots_legendre_shifted(self._quad_order_legendre, 0, 2*self.v_radius, dtype=self._dtype, device=self._device)
-            if self._dimension==2:
-                s_roots, s_weights  = utils.roots_circle(self._quad_order_uniform, dtype=self._dtype, device=self._device)
-            elif self._dimension==3:
-                s_roots, s_weights  = utils.roots_lebedev(self._quad_order_lebedev, dtype=self._dtype, device=self._device)
-            s_roots = s_roots.T     # See `Comments 1`.
-            g_roots, g_weights = s_roots.clone(), s_weights.clone()
-            r_roots:   torch.Tensor = r_roots.reshape(self._r_roots_reshape)
-            s_roots:   torch.Tensor = s_roots.reshape(self._s_roots_reshape)
-            g_roots:   torch.Tensor = g_roots.reshape(self._g_roots_reshape)
-            r_weights: torch.Tensor = r_weights.reshape(self._r_weights_reshape)
-            s_weights: torch.Tensor = s_weights.reshape(self._s_weights_reshape)
-            g_weights: torch.Tensor = g_weights.reshape(self._g_weights_reshape)
-            rsg_weights = r_weights * g_weights #* s_weights
-            
-            print(f"{freqs.shape    = }")
-            print(f"{r_roots.shape  = }")
-            print(f"{s_roots.shape  = }")
-            print(f"{g_roots.shape  = }")
-            print(f"{r_weights.shape= }")
-            print(f"{s_weights.shape= }")
-            print(f"{g_weights.shape= }")
-            # Compute the kernel modes
-            integrand = \
-                self._vss_coeff * \
-                torch.pow(r_roots, self._vss_exp_speed+self._dimension-1) * \
-                torch.cos(
-                    self.v_ratio * r_roots * \
-                    torch.sum(freqs*g_roots, dim=-4, keepdim=True)
-                ) * \
-                torch.pow(1 + torch.sum(s_roots*g_roots, dim=-4, keepdim=True), self._vss_exp_angle)
-
-            self._kernel_diag = torch.sum(integrand*rsg_weights, dim=((-3, -2, -1)))
+        from    scipy.special   import  gamma
+        from    ...utils        import  area_of_unit_sphere
+        
+        coeff_kernel_modes: float   = self._vss_coeff / area_of_unit_sphere(self._dimension)
+        # Division by the area of the unit sphere in the velocity space should be done
+        # as `Boltzmann_VHS_kernel_modes` multiplies the output by this area
+        _scale: float
+        if self._dimension==2:
+            _scale = 2**(self._vss_exp_angle+1) * (torch.pi**0.5) * (
+                gamma(self._vss_exp_angle+0.5) / \
+                gamma(self._vss_exp_angle+1.0)
+            )
+        elif self._dimension==3:
+            _scale = 2**(self._vss_exp_angle+2) * torch.pi / (
+                self._vss_exp_angle+1
+            )
+        coeff_kernel_modes *= _scale
+        
+        self._kernel_diag = Boltzmann_VHS_kernel_modes(
+            dimension       = self._dimension,
+            num_grid        = self._v_num_grid,
+            v_max           = self._v_max,
+            vhs_coeff       = coeff_kernel_modes,
+            vhs_alpha       = self._vss_exp_speed,
+            num_roots       = self._quad_order_legendre,
+            diagonal_only   = True,
+            dtype           = self._dtype,
+            device          = self._device,
+        )[*utils.repeat(None, 1+self._dimension), ..., None]
+        # Append one extra dimension
+        
         return
     
     
@@ -710,7 +674,7 @@ class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
     @property
     def approximation_level(self) -> int:
         """Return the approximation level of the fast spectral method."""
-        return int(self._fsm_phase_1.size(-3) * self._fsm_phase_1.size(-2))
+        return int(self._fsm_phase_1.size(-2) * self._fsm_phase_1.size(-1))
     
     
 ##################################################
