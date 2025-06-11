@@ -616,7 +616,8 @@ class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
                 torch.exp(
                     -0.5j * self.v_ratio * r_roots * \
                     torch.sum(freqs*g_roots, dim=-4, keepdim=True)
-                ),
+                ) * \
+                g_weights,
                 dim=-1, keepdim=True
             )
         fsm_scale = _fsm_power * _fsm_integral * r_weights
@@ -675,7 +676,8 @@ class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
                 torch.exp(
                     -0.5j * self.v_ratio * r_roots * \
                     torch.sum(freqs*g_roots, dim=-4, keepdim=True)
-                ),
+                ) * \
+                g_weights,
                 dim=-1, keepdim=True
             )
         fsm_scale = _fsm_power * _fsm_integral * r_weights
