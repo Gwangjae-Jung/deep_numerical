@@ -748,6 +748,9 @@ class FastSM_Boltzmann(SpectralMethodBase):
             quad_order_legendre if isinstance(quad_order_legendre,  int)\
             else self._v_num_grid
             # else int(1 + (dimension**0.5) * LAMBDA * num_grid)
+            # The above value is the lower bound presented in the paper, which is
+            # * about 0.641 for the 2D case
+            # * about 0.785 for the 3D case
         self._quad_order_lebedev    = \
             quad_order_lebedev  if isinstance(quad_order_lebedev,   int)\
             else utils.DEFAULT_QUAD_ORDER_LEBEDEV
