@@ -4,6 +4,7 @@ from    typing_extensions   import  Self
 import  torch
 
 from    ..layers            import  BaseModule, MLP, RadialFourierLayer
+from    ..utils             import  positional_encoding
 
 
 ##################################################
@@ -32,6 +33,7 @@ class RadialFourierNeuralOperator(BaseModule):
     ### Note
     1. Given `n_layers`, this class instantiates `n_layers` distinct `RadialFourierLayer` objects.
     2. Since both lift and projection layers act pointwise, if an input is periodic, then so is the output. Hence, the Fourier differentiation is available, provided that an input is sampled from a sufficiently smooth function.
+    3. To enforce the equivariance under orthogonal transformations, the positional encoding is not implemented.
     """
     def __init__(
             self,
@@ -48,6 +50,8 @@ class RadialFourierNeuralOperator(BaseModule):
             
             activation_name:    str                 = "relu",
             activation_kwargs:  dict[str, object]   = {},
+            
+            pos_enc:            bool            = False,
         ) -> Self:
         """## The initializer of the class `FourierNeuralOperator`
         
@@ -66,6 +70,8 @@ class RadialFourierNeuralOperator(BaseModule):
             
             `activation_name` (`str`, default: `"relu"`): The name of the activation function.
             `activation_kwargs` (`dict[str, object]`, default: `{}`): The keyword arguments for the activation function.
+            
+            `pos_enc` (`bool`, default: `False`): Whether to use positional encoding. If `True`, the input will be encoded with positional information.
         """        
         super().__init__()
         
@@ -78,6 +84,11 @@ class RadialFourierNeuralOperator(BaseModule):
         
         # Save some member variables for representation
         self.__dim_domain = len(n_modes)
+
+        # Check the positional encoding
+        self.__pos_enc = pos_enc
+        if self.__pos_enc:
+            in_channels += 1  # Add positional encoding
         
         # Define the subnetworks
         ## Lift
@@ -105,7 +116,7 @@ class RadialFourierNeuralOperator(BaseModule):
             activation_name     = activation_name,
             activation_kwargs   = activation_kwargs
         )
-                        
+        
         return
     
         
@@ -117,6 +128,9 @@ class RadialFourierNeuralOperator(BaseModule):
         Returns:
             `torch.Tensor`: The output tensor of shape `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` is the size of the `i`-th dimension of the domain, and `C` is the number of channels.
         """
+        if self.__pos_enc:
+            pos = positional_encoding(X.shape, 'radial', dtype=X.dtype, device=X.device)
+            X = torch.cat((X, pos), dim=-1)
         X = self.network_lift.forward(X)
         X = self.network_hidden.forward(X)
         X = self.network_projection.forward(X)

@@ -4,7 +4,7 @@ from    typing_extensions   import  Self
 import  torch
 
 from    ..layers            import  BaseModule, MLP, SeparableFourierLayer
-from    ..utils             import  warn_redundant_arguments
+from    ..utils             import  warn_redundant_arguments, positional_encoding
 
 
 ##################################################
@@ -45,7 +45,8 @@ class SeparableFourierNeuralOperator(BaseModule):
 
             activation_name:    str                 = "relu",
             activation_kwargs:  dict[str, object]   = {},
-            
+
+            pos_enc:            bool                = False,
             **kwargs,
         ) -> Self:
         """## The initializer of the class `SeparableFourierNeuralOperator`
@@ -66,6 +67,8 @@ class SeparableFourierNeuralOperator(BaseModule):
             
             `activation_name` (`str`, default: `"relu"`): The name of the activation function.
             `activation_kwargs` (`dict[str, object]`, default: `{}`): The keyword arguments of the activation function.
+            
+            `pos_enc` (`bool`, default: `False`): Whether to use positional encoding. If `True`, the input will be encoded with positional information.
         """        
         super().__init__()
         warn_redundant_arguments(type(self), kwargs=kwargs)
@@ -77,6 +80,11 @@ class SeparableFourierNeuralOperator(BaseModule):
         
         # Save some member variables for representation
         self.__dim_domain   = len(n_modes)
+        
+        # Check the positional encoding
+        self.__pos_enc = pos_enc
+        if self.__pos_enc:
+            in_channels += 2*self.__dim_domain  # Add positional encoding
         
         # Define the subnetworks
         ## Lift
@@ -117,6 +125,9 @@ class SeparableFourierNeuralOperator(BaseModule):
         Returns:
             `torch.Tensor`: The output tensor of shape `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` is the size of the `i`-th dimension of the domain, and `C` is the number of channels.
         """
+        if self.__pos_enc:
+            pos = positional_encoding(X.shape, 'sinusoidal', dtype=X.dtype, device=X.device)
+            X = torch.cat((X, pos), dim=-1)
         X = self.network_lift.forward(X)
         X = self.network_hidden.forward(X)
         X = self.network_projection.forward(X)
