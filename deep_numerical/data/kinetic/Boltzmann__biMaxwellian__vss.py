@@ -9,7 +9,7 @@ from    kinetic_distribtutions      import  *
 from    pathlib             import  Path
 root_dir    = r"/media/junseung/47a90e46-3a9d-467c-bbee-066752b68532/GWANGJAE"
 path_root   = Path(root_dir)
-path_lib    = path_root / "python_deep_numerical"
+path_lib    = path_root / "deep_numerical"
 
 from    sys         import  path
 path.append( str(path_lib) )
@@ -18,8 +18,8 @@ from    deep_numerical.numerical   import  distribution
 from    deep_numerical.numerical.solvers     import  FastSM_Boltzmann_VSS
 
 dtype:  torch.dtype     = torch.double
-device: torch.device    = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
-device: torch.device    = torch.device('cpu')
+device: torch.device    = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
+# device: torch.device    = torch.device('cpu')
 
 dtype_and_device = {'dtype': dtype, 'device': device}
 __dtype_str = str(dtype).split('.')[-1]
@@ -36,7 +36,7 @@ NUM_T:      int     = 1 + int(MAX_T/DELTA_T + 0.1)
 DATA_SIZE:  int     = NUM_INST * NUM_T
 
 DIMENSION:  int     = 2
-RESOLUTION: int     = 2**7
+RESOLUTION: int     = 2**6
 V_MAX:      float   = 3.0/utils.LAMBDA
 DELTA_V:    float   = (2*V_MAX) / RESOLUTION
 V_WHERE_CLOSED: str = 'none'
@@ -74,6 +74,8 @@ for part in range(PART_INIT, PART_LAST+1):
             vss_coeff       = VSS_COEFF,
             vss_exp_speed   = VSS_EXP_SPEED,
             vss_exp_angle   = VSS_EXP_ANGLE,
+
+            quad_order_uniform = 75,
 
             **dtype_and_device,
         )

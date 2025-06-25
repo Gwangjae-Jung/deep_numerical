@@ -1,4 +1,6 @@
-import  numpy           as np
+from    typing  import  Optional
+
+import  numpy   as np
 import  torch
 
 
@@ -8,6 +10,7 @@ __all__: list[str] = ['sample_quantities', 'sample_noise_quadratic', 'compute_qu
 def sample_quantities(
         dimension:      int,
         batch_size:     int,
+        v_max:          Optional[float] = None,
         v_perturb_max:  float = 1.0,
         t_perturb_max:  float = 0.2,
         
@@ -15,6 +18,10 @@ def sample_quantities(
         device:     torch.device    = torch.device('cpu'),
     ) -> tuple[torch.Tensor]:
     """Sample the mean density, velocity, and temperatures."""
+    if isinstance(v_max, float) and v_max > 0:
+        v_perturb_max = v_max / 5
+    else:
+        v_max = None
     dtype_and_device = {'dtype': dtype, 'device': device}
     rho = torch.ones((batch_size, 1), **dtype_and_device)
     u   = v_perturb_max *(2*torch.rand(batch_size, dimension, **dtype_and_device) - 1)

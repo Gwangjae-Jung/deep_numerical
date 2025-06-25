@@ -76,7 +76,7 @@ class SeparableFourierNeuralOperator(BaseModule):
                 raise RuntimeError(f"'n_modes[{cnt}]' is chosen {item}, which is not positive.")
         
         # Save some member variables for representation
-        self.__dim_domain = len(n_modes)
+        self.__dim_domain   = len(n_modes)
         
         # Define the subnetworks
         ## Lift

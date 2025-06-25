@@ -1,0 +1,18 @@
++============================== +
+# part: 01
++------------------------------ +
+* VSS model (coeff, alpha, beta): 0.16, -2.00, 0.00
+Traceback (most recent call last):
+  File "/media/junseung/47a90e46-3a9d-467c-bbee-066752b68532/GWANGJAE/deep_numerical/deep_numerical/data/kinetic/Boltzmann__biMaxwellian__vss.py", line 69, in <module>
+    solver = FastSM_Boltzmann_VSS(
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/media/junseung/47a90e46-3a9d-467c-bbee-066752b68532/GWANGJAE/deep_numerical/deep_numerical/numerical/solvers/_fsm__boltzmann.py", line 360, in __init__
+    self.precompute()
+  File "/media/junseung/47a90e46-3a9d-467c-bbee-066752b68532/GWANGJAE/deep_numerical/deep_numerical/numerical/solvers/base_classes.py", line 829, in precompute
+    self._precompute_fsm_gain()
+  File "/media/junseung/47a90e46-3a9d-467c-bbee-066752b68532/GWANGJAE/deep_numerical/deep_numerical/numerical/solvers/_fsm__boltzmann.py", line 501, in _precompute_fsm_gain
+    fsm_scale, fsm_phase_1, fsm_phase_2 = getattr(self, f'_precompute_fsm_gain_{self._dimension}D')()
+                                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/media/junseung/47a90e46-3a9d-467c-bbee-066752b68532/GWANGJAE/deep_numerical/deep_numerical/numerical/solvers/_fsm__boltzmann.py", line 576, in _precompute_fsm_gain_2D
+    torch.pow(
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 21.97 GiB. GPU 2 has a total capacity of 23.68 GiB of which 1.46 GiB is free. Including non-PyTorch memory, this process has 22.21 GiB memory in use. Of the allocated memory 21.97 GiB is allocated by PyTorch, and 1.81 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
