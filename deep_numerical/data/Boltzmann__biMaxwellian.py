@@ -85,7 +85,18 @@ sample_q: Callable[[int], tuple[torch.Tensor]] = \
 ##################################################
 # Computation begins
 ##################################################
-VHS_COEFF = 1.0 / utils.area_of_unit_sphere(DIMENSION)
+VHS_COEFF   = 1.0 / utils.area_of_unit_sphere(DIMENSION)
+
+DIR_NAME    = config_dataset['dir_name']
+_res_str    = f"res{str(RESOLUTION).zfill(3)}"
+file_dir    = path_root / DIR_NAME / f"Boltzmann_{DIMENSION}D" / "biMaxwellian" / f"coeff{VHS_COEFF:.2e}" / _res_str
+if not Path.exists(file_dir):
+    Path.mkdir(file_dir, parents=True)    
+print(f"Saving the configuration file...")
+copyfile(NAME_OF_CONFIG_FILE, file_dir/NAME_OF_CONFIG_FILE)
+print(f"\tDone.")
+
+
 for part in range(PART_INIT, PART_LAST+1):
     print('+' + '='*30 + ' +')
     print(f"# part: {str(part).zfill(len(str(PART_LAST)))}")
@@ -172,11 +183,7 @@ for part in range(PART_INIT, PART_LAST+1):
             'elapsed_time': elapsed_time,
         }
         
-        _res_str = f"res{str(RESOLUTION).zfill(3)}"
-        file_dir   = path_root / config_dataset['dir_name'] / f"Boltzmann_{DIMENSION}D" / "biMaxwellian" / f"coeff{VHS_COEFF:.2e}" / _res_str
         file_name = f"{_res_str}__alpha{float(VHS_ALPHA):.1e}__part{str(part).zfill(len(str(PART_LAST)))}.pth"
-        if not Path.exists(file_dir):
-            Path.mkdir(file_dir, parents=True)
         print(f"Saving data as follows:")
         print(f"* Directory: {file_dir}")
         print(f"* File name: {file_name}")
@@ -189,9 +196,6 @@ for part in range(PART_INIT, PART_LAST+1):
 
 
 print(f"All computations are done.")
-print(f"Saving the configuration file...")
-copyfile(NAME_OF_CONFIG_FILE, file_dir/NAME_OF_CONFIG_FILE)
-print(f"\tDone.")
 
 
 

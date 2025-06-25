@@ -1,13 +1,13 @@
 computation:
   dtype:  double
-  device: 'cuda:1'
+  device: 'cpu'
 
 
 dataset:
   # NOTE: We fix `t_center=1.0`
   part_init:  1
-  n_repeat:   9
-  n_inst:     20
+  n_repeat:   3
+  n_inst:     60
 
   delta_t:  0.1
   max_t:    5.0
@@ -22,4 +22,4 @@ dataset:
   exp_speed:  [0.0, 0.25, 0.50, 0.75, 1.00]
   exp_angle:  [0.0]
 
-  dir_name: 'datasets_kinetic'
+  dir_name: 'datasets_kinetic__cpu'
