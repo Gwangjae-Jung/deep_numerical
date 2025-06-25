@@ -1,6 +1,10 @@
 **/__pycache__/
 *.py[cod]
 
+**/*__DEPRECATED*
+**/*__IGNORE*
+**/checkpoint*/
+
 .vscode
 .variable_kernels
 .variable_kernels__base
