@@ -6,6 +6,7 @@ from    .integral_layers    import  *
 
 from    .fourier_layer              import  *
 from    .fourier_layer_factorized   import  *
+from    .fourier_layer_radial       import  *
 from    .fourier_layer_separable    import  *
 from    .fourier_layer_separable_h  import  *
 from    .fourier_layer_tensorized   import  *

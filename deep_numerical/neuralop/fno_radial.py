@@ -1,32 +1,38 @@
-from    typing              import  Sequence
+from    typing              import  *
 from    typing_extensions   import  Self
 
 import  torch
-from    torch           import  nn
 
-from    ..layers        import  MLP, FactorizedFourierLayer
-from    ..utils         import  get_activation, warn_redundant_arguments
+from    ..layers            import  BaseModule, MLP, RadialFourierLayer
 
 
 ##################################################
 ##################################################
-__all__: list[str] = [
-    "FactorizedFourierNeuralOperator", "FFNO"
+__all__ = [
+    "RadialFourierNeuralOperator",
+    "RadialFNO", "RFNO"
 ]
 
 
 ##################################################
 ##################################################
-class FactorizedFourierNeuralOperator(nn.Module):
-    """## Factorized Fourier Neural Operator (FFNO)
+class RadialFourierNeuralOperator(BaseModule):
+    """## RadialFourier Neural Operator (Radial-FNO)
+    ### Integral operator via discrete Fourier transform
     
     -----
     ### Description
-    The FFNO is a neural operator modelling integral operators with a skip connection, using the dimensionwise Fourier transform.
+    The Fourier Neural Operator is an Integral Neural Operator with translation-invariant kernels.
+    By the convolution theorem, the kernel integration can be computed by a convolution under some mild conditions.
+    Ignoring the Fourier modes of high frequencies, the Fourier Neural Operator reduces its quadratic computational complexity to quasilinear computational complexity.
     
-    Reference: https://openreview.net/forum?id=tmIiMPl4IPa
+    Reference: https://openreview.net/pdf?id=c8P9NQVtmnO
+    
+    -----
+    ### Note
+    1. Given `n_layers`, this class instantiates `n_layers` distinct `RadialFourierLayer` objects.
+    2. Since both lift and projection layers act pointwise, if an input is periodic, then so is the output. Hence, the Fourier differentiation is available, provided that an input is sampled from a sufficiently smooth function.
     """
-    
     def __init__(
             self,
             n_modes:            Sequence[int],
@@ -38,18 +44,15 @@ class FactorizedFourierNeuralOperator(nn.Module):
             lift_layer:         Sequence[int]   = [256],
             n_layers:           int             = 4,
             project_layer:      Sequence[int]   = [256],
-
+            weighted_residual:  bool            = True,
+            
             activation_name:    str                 = "relu",
             activation_kwargs:  dict[str, object]   = {},
-            
-            **kwargs,
         ) -> Self:
-        """## The initializer of the class `FFNO`
+        """## The initializer of the class `FourierNeuralOperator`
         
         Arguments:
-            `n_modes` (`Sequence[int]`):
-                * The maximum degree of the Fourier modes to be preserved. To be precise, after performing the FFT, for the `i`-th Fourier transform, only the modes in `[-n_modes[i], +n_modes[i]]` will be preserved.
-                * Note that the length of `n_modes` is the dimension of the domain.
+            `n_modes` (`Sequence[int]`): The maximum degree of the Fourier modes to be preserved. To be precise, after performing the FFT, for the `i`-th Fourier transform, only the modes in `[-n_modes[i], +n_modes[i]]` will be preserved. Note that the length of `n_modes` is the dimension of the domain.
                     
             `in_channels` (`int`): The number of the input channels.
             `hidden_channels` (`int`): The number of the hidden channels.
@@ -58,14 +61,20 @@ class FactorizedFourierNeuralOperator(nn.Module):
             `lift_layer` (`Sequential[int]`, default: `(256)`): The numbers of channels inside the lift layer.
             `n_layers` (`int`, default: `4`): The number of hidden layers.
             `project_layer` (`Sequential[int]`, default: `(256)`): The numbers of channels inside the projection layer.
-        """
+            
+            `weighted_residual` (`bool`, default: `True`): Whether to use a linear layer in the skip connection. If `False`, the skip connection is a simple addition. Instead, a 2-layer MLP will be used after the spectral convolution, and the activation function is not applied after the residual connection.
+            
+            `activation_name` (`str`, default: `"relu"`): The name of the activation function.
+            `activation_kwargs` (`dict[str, object]`, default: `{}`): The keyword arguments for the activation function.
+        """        
         super().__init__()
-        warn_redundant_arguments(type(self), kwargs)
         
         # Check the argument validity
         for cnt, item in enumerate(n_modes, 1):
             if not (type(item) == int and item > 0):
-                raise RuntimeError(f"'k_max[{cnt}]' is chosen {item}, which is not positive.")
+                raise ValueError(f"'n_modes[{cnt}]' is chosen {item}, which is not positive.")
+        if n_layers <= 0:
+            raise ValueError(f"'n_layers' is chosen {n_layers}, which is not positive.")
         
         # Save some member variables for representation
         self.__dim_domain = len(n_modes)
@@ -79,12 +88,17 @@ class FactorizedFourierNeuralOperator(nn.Module):
         )
         ## Hidden layers
         self.network_hidden: torch.nn.Sequential = torch.nn.Sequential()
-        if n_layers <= 0:
-            self.network_hidden.append(torch.nn.Identity())
-        else:
-            __fl_kwargs = {'n_modes': n_modes, 'in_channels': hidden_channels}
-            for _ in range(n_layers):
-                self.network_hidden.append(FactorizedFourierLayer(**__fl_kwargs))
+        for idx in range(n_layers):
+            activate = True if idx<n_layers-1 else False
+            __fl_kwargs = {
+                'n_modes':              n_modes,
+                'in_channels':          hidden_channels,
+                'weighted_residual':    weighted_residual,
+                'activate':             activate,
+                'activation_name':      activation_name,
+                'activation_kwargs':    activation_kwargs,
+            }
+            self.network_hidden.append(RadialFourierLayer(**__fl_kwargs))
         ## Projection
         self.network_projection = MLP(
             [hidden_channels, *project_layer, out_channels],
@@ -94,7 +108,7 @@ class FactorizedFourierNeuralOperator(nn.Module):
                         
         return
     
-    
+        
     def forward(self, X: torch.Tensor) -> torch.Tensor:
         """
         Arguments:
@@ -103,9 +117,9 @@ class FactorizedFourierNeuralOperator(nn.Module):
         Returns:
             `torch.Tensor`: The output tensor of shape `(B, s_1, ..., s_d, C)`, where `B` is the batch size, `s_i` is the size of the `i`-th dimension of the domain, and `C` is the number of channels.
         """
-        X = self.network_lift(X)
-        X = self.network_hidden(X)
-        X = self.network_projection(X)
+        X = self.network_lift.forward(X)
+        X = self.network_hidden.forward(X)
+        X = self.network_projection.forward(X)
         return X
     
     
@@ -116,7 +130,7 @@ class FactorizedFourierNeuralOperator(nn.Module):
 
 ##################################################
 ##################################################
-FFNO = FactorizedFourierNeuralOperator
+RFNO = RadialFNO = RadialFourierNeuralOperator
 
 
 ##################################################
