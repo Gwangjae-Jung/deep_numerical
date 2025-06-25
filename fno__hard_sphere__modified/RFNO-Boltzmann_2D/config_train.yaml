@@ -16,13 +16,13 @@ pde_dataset:
 
 
 rfno:
-  n_modes:            [16,16]
+  n_modes:            [12,12]
   in_channels:        1
-  hidden_channels:    32
+  hidden_channels:    64
   out_channels:       1
 
   lift_layer:         [128, 128]
-  n_layers:           4
+  n_layers:           6
   project_layer:      [128, 128]
 
   activation_name:    "relu"

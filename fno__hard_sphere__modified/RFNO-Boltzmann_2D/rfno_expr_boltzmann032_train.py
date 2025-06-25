@@ -138,7 +138,7 @@ print(f"The number of the parameters in the models\n>>> {count_parameters(model)
 lf = LossFunctions(dimension=DIMENSION, resolution=RESOLUTION, v_max=V_MAX, v_where_closed=WHERE_CLOSED, device=DEVICE)
 
 optimizer = torch.optim.Adam(params=model.parameters(), lr=_exp['learning_rate'])
-lr_lambda = exponential_cosine(period=20, half_life=100)
+lr_lambda = exponential_cosine(period=20, half_life=float('inf'))
 scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
 
 
