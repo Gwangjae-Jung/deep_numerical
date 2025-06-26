@@ -1,11 +1,8 @@
-import  warnings
-
-from    typing      import  Callable, Sequence, Union, Self
-from    pathlib     import  Path
+from    typing      import  Sequence, Self
 import  torch
 
-from    pathlib     import  Path
 from    sys         import  path    as  sys_path
+from    pathlib     import  Path
 sys_path.append(str(Path(__file__).parent))
 from    deep_numerical.utils        import  velocity_grid, relative_error
 
@@ -13,140 +10,8 @@ from    deep_numerical.utils        import  velocity_grid, relative_error
 ##################################################
 ##################################################
 __all__: list[str] = [
-    'load_data', 'augment_data_2D',
-    'exponential_cosine',
     'LossFunctions',
 ]
-
-
-##################################################
-##################################################
-def load_data(
-        directory:  Union[str, Path],
-        resolution: int,
-        alpha:      Sequence[float],
-        part_index: Sequence[int],
-        dtype:      torch.dtype = torch.float,
-    ) -> tuple[dict[str, torch.Tensor], dict[str, object]]:
-    """
-    Arguments:
-        `directory` (`Union[str, Path]`):
-            The directory where the data files are stored.
-        `resolution` (`int`):
-            The resolution of the data.
-        `alpha` (`Sequence[float]`):
-            The values of alpha of the data to be loaded.
-        `part_index` (`Sequence[int]`):
-            The parts of the data to be loaded.
-        `dtype` (`torch.dtype`, default: `torch.float`):
-            The data type of the loaded tensors.
-    
-    Returns:
-        `dict[str, torch.Tensor]`:
-            A dictionary containing the concatenated `data`, `vhs_coeff`, and `vhs_alpha`.
-        `dict[str, object]`:
-            A dictionary containing shared attributes such as `v_max` and `where_closed`.
-    """
-    from    itertools       import  product
-    
-    if not isinstance(directory, Path):
-        directory = Path(directory)
-
-    def _get_file_name(res: int, a: float, p: int) -> str:
-        res = str(res).zfill(3)
-        p   = str(p).zfill(1)
-        return f"res{res}__alpha{a:.1e}__part{p}.pth"
-
-    files = [
-        torch.load(
-            directory/_get_file_name(resolution, a, p),
-            weights_only = False,
-        )
-        for a, p in product(alpha, part_index)
-    ]
-    
-    data: torch.Tensor = torch.cat([f['data'].type(dtype) for f in files], dim=0)
-    batch_size = data.size(0)
-    ndim = (data.ndim-3)//2
-    data = data[:, :, *(0 for _ in range(ndim)), ...]   # Remove the space dimensions
-    vhs_coeff: torch.Tensor = \
-        torch.cat(
-            [
-                float(f['vhs_coeff']) * torch.ones((batch_size, 1), dtype=dtype)
-                for f in files
-            ],
-            dim=0,
-        )
-    vhs_alpha: torch.Tensor = \
-        torch.cat(
-            [
-                float(f['vhs_alpha']) * torch.ones((batch_size, 1), dtype=dtype)
-                for f in files
-            ],
-            dim=0,
-        )
-
-    return (
-        {
-            # Gathered attributes
-            'data':         data,
-            'vhs_coeff':    vhs_coeff,
-            'vhs_alpha':    vhs_alpha,
-        },
-        {
-            # Shared attributes
-            'v_max':            float(files[0]['v_max']),
-            'v_where_closed':   str(files[0]['v_where_closed']),
-        }
-    )
-
-
-def augment_data_2D(data_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-    """Augment the data for 2D by flipping and rotating.
-    
-    Arguments:
-        `data_dict` (`dict[str, torch.Tensor]`):
-            A dictionary containing the data to augment. The dictionary should have the following keys:
-            - `data`: A tensor of shape `(B, T, H, W, C)`.
-            - `vhs_coeff`: A tensor of shape `(B,)`.
-            - `vhs_alpha`: A tensor of shape `(B,)`.
-    """
-    data        = data_dict['data']
-    assert data.ndim==5
-    vhs_coeff   = data_dict['vhs_coeff']
-    vhs_alpha   = data_dict['vhs_alpha']
-    
-    # Rotate data
-    data        = torch.cat([torch.rot90(data, k, dims=(-3,-2)) for k in range(4)], dim=0)
-    vhs_coeff   = torch.cat([vhs_coeff for _ in range(4)], dim=0)
-    vhs_alpha   = torch.cat([vhs_alpha for _ in range(4)], dim=0)
-    
-    # Flip data
-    data        = torch.cat([data, torch.flip(data, dims=(-2,))], dim=0)
-    vhs_coeff   = torch.cat([vhs_coeff, vhs_coeff], dim=0)
-    vhs_alpha   = torch.cat([vhs_alpha, vhs_alpha], dim=0)
-    
-    return {
-        'data':         data,
-        'vhs_coeff':    vhs_coeff,
-        'vhs_alpha':    vhs_alpha,
-    }
-
-
-##################################################
-##################################################
-# Learning rate scheduler
-def exponential_cosine(
-        period:     float,
-        half_life:  float,
-    ) -> Callable[[int], float]:
-    from    math    import  cos, exp, log, pi
-    assert period > 0
-    assert half_life > 0
-    omega   = 2*pi/period
-    lambda_lr: Callable[[int], float] = \
-        lambda epoch: 0.5 * (1+cos(omega*epoch)) * exp(-log(2) * epoch/half_life)
-    return lambda_lr
 
 
 ##################################################

@@ -21,8 +21,8 @@ from    deep_numerical.utils     import  count_parameters, initialize_weights
 from    deep_numerical.utils     import  relative_error
 from    deep_numerical.neuralop  import  RFNO
 
-from    train_utils.train_utils  import  load_data, augment_data_2D, exponential_cosine
-from    train_utils.train_utils  import  LossFunctions
+from    train_utils     import  load_data, augment_data_2D, exponential_cosine
+from    train_utils     import  LossFunctions
 
 
 

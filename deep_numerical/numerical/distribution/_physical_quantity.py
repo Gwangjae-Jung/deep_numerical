@@ -330,7 +330,7 @@ def compute_entropy_homogeneous(
         `f` (`torch.Tensor`):
             The distribution function at a specific time, which is of shape `(B, *ones(d), K_1, ..., K_d, 1)`.
         `dv` (`float`):
-            The size of the velocity grid.
+            The size of the velocity grid. Do not be confused with the volume of the cells in the velocity grid.
         `dim` (`Optioal[int]`, default: `None`):
             The dimension of the velocity space. If `None`, `dim` is set `(f.ndim-2)//2`.
         `eps` (`float`, default: `_EPSILON`):
