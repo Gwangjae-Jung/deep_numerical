@@ -1,0 +1,37 @@
+# Generation
+GENERATION:
+  SEED:           123
+  NUM_INSTANCES:  1024
+  DATA_PATH:      "C:/Users/GJ2/python_custom_modules/custom_modules/data/datasets"
+  DATA_NAME:      "pendulum"
+  DESCRIPTION:    "The angular displacement of a pendulum under gravitational field"
+
+
+# Temporal domain
+TEMPORAL_DOMAIN:
+  DURATION:       1.00  # in seconds
+  STEP:           0.01  # in seconds
+
+
+# Initial confition
+INITIAL_CONDITION:
+  ANGLE:            -0.25 # multiplied by PI
+  ANGULAR_VELOCITY: 0.0   # multiplied by PI
+
+
+# Boundary confition
+BOUNDARY_CONDITION:
+  __EMPTY__:        0
+
+
+# GRF config
+GRF_CONFIG:
+  GRF_LENGTH_SCALE:   0.20
+  GRF_FACTOR:         1.00
+
+
+# Physical configurations
+PHYSICAL_CONFIG:
+  LENGTH_OF_ROD:                    1.0   # in m
+  MASS_OF_PENDULUM:                 1.0   # in kg
+  MEAN_GRAVITATIONAL_ACCELERATION:  9.8   # in m/s^2
