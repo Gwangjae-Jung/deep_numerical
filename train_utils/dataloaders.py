@@ -127,30 +127,45 @@ def augment_data_2D(data_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tenso
 ##################################################
 ##################################################
 class WeightedDataset(torch.utils.data.Dataset):
-    def _get_file_name(self, a: float, p: int) -> Path:
-        return self.__directory / f"res{self.__resolution}__alpha{a:.1e}__part{p}.pth"
-
-
     def __init__(
             self,
             directory:  Union[str, Path],
             resolution: int,
             alpha:      Sequence[float],
             part_index: Sequence[int],
-            dtype_str:  str = 'float',
+            dtype:      torch.dtype = torch.float,
             
-            is_parameterized:   bool    = False,
+            is_parameterized:       bool    = False,
+            
+            weighting_criterion:    Optional[Union[float, str]] = None,
+            num_bins:               int = 30,
         ) -> Self:
+        # Check the input arguments
+        if not (
+            (isinstance(weighting_criterion, float) and weighting_criterion>=1) or
+            (isinstance(weighting_criterion, str) and weighting_criterion.lower() in ['entropy'])
+        ):
+            raise ValueError(
+                f"Invalid weighting criterion: {weighting_criterion}. "
+                "It should be a float >= 1 or 'entropy'."
+            )
+        
         # Initialize the basic configurations
-        from    itertools   import  product
         super().__init__()
         self.__directory    = Path(directory) if not isinstance(directory, Path) else directory
         self.__resolution   = resolution
         self.__alpha        = alpha
         self.__part_index   = part_index
-        self.__dtype_r      = getattr(torch, dtype_str)
-        self.__dtype_c      = getattr(torch, f"c{dtype_str}")
-        self.__is_parameterized = is_parameterized
+        self.__dtype_r      = dtype
+        self.__is_parameterized     = is_parameterized
+        self.__weighting_criterion  = weighting_criterion
+        self.__num_bins             = num_bins
+        
+        # Initialize auxiliary attributes
+        self.__dimension:       Optional[int]   = None
+        self.__v_max:           Optional[float] = None
+        self.__v_where_closed:  Optional[str]   = None
+        self.__scores:          Optional[torch.Tensor] = None
 
         # Load the data and precompute the weights
         self.__data:    Optional[torch.Tensor] = None
@@ -161,6 +176,11 @@ class WeightedDataset(torch.utils.data.Dataset):
         
         # Done
         return
+    
+    
+    def _get_file_name(self, a: float, p: int) -> Path:
+        res = str(self.__resolution).zfill(3)
+        return self.__directory / f"res{res}__alpha{a:.1e}__part{p}.pth"
 
 
     def __len__(self) -> int:
@@ -175,11 +195,78 @@ class WeightedDataset(torch.utils.data.Dataset):
 
     
     def __load_data(self) -> None:
-        pass
+        from    itertools   import  product
+        
+        file_list = [
+            torch.load(self._get_file_name(a, p), weights_only=False)
+            for a, p in product(self.__alpha, self.__part_index)
+        ]
+        _list_of_v_max  = [f['v_max'] for f in file_list]
+        _list_of_v_wc   = [f['v_where_closed'] for f in file_list]
+        assert len(set(_list_of_v_max))==1, \
+            "All files must have the same values of 'v_max'."
+        assert len(set(_list_of_v_wc))==1, \
+            "All files must have the same values of 'v_where_closed'."
+        
+        self.__data = \
+            torch.cat([f['data'].type(self.__dtype_r) for f in file_list], dim=0)
+        if self.__is_parameterized:
+            self.__params = \
+                torch.cat(
+                    [
+                        f['vhs_alpha'] * \
+                        torch.ones((len(f['data']), 1), dtype=self.__dtype_r)
+                        for f in file_list
+                    ],
+                    dim = 0,
+                )
+        
+        self.__dimension        = (self.__data.ndim-3)//2
+        self.__resolution       = self.__data.size(-2)
+        self.__v_max            = float(_list_of_v_max[0])
+        self.__v_where_closed   = str(_list_of_v_wc[0])
+        
+        return
     
     
     def __precompute_weights(self) -> None:
-        pass
+        if self.__weighting_criterion is None:
+            return
+        
+        import  numpy   as  np
+        from    deep_numerical.utils        import  velocity_grid, relative_error
+        from    deep_numerical.numerical    import  distribution    as  D
+        
+        old_shape = tuple(self.__data.shape)
+        num_traj, num_steps = old_shape[:2]
+        new_shape = tuple((num_traj*num_steps, *old_shape[2:]))
+        
+        v_grid = velocity_grid(
+            self.__dimension,
+            self.__resolution,
+            self.__v_max,
+            where_closed    = self.__v_where_closed,
+        )
+        dist = self.__data.reshape(new_shape)
+        equi = D.maxwellian_homogeneous(v_grid, *D.compute_moments_homogeneous(dist, v_grid))
+        
+        scores: Optional[Union[np.ndarray, torch.Tensor]] = None
+        if isinstance(self.__weighting_criterion, float):
+            """Compute the relative L^p error."""
+            scores = relative_error(dist, equi, p=self.__weighting_criterion)
+        elif isinstance(self.__weighting_criterion, str) and self.__weighting_criterion.lower()=='entropy':
+            """Compute the entropy."""
+            dv = 2*self.__v_max/self.__resolution
+            ent_dist = D.compute_entropy_homogeneous(dist, dv)
+            ent_equi = D.compute_entropy_homogeneous(equi, dv)
+            scores = relative_error(ent_dist, ent_equi) # Here, the order does not matter.
+        scores = scores.reshape((num_traj, num_steps)).log10()
+        # self.__scores = scores
+        
+        bins = torch.linspace(scores.min(), scores.max(), 1+self.__num_bins)
+        torch.searchsorted(bins, scores)
+        
+        return
     
 
 ##################################################
