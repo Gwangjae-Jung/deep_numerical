@@ -14,7 +14,6 @@ from    deep_numerical.utils        import  velocity_grid, relative_error
 ##################################################
 __all__: list[str] = [
     'load_data', 'augment_data_2D',
-    'loss_data', 'loss_cons', 'compute_loss',
     'exponential_cosine',
     'LossFunctions',
 ]
@@ -25,7 +24,7 @@ __all__: list[str] = [
 def load_data(
         directory:  Union[str, Path],
         resolution: int,
-        alpha:      float,
+        alpha:      Sequence[float],
         part_index: Sequence[int],
         dtype:      torch.dtype = torch.float,
     ) -> tuple[dict[str, torch.Tensor], dict[str, object]]:
@@ -35,10 +34,10 @@ def load_data(
             The directory where the data files are stored.
         `resolution` (`int`):
             The resolution of the data.
-        `alpha` (`float`):
-            An alpha value for the data.
+        `alpha` (`Sequence[float]`):
+            The values of alpha of the data to be loaded.
         `part_index` (`Sequence[int]`):
-            The indices of the data part to load.
+            The parts of the data to be loaded.
         `dtype` (`torch.dtype`, default: `torch.float`):
             The data type of the loaded tensors.
     
@@ -48,20 +47,22 @@ def load_data(
         `dict[str, object]`:
             A dictionary containing shared attributes such as `v_max` and `where_closed`.
     """
+    from    itertools       import  product
+    
     if not isinstance(directory, Path):
         directory = Path(directory)
 
-    def _get_file_name(resolution: int, alpha: float, part_index: int) -> str:
-        res = str(resolution).zfill(3)
-        idx = str(part_index).zfill(1)
-        return f"res{res}__alpha{alpha:.1e}__part{idx}.pth"
-    
+    def _get_file_name(res: int, a: float, p: int) -> str:
+        res = str(res).zfill(3)
+        p   = str(p).zfill(1)
+        return f"res{res}__alpha{a:.1e}__part{p}.pth"
+
     files = [
         torch.load(
-            directory/_get_file_name(resolution, alpha, p),
+            directory/_get_file_name(resolution, a, p),
             weights_only = False,
         )
-        for p in part_index
+        for a, p in product(alpha, part_index)
     ]
     
     data: torch.Tensor = torch.cat([f['data'].type(dtype) for f in files], dim=0)

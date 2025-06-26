@@ -374,7 +374,7 @@ class SpectralMethodBase():
             _PLACEHOLDER__t_curr:     float,
             f_fft:      torch.Tensor,
             delta_t:    float,
-            RK_fcn:     Callable[[float, torch.Tensor, float, Callable], torch.Tensor],
+            RK_fcn:     Callable[[float, torch.Tensor, float, Callable], torch.Tensor] = utils.one_step_RK4_classic,
         ) -> torch.Tensor:
         """Returns the Fourier coefficients of the solution at the next time step.
         

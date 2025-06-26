@@ -16,9 +16,9 @@ pde_dataset:
 
 
 rfno:
-  n_modes:            [12,12]
+  n_modes:            [16,16]
   in_channels:        1
-  hidden_channels:    64
+  hidden_channels:    32
   out_channels:       1
 
   lift_layer:         [128, 128]

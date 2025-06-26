@@ -1,6 +1,6 @@
 experiment:
-  seed:           123
-  num_epochs:     1000
+  seed:           54321
+  num_epochs:     2000
   batch_size:     1024
   learning_rate:  0.0001
   cuda_index:     3

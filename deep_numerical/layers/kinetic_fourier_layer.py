@@ -28,6 +28,7 @@ class FourierBoltzmannLayer(BaseModule):
             degree:         int,
             n_weights:      int,
             n_channels:     int = 1,
+            dtype_str:      str = "double",
         ) -> Self:
         self.__check_arguments(dimension, degree, n_weights, n_channels)
         n_modes = tuple((2*degree for _ in range(dimension)))
@@ -37,6 +38,8 @@ class FourierBoltzmannLayer(BaseModule):
         self.__n_modes:     tuple[int]  = n_modes
         self.__n_weights:   int         = n_weights
         self.__n_channels:  int         = n_channels
+        self.__dtype_r:     torch.dtype = getattr(torch, dtype_str)
+        self.__dtype_c:     torch.dtype = getattr(torch, f"c{dtype_str}")
         
         self.__kernel_slices:   tuple[tuple[slice]] = freq_slices_low(n_modes)
         
@@ -44,10 +47,10 @@ class FourierBoltzmannLayer(BaseModule):
         shape_d     = (*n_modes, n_channels)
         # NOTE (Alignment of the dimensions)
         # (*frequency_components, channels, weights)
-        self.params_alpha   = nn.Parameter(torch.rand(shape_abc, dtype=torch.cfloat))
-        self.params_beta    = nn.Parameter(torch.rand(shape_abc, dtype=torch.cfloat))
-        self.params_gamma   = nn.Parameter(torch.rand(shape_abc, dtype=torch.cfloat))
-        self.params_diag    = nn.Parameter(torch.rand(shape_d,   dtype=torch.cfloat))
+        self.params_alpha   = nn.Parameter(torch.rand(shape_abc, dtype=self.__dtype_c))
+        self.params_beta    = nn.Parameter(torch.rand(shape_abc, dtype=self.__dtype_c))
+        self.params_gamma   = nn.Parameter(torch.rand(shape_abc, dtype=self.__dtype_c))
+        self.params_diag    = nn.Parameter(torch.rand(shape_d,   dtype=self.__dtype_c))
         
         self.__conv_dim_gain:   tuple[int]  = ()
         self.__conv_dim_loss:   tuple[int]  = ()
@@ -117,7 +120,7 @@ class FourierBoltzmannLayer(BaseModule):
         # Initialize storages
         _data_init_kwargs = {
             'size':     (*X_fft.shape, self.__n_weights),
-            'dtype':    torch.cfloat,
+            'dtype':    X_fft.dtype,
             'device':   X_fft.device,
         }
         aX      = torch.zeros(**_data_init_kwargs)
@@ -148,7 +151,7 @@ class FourierBoltzmannLayer(BaseModule):
         # Initialize storages
         _data_init_kwargs = {
             'size':     X_fft.shape,
-            'dtype':    torch.cfloat,
+            'dtype':    X_fft.dtype,
             'device':   X_fft.device,
         }
         wX_fft  = torch.zeros(**_data_init_kwargs)

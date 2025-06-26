@@ -82,7 +82,7 @@ normalizer: dict[str, GaussianNormalizer] = {
 
 
 # Train data
-_train_data, _train_info = load_data(PATH_TRAIN, 32, VHS_ALPHA, [1, 2])
+_train_data, _train_info = load_data(PATH_TRAIN, 32, [VHS_ALPHA], [1, 2])
 V_MAX           = _train_info['v_max']
 WHERE_CLOSED    = _train_info['v_where_closed']
 _train_data['data'] = _train_data['data'][:, :NUM_TIME_STEPS]
@@ -95,7 +95,7 @@ print(f"The size of the training dataset >>>", TRAIN_SIZE, sep=' ')
 print(f"The shape of the training dataset >>>", train_data[k_in].shape, sep=' ')
 
 # Validation data
-_val_data, _ = load_data(PATH_VAL, 32, VHS_ALPHA, [3])
+_val_data, _ = load_data(PATH_VAL, 32, [VHS_ALPHA], [3])
 _val_data['data'] = _val_data['data'][:, :NUM_TIME_STEPS]
 val_data[k_in]    = _val_data['data']
 VAL_SIZE    = int(val_data[k_in].shape[0])
@@ -138,7 +138,7 @@ print(f"The number of the parameters in the models\n>>> {count_parameters(model)
 lf = LossFunctions(dimension=DIMENSION, resolution=RESOLUTION, v_max=V_MAX, v_where_closed=WHERE_CLOSED, device=DEVICE)
 
 optimizer = torch.optim.Adam(params=model.parameters(), lr=_exp['learning_rate'])
-lr_lambda = exponential_cosine(period=20, half_life=250)
+lr_lambda = exponential_cosine(period=20, half_life=float('inf'))
 scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
 
 
