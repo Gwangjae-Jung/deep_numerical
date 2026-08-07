@@ -35,8 +35,18 @@ It also provides a collection of neural network architectures.
     </ul>
 </div>
 
-### B. Neural network architectures
-The neural network architectures provided by this library can be found in the submodules `deep_numerical.neural`.
-1. `deep_numerical.neural.layer` contains several fundamental layers which are used to implement neural networks.
-2. `deep_numerical.neural.network` contains, so far, the separable neural network, which is generally known as the [separable physics-informed neural network](https://neurips.cc/virtual/2022/59890).
-3. `deep_numerical.neural.operator` contains several fundamental neural operators with layers from `deep_numerical.neural.layer`. These neural operators contains [Deep Operator Network](https://www.nature.com/articles/s42256-021-00302-5), [Multiple Input Operator Network](https://epubs.siam.org/doi/epdf/10.1137/22M1477751), [Graph Neural Operator](https://openreview.net/pdf?id=fg2ZFmXFO3), [Fourier Neural Operator](https://openreview.net/pdf?id=c8P9NQVtmnO), and [Galerkin Transformer](https://proceedings.neurips.cc/paper/2021/file/d0921d442ee91b896ad95059d13df618-Supplemental.pdf).
+<h2>Neural network architectures</h2>
+<div>
+    The neural network architectures provided by this library can be found in the submodules `deep_numerical.neural`.
+    <ul>
+        <li>
+            `deep_numerical.neural.layer` contains several fundamental layers, which are used to implement neural networks.
+        </li>
+        <li>
+            `deep_numerical.neural.network` contains, so far, the separable neural network, which is generally known as the <a href="https://neurips.cc/virtual/2022/59890">separable physics-informed neural network</a>.
+        </li>
+        <li>
+            `deep_numerical.neural.operator` contains several fundamental neural operators with layers from `deep_numerical.neural.layer`. These neural operators contains [Deep Operator Network](https://www.nature.com/articles/s42256-021-00302-5), [Multiple Input Operator Network](https://epubs.siam.org/doi/epdf/10.1137/22M1477751), [Graph Neural Operator](https://openreview.net/pdf?id=fg2ZFmXFO3), [Fourier Neural Operator](https://openreview.net/pdf?id=c8P9NQVtmnO), and [Galerkin Transformer](https://proceedings.neurips.cc/paper/2021/file/d0921d442ee91b896ad95059d13df618-Supplemental.pdf).
+        </li>
+    </ul>
+</div>
