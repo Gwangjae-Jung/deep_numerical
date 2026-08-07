@@ -46,7 +46,18 @@ It also provides a collection of neural network architectures.
             `deep_numerical.neural.network` contains, so far, the separable neural network, which is generally known as the <a href="https://neurips.cc/virtual/2022/59890">separable physics-informed neural network</a>.
         </li>
         <li>
-            `deep_numerical.neural.operator` contains several fundamental neural operators with layers from `deep_numerical.neural.layer`. These neural operators contains [Deep Operator Network](https://www.nature.com/articles/s42256-021-00302-5), [Multiple Input Operator Network](https://epubs.siam.org/doi/epdf/10.1137/22M1477751), [Graph Neural Operator](https://openreview.net/pdf?id=fg2ZFmXFO3), [Fourier Neural Operator](https://openreview.net/pdf?id=c8P9NQVtmnO), and [Galerkin Transformer](https://proceedings.neurips.cc/paper/2021/file/d0921d442ee91b896ad95059d13df618-Supplemental.pdf).
+            `deep_numerical.neural.operator` contains several fundamental neural operators with layers from `deep_numerical.neural.layer`, including the following neural operators:
+            <ul>
+                <li>
+                    <a href="https://www.nature.com/articles/s42256-021-00302-5">Deep Operator Network</a> and <a href="https://epubs.siam.org/doi/epdf/10.1137/22M1477751">Multiple Input Operator Network</a>.
+                </li>
+                <li>
+                    <a href="https://openreview.net/pdf?id=fg2ZFmXFO3">Graph Neural Operator</a> and <a href="https://openreview.net/pdf?id=c8P9NQVtmnO">Fourier Neural Operator</a>, including several variants of the Fourier Neural Operator.
+                </li>
+                <li>
+                    <a href="https://proceedings.neurips.cc/paper/2021/file/d0921d442ee91b896ad95059d13df618-Supplemental.pdf">Galerkin Transformer</a>.
+                </li>
+            </ul>
         </li>
     </ul>
 </div>
