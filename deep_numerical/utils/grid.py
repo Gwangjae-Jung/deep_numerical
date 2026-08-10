@@ -87,24 +87,14 @@ def space_grid(
     if len(max_values) != len(min_values):
         raise ValueError(
             '\n'.join(
-                [
-                    f"Shape mismatch:",
-                    f"* {dimension=}"
-                    f"* {len(min_values)=}"
-                    f"* {len(max_values)=}"
-                ]
+                [f"Shape mismatch:", f"* {dimension=}", f"* {len(min_values)=}", f"* {len(max_values)=}"]
             )
         )
     for idx in range(dimension):
         if max_values[idx] < min_values[idx]:
             raise ValueError(
                 '\n'.join(
-                    [
-                        f"'max_values[idx]' should not be less than 'min_value[idx]'.",
-                        f"* {idx=}",
-                        f"* {min_values[idx]=}",
-                        f"* {max_values[idx]=}",
-                    ]
+                    [f"'max_values[idx]' should not be less than 'min_value[idx]'.", f"* {idx=}", f"* {min_values[idx]=}", f"* {max_values[idx]=}"]
                 )
             )
     
