@@ -5,7 +5,7 @@ __all__ = ["dtype_real_to_complex", "dtype_complex_to_real", "type_as_real", "ty
 
 
 __RTYPE_TO_CTYPE: Dict[str, str] = {getattr(torch, k): getattr(torch, f"c{k}") for k in ('float', 'double')}
-__CTYPE_TO_RTYPE: Dict[str, str] = {_ctype: _rtype for (_rtype, _ctype) in __RTYPE_TO_CTYPE}
+__CTYPE_TO_RTYPE: Dict[str, str] = {_ctype: _rtype for (_rtype, _ctype) in __RTYPE_TO_CTYPE.items()}
 
 
 def dtype_real_to_complex(dtype: torch.dtype) -> torch.dtype:
