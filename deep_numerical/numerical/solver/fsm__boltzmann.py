@@ -57,6 +57,29 @@ class FastSM_Boltzmann_VHS(FastSM_Boltzmann):
             dtype:  Optional[torch.dtype]   = None,
             device: Optional[torch.device]  = None,
         ) -> None:
+        """## The initializer of `FastSM_Boltzmann_VHS`
+        
+        ## Description
+        Initializes the fast spectral method solver for the homogeneous Boltzmann equation with the variable hard sphere (VHS) model.
+        
+        ## Arguments
+        `dimension` (`int`): Dimension of the domain.
+        `v_num_grid` (`int`): Number of grid points along each velocity dimension.
+        `v_max` (`float`): Maximum velocity value defining the velocity truncation domain `[-v_max, v_max]^d`.
+        `x_num_grid` (`Optional[int]`, default: `None`): Number of grid points along each spatial dimension.
+        `x_max` (`Optional[float]`, default: `None`): Maximum spatial boundary coordinate.
+        `vhs_coeff` (`Optional[float]`, default: `None`): Coefficient `C_gamma` of the VHS collision kernel.
+        `vhs_alpha` (`Optional[float]`, default: `None`): Exponent `gamma` (or `alpha`) of relative velocity in the VHS collision kernel.
+        `restitution` (`float`, default: `1.0`): Coefficient of restitution for elastic or inelastic collisions.
+        `quad_order_uniform` (`Optional[int]`, default: `None`): Quadrature order for the radial/uniform angle quadrature.
+        `quad_order_legendre` (`Optional[int]`, default: `None`): Quadrature order for the Legendre quadrature.
+        `quad_order_lebedev` (`Optional[int]`, default: `None`): Quadrature order for the spherical Lebedev quadrature rule.
+        `dtype` (`Optional[torch.dtype]`, default: `None`): Data type for tensors.
+        `device` (`Optional[torch.device]`, default: `None`): Target computing device.
+        
+        ## Returns
+        `None`: None.
+        """
         super().__init__(
             dimension   = dimension,
             v_num_grid  = v_num_grid,
@@ -80,9 +103,11 @@ class FastSM_Boltzmann_VHS(FastSM_Boltzmann):
     
     @property
     def vhs_coeff(self) -> float:
+        """The coefficient of the VHS collision model."""
         return self._vhs_coeff
     @property
     def vhs_alpha(self) -> float:
+        """The exponent of the relative velocity in the VHS collision model."""
         return self._vhs_alpha
 
 
@@ -340,6 +365,30 @@ class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
             dtype:  Optional[torch.dtype]   = None,
             device: Optional[torch.device]  = None,
         ) -> None:
+        """## The initializer of `FastSM_Boltzmann_VSS`
+        
+        ## Description
+        Initializes the fast spectral method solver for the homogeneous Boltzmann equation with the variable soft sphere (VSS) model.
+        
+        ## Arguments
+        `dimension` (`int`): Dimension of the domain.
+        `v_num_grid` (`int`): Number of grid points along each velocity dimension.
+        `v_max` (`float`): Maximum velocity value defining the velocity truncation domain `[-v_max, v_max]^d`.
+        `x_num_grid` (`Optional[int]`, default: `None`): Number of grid points along each spatial dimension.
+        `x_max` (`Optional[float]`, default: `None`): Maximum spatial boundary coordinate.
+        `vss_coeff` (`Optional[float]`, default: `None`): Coefficient `C_gamma` of the VSS collision kernel.
+        `vss_exp_speed` (`Optional[float]`, default: `None`): Exponent `gamma` (or `alpha`) of relative velocity in the VSS kernel.
+        `vss_exp_angle` (`Optional[float]`, default: `None`): Exponent `eta` of the scattering angle in the VSS kernel.
+        `restitution` (`float`, default: `1.0`): Coefficient of restitution.
+        `quad_order_uniform` (`Optional[int]`, default: `None`): Quadrature order for the radial/uniform angle quadrature.
+        `quad_order_legendre` (`Optional[int]`, default: `None`): Quadrature order for the Legendre quadrature.
+        `quad_order_lebedev` (`Optional[int]`, default: `None`): Quadrature order for the spherical Lebedev quadrature rule.
+        `dtype` (`Optional[torch.dtype]`, default: `None`): Data type for tensors.
+        `device` (`Optional[torch.device]`, default: `None`): Target computing device.
+        
+        ## Returns
+        `None`: None.
+        """
         super().__init__(
             dimension   = dimension,
             v_num_grid  = v_num_grid,
@@ -364,12 +413,15 @@ class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
     
     @property
     def vss_coeff(self) -> float:
+        """The coefficient of the VSS collision model."""
         return self._vss_coeff
     @property
     def vss_exp_speed(self) -> float:
+        """The exponent of the relative velocity in the VSS collision model."""
         return self._vss_exp_speed
     @property
     def vss_exp_angle(self) -> float:
+        """The exponent of the scattering angle in the VSS collision model."""
         return self._vss_exp_angle
     
     

@@ -4,7 +4,7 @@ import  torch
     
 ##################################################
 ##################################################
-__all__:    list[int] = [
+__all__:    list[str] = [
     'isometric_augmentation_2D',
     'isometric_augmentation_3D',
     'periodization',
@@ -42,7 +42,20 @@ def isometric_augmentation_3D(data: torch.Tensor) -> torch.Tensor:
     return data
 
 
-def periodization(X: torch.Tensor, axes=Sequence[int]) -> torch.Tensor:
+def periodization(X: torch.Tensor, axes: Sequence[int]) -> torch.Tensor:
+    """## Applies periodic boundary padding along specified axes.
+
+    ## Description
+    Trims the last boundary element along the given `axes` and then applies circular wrapping (`mode="wrap"`)
+    to enforce periodic boundary conditions on the tensor `X`.
+
+    ## Arguments
+    `X` (`torch.Tensor`): Input data tensor.
+    `axes` (`Sequence[int]`): Sequence of dimension axes along which periodization is applied.
+
+    ## Returns
+    `torch.Tensor`: Periodized tensor.
+    """
     sl          = [Ellipsis for _ in range(X.ndim)]
     pad_width   = [(0, 0)   for _ in range(X.ndim)]
     for ax in axes:

@@ -1,4 +1,5 @@
-from    typing      import  Self, Sequence, Optional
+from    typing              import  Sequence, Optional
+from    typing_extensions   import  Self
 import  torch
 from    torch       import  nn
 from    math        import  prod
@@ -186,18 +187,27 @@ class HyperSeparableSpectralConv(nn.Module):
     
     @property
     def n_modes(self) -> tuple[int, ...]:
+        """## Truncated Fourier modes per spatial dimension."""
         return self.__n_modes
+
     @property
     def in_channels(self) -> int:
+        """## Number of input channels."""
         return self.__in_channels
+
     @property
     def out_channels(self) -> int:
+        """## Number of output channels."""
         return self.__out_channels
+
     @property
     def rank(self) -> int:
+        """## Tensor decomposition rank."""
         return self.__rank
+
     @property
     def dim_domain(self) -> int:
+        """## Spatial domain dimension."""
         return len(self.__n_modes)
 
 
@@ -274,18 +284,27 @@ class HyperSeparableFourierLayer(nn.Module):
     
     @property
     def n_modes(self) -> int:
+        """## Truncated Fourier modes per spatial dimension."""
         return self.spectral.n_modes
+
     @property
     def in_channels(self) -> int:
+        """## Number of input channels."""
         return self.spectral.in_channels
+
     @property
     def out_channels(self) -> int:
+        """## Number of output channels."""
         return self.spectral.out_channels
+
     @property
     def rank(self) -> int:
+        """## Tensor decomposition rank."""
         return self.spectral.rank
+
     @property
     def dim_domain(self) -> int:
+        """## Spatial domain dimension."""
         return self.spectral.dim_domain
 
 

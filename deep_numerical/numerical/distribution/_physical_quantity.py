@@ -161,7 +161,10 @@ def compute_mass_inhomogeneous(
         dv:     float,
         dim:    Optional[int] = None,
     ) -> torch.Tensor:
-    """Computes the momentum (the space-velocity integral of `f * v`.
+    """## Compute mass (space-velocity integral)
+    
+    ## Description
+    Computes the total mass by calculating the space-velocity integral of the distribution function `f`.
     
     Arguments:
         `f` (`torch.Tensor`):
@@ -327,7 +330,10 @@ def compute_entropy_homogeneous(
         dim:    Optional[int]   = None,
         eps:    float           = EPSILON,
     ) -> torch.Tensor:
-    """Computes the kinetic energy (the velocity integral of `f * log(f))`.
+    """## Compute entropy (homogeneous)
+    
+    ## Description
+    Computes the entropy by calculating the velocity integral of `f * log(f)`.
     
     Arguments:
         `f` (`torch.Tensor`):
@@ -362,7 +368,10 @@ def compute_entropy_inhomogeneous(
         dim:    Optional[int]   = None,
         eps:    float           = EPSILON,
     ) -> torch.Tensor:
-    """Computes the kinetic energy (the space-velocity integral of `f * log(f))`.
+    """## Compute entropy (inhomogeneous)
+    
+    ## Description
+    Computes the entropy by calculating the space-velocity integral of `f * log(f)`.
     
     Arguments:
         `f` (`torch.Tensor`):
@@ -397,8 +406,12 @@ def compute_entropy_inhomogeneous(
 ##################################################
 ##################################################
 # Plot
-from    matplotlib.axes     import Axes
-from    matplotlib.figure   import Figure
+try:
+    from    matplotlib.axes     import  Axes
+    from    matplotlib.figure   import  Figure
+except (ImportError, ModuleNotFoundError):
+    Axes    = object  # type: ignore
+    Figure  = object  # type: ignore
 def plot_quantities_homogeneous(
         arr_f:  torch.Tensor,
         v_grid: torch.Tensor,
@@ -406,18 +419,43 @@ def plot_quantities_homogeneous(
         dim:    Optional[int]           = None,
         eps:    float                   = EPSILON,
         ##############################
-        figsize: tuple[int, int]    = (10, 7),
-        dpi:     int                = 100,
-        mode:    str                = 'plot',
-        suptitle_fontsize:  int     = 20,
-        title_fontsize:     int     = 12,
-        plot_linewidth:     float   = 1.0,
-        scatter_size:       float   = 10.0,
+        figsize:            tuple[int, int] = (10, 7),
+        dpi:                int             = 100,
+        mode:               str             = 'plot',
+        suptitle_fontsize:  int             = 20,
+        title_fontsize:     int             = 12,
+        plot_linewidth:     float           = 1.0,
+        scatter_size:       float           = 10.0,
     ) -> tuple[Figure, Sequence[Axes]]:
+    """## Plot physical quantities of a homogeneous distribution
+    
+    ## Description
+    Computes and plots the time evolution of physical quantities (mass, momentum components, kinetic energy, and entropy) for a spatially homogeneous distribution function.
+    
+    ## Arguments
+    `arr_f` (`torch.Tensor`): The distribution tensor of shape `(batch_size, *v_grid_shape, 1)`.
+    `v_grid` (`torch.Tensor`): The velocity coordinate grid tensor.
+    `arr_t` (`Optional[torch.Tensor]`, default: `None`): The 1D array of time steps.
+    `dim` (`Optional[int]`, default: `None`): The dimension of velocity space.
+    `eps` (`float`, default: `1e-12`): Numerical tolerance for entropy computation.
+    `figsize` (`tuple[int, int]`, default: `(10, 7)`): Figure dimensions `(width, height)`.
+    `dpi` (`int`, default: `100`): Resolution of the figure in dots per inch.
+    `mode` (`str`, default: `'plot'`): Plotting mode, either `'plot'` or `'scatter'`.
+    `suptitle_fontsize` (`int`, default: `20`): Font size of the main figure title.
+    `title_fontsize` (`int`, default: `12`): Font size of subplot titles.
+    `plot_linewidth` (`float`, default: `1.0`): Line width for `'plot'` mode.
+    `scatter_size` (`float`, default: `10.0`): Marker size for `'scatter'` mode.
+    
+    ## Returns
+    `tuple[Figure, Sequence[Axes]]`: Matplotlib figure and axes containing the plotted physical quantities.
+    """
     mode = mode.lower()
     assert mode in ('plot', 'scatter'), f"Invalid mode: {mode}. Choose 'plot' or 'scatter'."
     from    itertools           import  product
-    import  matplotlib.pyplot   as      plt
+    try:
+        import  matplotlib.pyplot   as      plt
+    except (ImportError, ModuleNotFoundError):
+        raise ImportError("Package 'matplotlib' is required for 'plot_quantities_homogeneous'. Please install it.")
     
     if dim is None:
         dim = (arr_f.ndim-2)//2

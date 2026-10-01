@@ -1,4 +1,6 @@
-from    typing          import  TypeAlias, Any, Callable, Sequence, List, Literal, Union
+from    typing              import  Any, Callable, List, Literal, Union
+from    typing_extensions   import  TypeAlias
+from    collections.abc     import  Collection
 import  torch
 from    deep_numerical  import  Objects
 
@@ -6,7 +8,7 @@ from    deep_numerical  import  Objects
 __all__ = [
     "activations", "TORCH_ACTIVATION_DICT",
     "initializers", "TORCH_INITIALIZER_DICT",
-    "get_activation", "initialize_weights", "count_parameters",
+    "get_activation", "initialize_weights", "count_parameters", "warn_redundant_arguments",
 ]
 
 
@@ -49,8 +51,20 @@ TORCH_INITIALIZER_DICT = initializers
 
 ##################################################
 ##################################################
-def count_parameters(models: Objects[torch.nn.Module], complex_as_two: bool=True) -> Union[int, List[int]]:
-    if not isinstance(models, Sequence):
+def count_parameters(models: Objects[torch.nn.Module], complex_as_two: bool = True) -> Union[int, List[int]]:
+    """## Count model parameters
+    
+    ## Description
+    Counts the number of learnable parameters in one or more PyTorch models.
+    
+    ## Arguments
+    `models` (`Objects[torch.nn.Module]`): A model or collection of models whose parameters are counted.
+    `complex_as_two` (`bool`, default: `True`): If `True`, complex parameters are counted as two real parameters.
+    
+    ## Returns
+    `Union[int, List[int]]`: The parameter count of the model, or a list of counts if multiple models are provided.
+    """
+    if not isinstance(models, Collection):
         models = [models]
     num_params: List[int] = []
     model: torch.nn.Module
@@ -59,14 +73,28 @@ def count_parameters(models: Objects[torch.nn.Module], complex_as_two: bool=True
         for p in model.parameters():
             cnt += p.numel() * (1 + (complex_as_two and p.is_complex()))
         num_params.append(cnt)
-    if len(models)==1:  return num_params[0]
-    else:               return num_params
+    if len(models) == 1:
+        return num_params[0]
+    else:
+        return num_params
 
 
 def get_activation(
         activation_name:    Activations,
         activation_kwargs:  dict[str, object] = {},
     ) -> torch.nn.Module:
+    """## Instantiate activation module
+    
+    ## Description
+    Retrieves and instantiates a PyTorch activation module corresponding to the specified activation name.
+    
+    ## Arguments
+    `activation_name` (`Activations`): The name of the activation function (e.g., `'relu'`, `'silu'`, `'tanh'`).
+    `activation_kwargs` (`dict[str, object]`, default: `{}`): Keyword arguments forwarded to the activation module initializer.
+    
+    ## Returns
+    `torch.nn.Module`: The instantiated activation layer.
+    """
     return TORCH_ACTIVATION_DICT[activation_name](**activation_kwargs)
 
 
@@ -78,14 +106,14 @@ def initialize_weights(
     """Initialize the weights in `models`.
     
     Arguments:
-        `models` (`Union[nn.Module, Sequence[nn.Module]]`):
-            A model or a sequence of models to be initialize.
+        `models` (`Union[nn.Module, Collection[nn.Module]]`):
+            A model or a collection of models to be initialize.
         `init_name` (`Initializers`):
             The method to be used to initialize the model(s).
         `init_kwargs` (`dict[str, object]`, default: `{}`):
             Any further arguments for weight initialization.
     """
-    if not isinstance(models, Sequence):
+    if not isinstance(models, Collection):
         models = [models]
     try:
         initializer = TORCH_INITIALIZER_DICT[init_name]
@@ -101,6 +129,29 @@ def initialize_weights(
             except:
                 continue
     return
+
+
+def warn_redundant_arguments(cls: type, kwargs: dict) -> None:
+    """## Warns if redundant keyword arguments are passed.
+
+    ## Description
+    Issues a `UserWarning` if extraneous keyword arguments are passed to a class initializer.
+
+    ## Arguments
+    `cls` (`type`): Target class whose initializer received extra kwargs.
+    `kwargs` (`dict`): Extraneous keyword arguments dictionary.
+
+    ## Returns
+    `None`.
+    """
+    if kwargs:
+        import warnings
+        warnings.warn(
+            f"Redundant or unexpected arguments passed to '{cls.__name__}': {list(kwargs.keys())}",
+            UserWarning,
+            stacklevel=2,
+        )
+    return None
 
 
 ##################################################

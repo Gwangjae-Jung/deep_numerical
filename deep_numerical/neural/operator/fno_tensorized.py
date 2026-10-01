@@ -119,6 +119,7 @@ class TensorizedFourierNeuralOperator(BaseModule):
     
     @property
     def dim_domain(self) -> int:
+        """## Spatial domain dimension."""
         return self.__dim_domain
 
 

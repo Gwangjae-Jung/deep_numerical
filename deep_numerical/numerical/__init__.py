@@ -18,9 +18,8 @@ from    .math           import  __all__     as  __all__math
 
 
 _SUBMODULES = {'distribution', 'integrate', 'math', 'solver'}
-_FUNCTIONS  = {'sinc', 'phase', 'area_of_unit_sphere', 'volume_of_unit_ball'}
 _MATH       = set(__all__math)
-__all__: list[str] = list(_SUBMODULES | _FUNCTIONS | _MATH)
+__all__: list[str] = list(_SUBMODULES | _MATH)
 
 
 if TYPE_CHECKING:

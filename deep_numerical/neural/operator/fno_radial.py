@@ -1,4 +1,5 @@
-from    typing      import  Self, Sequence, Dict, Optional, override
+from    typing              import  Sequence, Dict, Optional
+from    typing_extensions   import  Self, override
 import  torch
 from    deep_numerical.utils        import  type_as_real
 from    deep_numerical.neural       import  BaseModule
@@ -143,12 +144,17 @@ class RadialFourierNeuralOperator(BaseModule):
     
     @property
     def dim_domain(self) -> int:
+        """## Spatial domain dimension."""
         return self.__dim_domain
+
     @property
     def max_freq(self) -> int:
+        """## Maximum radial frequency mode."""
         return self.__max_freq
+
     @property
     def dtype(self) -> torch.dtype:
+        """## Floating point data type of the model."""
         return self.__dtype
     
 

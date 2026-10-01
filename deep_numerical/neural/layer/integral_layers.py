@@ -33,6 +33,22 @@ class IntegralLinearV1(BaseModule):
             
             bias:           bool = True,
         ) -> None:
+        """## Initializes IntegralLinearV1.
+
+        ## Description
+        Sets up trainable kernel modes for continuous kernel integration.
+
+        ## Arguments
+        `n_modes_in` (`int`): Number of input kernel modes.
+        `n_modes_out` (`int`): Number of output kernel modes.
+        `default_channels_in` (`Optional[int]`, default: `None`): Default input channels.
+        `default_channels_out` (`Optional[int]`, default: `None`): Default output channels.
+        `sample_mode` (`str`, default: `'bicubic'`): Interpolation mode for sampling kernel weights.
+        `bias` (`bool`, default: `True`): Whether to include an additive bias.
+
+        ## Returns
+        `None`.
+        """
         super().__init__()
         self.__n_modes_in   = n_modes_in
         self.__n_modes_out  = n_modes_out
@@ -179,6 +195,20 @@ class IntegralLinear(BaseModule):
             
             bias:           bool = True,
         ) -> None:
+        """## Initializes IntegralLinear.
+
+        ## Description
+        Sets up trainable kernel modes for continuous kernel integration across variable discretizations.
+
+        ## Arguments
+        `n_modes_in` (`int`): Number of input kernel modes.
+        `n_modes_out` (`int`): Number of output kernel modes.
+        `sample_mode` (`str`, default: `'bicubic'`): Interpolation mode for sampling kernel weights.
+        `bias` (`bool`, default: `True`): Whether to include an additive bias.
+
+        ## Returns
+        `None`.
+        """
         super().__init__()
         self.__n_modes_in   = n_modes_in
         self.__n_modes_out  = n_modes_out
@@ -265,6 +295,12 @@ class IntegralLinear(BaseModule):
 ##################################################
 ##################################################
 class IntegralConv2D(BaseModule):
+    """## 2D continuous kernel convolutional layer.
+
+    ## Description
+    Implements 2D numerical kernel integration parameterized by continuous kernel modes,
+    allowing mesh-independent convolution.
+    """
     def __init__(
             self,
             
@@ -277,6 +313,22 @@ class IntegralConv2D(BaseModule):
             
             bias:   bool = True,
         ) -> None:
+        """## Initializes IntegralConv2D.
+
+        ## Description
+        Sets up mode counts across channels and 2D spatial axes.
+
+        ## Arguments
+        `n_modes_channel_in` (`int`): Number of input channel modes.
+        `n_modes_channel_out` (`int`): Number of output channel modes.
+        `n_modes_axis1` (`int`): Number of modes along spatial axis 1.
+        `n_modes_axis2` (`int`): Number of modes along spatial axis 2.
+        `sample_mode` (`str`, default: `'bicubic'`): Grid interpolation mode.
+        `bias` (`bool`, default: `True`): Whether to include an additive bias.
+
+        ## Returns
+        `None`.
+        """
         super().__init__()
         self.__n_modes_channel_in   = n_modes_channel_in
         self.__n_modes_channel_out  = n_modes_channel_out
@@ -387,13 +439,12 @@ class IntegralConv2D(BaseModule):
 
 ##################################################
 ##################################################
-# End of file
-
-
-
-
-
 class IntegralConv2D_(torch.nn.Module):
+    """## 2D continuous kernel convolutional layer with default channels.
+
+    ## Description
+    Implements 2D numerical kernel integration with optional default channel dimensions.
+    """
     def __init__(
             self,
             
@@ -409,6 +460,24 @@ class IntegralConv2D_(torch.nn.Module):
             
             bias:   bool = True,
         ) -> None:
+        """## Initializes IntegralConv2D_.
+
+        ## Description
+        Sets up mode counts and default channel configurations for 2D continuous convolution.
+
+        ## Arguments
+        `n_modes_channel_in` (`int`): Number of input channel modes.
+        `n_modes_channel_out` (`int`): Number of output channel modes.
+        `n_modes_axis1` (`int`): Number of modes along spatial axis 1.
+        `n_modes_axis2` (`int`): Number of modes along spatial axis 2.
+        `sample_mode` (`str`, default: `'bicubic'`): Grid interpolation mode.
+        `default_channels_in` (`Optional[int]`, default: `None`): Default input channel dimension.
+        `default_channels_out` (`Optional[int]`, default: `None`): Default output channel dimension.
+        `bias` (`bool`, default: `True`): Whether to include an additive bias.
+
+        ## Returns
+        `None`.
+        """
         super().__init__()
         self.__n_modes_channel_in   = n_modes_channel_in
         self.__n_modes_channel_out  = n_modes_channel_out
@@ -528,3 +597,8 @@ class IntegralConv2D_(torch.nn.Module):
             padding = (X.shape[-1-i]//self.__default_padding_ratio  for i in range(2)),
             stride  = (X.shape[-1-i]//self.__default_stride_ratio   for i in range(2)),
         )
+
+
+##################################################
+##################################################
+# End of file

@@ -28,8 +28,19 @@ __all__ =  [
 
 ##################################################
 ##################################################
-# Spatial and velocity grid
 def cartesian_grid(*tensors: torch.Tensor) -> torch.Tensor:
+    """## Computes a Cartesian grid from 1D coordinate tensors.
+
+    ## Description
+    Given multiple 1D coordinate tensors, this function generates the multi-dimensional
+    Cartesian product grid using meshgrid indexing `'ij'` and stacks the coordinates along the last dimension.
+
+    ## Arguments
+    `*tensors` (`torch.Tensor`): 1D coordinate tensors for each axis.
+
+    ## Returns
+    `torch.Tensor`: Multi-dimensional grid tensor of shape `(*shapes, len(tensors))`.
+    """
     return torch.stack(torch.meshgrid(*tensors, indexing='ij'), dim=-1)
 
 
@@ -148,8 +159,19 @@ def space_grid(
 def space_index(
         n:      int,
         device: Optional[torch.device] = None,
-    ) -> torch.Tensor:
-    """Same as `torch.arange(n, device=device)`."""
+    ) -> torch.LongTensor:
+    """## Generates 1D spatial coordinate indices.
+
+    ## Description
+    Returns a 1D tensor of sequential indices from `0` to `n - 1`. Equivalent to `torch.arange(n, device=device)`.
+
+    ## Arguments
+    `n` (`int`): Number of grid points.
+    `device` (`Optional[torch.device]`, default: `None`): Device on which the tensor is created.
+
+    ## Returns
+    `torch.LongTensor`: 1D index tensor of shape `(n,)`.
+    """
     return torch.arange(n, device=device)
 
 
@@ -158,9 +180,22 @@ def space_index_tensor(
         num_grids:  Objects[int],
         keepdim:    bool = False,
         device:     Optional[torch.device] = None,
-    ) -> torch.Tensor:
-    """Return the collection of all possible spatial indices."""
-    indices: torch.Tensor = torch.stack(
+    ) -> torch.LongTensor:
+    """## Generates multi-dimensional spatial grid indices.
+
+    ## Description
+    Returns the collection of all multi-index coordinate tuples across a `dimension`-dimensional grid.
+
+    ## Arguments
+    `dimension` (`int`): The spatial dimension.
+    `num_grids` (`Objects[int]`): Number of grid points in each dimension.
+    `keepdim` (`bool`, default: `False`): If `True`, returns tensor of shape `(*num_grids, dimension)`. Otherwise, flattens to `(-1, dimension)`.
+    `device` (`Optional[torch.device]`, default: `None`): Device on which the tensor is created.
+
+    ## Returns
+    `torch.LongTensor`: Index tensor.
+    """
+    indices: torch.LongTensor = torch.stack(
         torch.meshgrid(
             *repeat(space_index(num_grids, device), dimension),
             indexing='ij',
@@ -178,14 +213,27 @@ def space_index_pair_tensor(
         num_grids:  Objects[int],
         keepdim:    bool = False,
         device:     Optional[torch.device] = None,
-    ) -> torch.Tensor:
-    """Return the collection of all possible pairs of spatial indices."""
+    ) -> torch.LongTensor:
+    """## Generates all pairs of multi-dimensional spatial grid indices.
+
+    ## Description
+    Returns the collection of all possible pairs of coordinate indices across a `dimension`-dimensional grid.
+
+    ## Arguments
+    `dimension` (`int`): The spatial dimension.
+    `num_grids` (`Objects[int]`): Number of grid points in each dimension.
+    `keepdim` (`bool`, default: `False`): If `True`, returns shape `(*(2*num_grids), 2*dimension)`. Otherwise, flattens to `(-1, 2*dimension)`.
+    `device` (`Optional[torch.device]`, default: `None`): Device on which the tensor is created.
+
+    ## Returns
+    `torch.LongTensor`: Paired index tensor.
+    """
     if isinstance(num_grids, int):
         num_grids = repeat(num_grids, dimension)
     elif len(num_grids)!=dimension:
         raise ValueError(f"The length of 'num_grids' should be equal to 'dimension'.")
     _list_of_grids = [space_index(_num_grid, device) for _num_grid in num_grids]
-    indices: torch.Tensor = torch.stack(
+    indices: torch.LongTensor = torch.stack(
         torch.meshgrid(*(2*_list_of_grids), indexing='ij'),
         dim = -1,
     )
@@ -206,7 +254,7 @@ velocity_index_tensor   = space_index_tensor
 def arg_boundary(
         points:             torch.Tensor,
         contains_velocity:  bool    = False
-    ) -> Union[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]:
+    ) -> torch.LongTensor:
     """Returns the indices of the boundary points.
     
     -----
@@ -227,7 +275,7 @@ def arg_boundary_inflow(
         xv:             torch.Tensor,
         return_normals: bool    = False,
         eps:            float   = 1e-12,
-    ) -> Objects[torch.Tensor]:
+    ) -> Union[torch.LongTensor, tuple[torch.LongTensor, torch.Tensor]]:
     """Returns the indices of the inflow boundary points.
     
     -----
@@ -278,7 +326,7 @@ def arg_boundary_outflow(
         xv:             torch.Tensor,
         return_normals: bool    = False,
         eps:            float   = 1e-12,
-    ) -> Objects[torch.Tensor]:
+    ) -> Union[torch.LongTensor, tuple[torch.LongTensor, torch.Tensor]]:
     """Returns the indices of the outflow boundary points.
     
     -----
@@ -327,9 +375,9 @@ def arg_boundary_outflow(
     
 def arg_specular_velocity(
         resolution_v:   int,
-        idx:            torch.Tensor,
+        idx:            torch.LongTensor,
         dim:            Optional[int]   = None,
-    ) -> torch.Tensor:
+    ) -> torch.LongTensor:
     """This function returns the indices of the velocity-specular points.
     
     -----
@@ -351,7 +399,17 @@ def arg_specular_velocity(
 
 
 def specular_velocity(xv: torch.Tensor) -> torch.Tensor:
-    """This function returns the velocity-specular points.
+    """## Computes specular velocity points.
+
+    ## Description
+    Given a spatio-velocity coordinate tensor `xv`, this function inverts / reflects
+    the velocity components across the velocity grid axes.
+
+    ## Arguments
+    `xv` (`torch.Tensor`): Tensor of points whose last dimension has even length `2 * dim`.
+
+    ## Returns
+    `torch.Tensor`: Tensor with specularly reflected velocities.
     """
     assert xv.shape[-1]%2 == 0
     dim = xv.shape[-1]//2
@@ -368,7 +426,7 @@ def compute_conservative_pairs(
         num_grids:  Objects[int],
         
         verbose:    bool = False,
-    ) -> dict[tuple[int], torch.Tensor]:
+    ) -> dict[tuple[int, ...], torch.LongTensor]:
     """Computes the pairs of the velocity indices for which the conservation laws are satisfied.
     
     -----
@@ -377,7 +435,7 @@ def compute_conservative_pairs(
     """    
     indices     = space_index_tensor(dimension, num_grids)
     idx_pairs   = space_index_pair_tensor(dimension, num_grids)
-    ret: dict[tuple[int], torch.Tensor] = {}
+    ret: dict[tuple[int, ...], torch.LongTensor] = {}
     
     if verbose:
         from    tqdm.notebook       import  tqdm
@@ -385,7 +443,7 @@ def compute_conservative_pairs(
     else:
         it = idx_pairs
     
-    def _compute_momentum_and_energy(pair: torch.Tensor) -> tuple[torch.Tensor, int]:
+    def _compute_momentum_and_energy(pair: torch.LongTensor) -> tuple[torch.LongTensor, int]:
         a1, a2 = pair[:dimension], pair[dimension:]
         momentum    = a1 + a2
         energy      = int(torch.sum(pair**2))
@@ -402,8 +460,8 @@ def compute_conservative_pairs(
             if e != e_:
                 continue
             ret_at_pair.append(torch.concatenate((j1, j2)))
-        ret_at_pair = torch.array(ret_at_pair, dtype=torch.long)
-        ret[tuple(pair)] = ret_at_pair
+        ret_at_pair = torch.stack(ret_at_pair) if len(ret_at_pair) > 0 else torch.empty((0, 2*dimension), dtype=torch.long)
+        ret[tuple(pair.tolist())] = ret_at_pair
     
     return ret
 

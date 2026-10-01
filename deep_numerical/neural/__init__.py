@@ -1,4 +1,4 @@
-from    typing      import  TYPE_CHECKING, Any, List, Set
+from    typing      import  TYPE_CHECKING, Any, List
 import  importlib
 import  torch
 from    .utils      import  *
@@ -10,13 +10,12 @@ if TYPE_CHECKING:
     from    .layer      import  *
     from    .network    import  *
     from    .operator   import  *
-    from    .parameterized_op   import  *
     from    .collision_op       import  *
 
 
-_SUBMODULES = {'utils', 'layer', 'network', 'operator', 'parameterized_op', 'collision_op'}
+_SUBMODULES = {'utils', 'layer', 'network', 'operator', 'collision_op'}
 _CLASSES    = {'BaseModule'}
-_UTILS      = Set(__all__utils)
+_UTILS      = set(__all__utils)
 __all__     = list(_SUBMODULES | _CLASSES | _UTILS)
 
 

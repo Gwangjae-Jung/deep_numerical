@@ -47,6 +47,27 @@ class GalerkinTransformerSelfAttention(BaseModule):
             
             pos_enc:            bool    = True,
         ) -> None:
+        """## The initializer of `GalerkinTransformerSelfAttention`
+        
+        ## Description
+        Initializes the Galerkin Transformer model with self-attention encoder blocks.
+        
+        ## Arguments
+        `dim_domain` (`int`): Dimension of the spatial domain.
+        `in_channels` (`int`): Number of input function channels.
+        `hidden_channels` (`int`): Number of hidden channels in attention and MLP layers.
+        `out_channels` (`int`): Number of output channels.
+        `lift_layer` (`Sequence[int]`, default: `[256]`): Layer sizes for the lifting MLP.
+        `n_layers` (`int`, default: `4`): Number of transformer encoder blocks.
+        `n_heads` (`int`, default: `1`): Number of attention heads.
+        `project_layer` (`Sequence[int]`, default: `[256]`): Layer sizes for the projection MLP.
+        `activation_name` (`str`, default: `"relu"`): Activation function name.
+        `activation_kwargs` (`Dict[str, object]`, default: `{}`): Keyword arguments for the activation function.
+        `pos_enc` (`bool`, default: `True`): Whether to concatenate positional encodings to the input.
+        
+        ## Returns
+        `None`: None.
+        """
         super().__init__()
         
         # Save some member variables for representation
@@ -142,6 +163,28 @@ class GalerkinTransformerCrossAttention(BaseModule):
             pos_enc:            bool    = True,
             **kwargs,
         ) -> None:
+        """## The initializer of `GalerkinTransformerCrossAttention`
+        
+        ## Description
+        Initializes the Galerkin Transformer model with cross-attention encoder blocks between input and query domains.
+        
+        ## Arguments
+        `dim_input_domain` (`int`): Dimension of the input function domain.
+        `dim_query_domain` (`int`): Dimension of the query domain.
+        `in_channels` (`int`): Number of input function channels.
+        `hidden_channels` (`int`): Number of hidden channels.
+        `out_channels` (`int`): Number of output channels.
+        `lift_layer` (`Sequence[int]`, default: `[256]`): Layer sizes for the lifting MLP.
+        `n_layers` (`int`, default: `4`): Number of transformer encoder blocks.
+        `n_heads` (`int`, default: `1`): Number of attention heads.
+        `project_layer` (`Sequence[int]`, default: `[256]`): Layer sizes for the projection MLP.
+        `activation_name` (`str`, default: `"relu"`): Activation function name.
+        `activation_kwargs` (`Dict[str, object]`, default: `{}`): Keyword arguments for the activation function.
+        `pos_enc` (`bool`, default: `True`): Whether to concatenate positional encodings.
+        
+        ## Returns
+        `None`: None.
+        """
         
         # Save some member variables for representation
         self.__in_channels      = in_channels

@@ -20,15 +20,44 @@ from    deep_numerical.neural.operator.fno_radial \
     import  RadialFourierNeuralOperator, RadialFNO
 from    deep_numerical.neural.operator.fno_separable \
     import  SeparableFourierNeuralOperator, SeparableFNO
+from    deep_numerical.neural.operator.hyper_sfno \
+    import  HyperSFNO
 from    deep_numerical.neural.operator.fno_tensorized \
     import  TensorizedFourierNeuralOperator, TensorizedFNO
 
 from    deep_numerical.neural.operator.onet \
     import  DeepONet, DeepONetUnstructured, MIONet, MIONetUnstructured
+from    deep_numerical.neural.operator.hyper_onet \
+    import  HyperDeepONet, HyperMIONet, ParameterizedMIONet
 from    deep_numerical.neural.operator.gt \
     import  GalerkinTransformer, GalerkinTransformerSelfAttention, GalerkinTransformerCrossAttention
-from    deep_numerical.neural.operator.gno \
-    import  GraphNeuralOperator, GraphKernelNetwork
+
+__all__ = [
+    'FourierNeuralOperator', 'FNO',
+    'FactorizedFourierNeuralOperator', 'FactorizedFNO',
+    'RadialFourierNeuralOperator', 'RadialFNO',
+    'SeparableFourierNeuralOperator', 'SeparableFNO',
+    'HyperSFNO',
+    'TensorizedFourierNeuralOperator', 'TensorizedFNO',
+    'DeepONet', 'DeepONetUnstructured', 'MIONet', 'MIONetUnstructured',
+    'HyperDeepONet', 'HyperMIONet', 'ParameterizedMIONet',
+    'GalerkinTransformer', 'GalerkinTransformerSelfAttention', 'GalerkinTransformerCrossAttention',
+]
+
+# Conditional imports for graph neural operators (requires torch_geometric)
+try:
+    from deep_numerical.neural.operator.gno \
+        import GraphNeuralOperator, GraphKernelNetwork, GNO, GKN
+    __all__.extend(['GraphNeuralOperator', 'GraphKernelNetwork', 'GNO', 'GKN'])
+except (ImportError, ModuleNotFoundError, AttributeError):
+    pass
+
+try:
+    from deep_numerical.neural.operator.mgno \
+        import MultipoleGraphNeuralOperator, MGNO
+    __all__.extend(['MultipoleGraphNeuralOperator', 'MGNO'])
+except (ImportError, ModuleNotFoundError, AttributeError):
+    pass
 
 
 ##################################################

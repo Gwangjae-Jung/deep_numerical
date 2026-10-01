@@ -1,4 +1,5 @@
-from    typing      import  Self, Sequence
+from    typing              import  Sequence
+from    typing_extensions   import  Self
 import  torch
 from    deep_numerical.neural   import  BaseModule
 from    deep_numerical.neural.layer import  MLP, HyperSeparableFourierLayer
@@ -42,7 +43,7 @@ class HyperSFNO(BaseModule):
             n_parameters:       int             = 0,
             
             **kwargs,
-        ) -> Self:
+        ) -> None:
         """## The initializer of the class `SeparableFourierNeuralOperator`
         
         Arguments:
@@ -124,6 +125,7 @@ class HyperSFNO(BaseModule):
     
     @property
     def dim_domain(self) -> int:
+        """The spatial dimension of the domain."""
         return self.__dim_domain
 
 

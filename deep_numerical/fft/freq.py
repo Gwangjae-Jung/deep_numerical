@@ -27,7 +27,7 @@ def fft_index(
         n:      int,
         dtype:  torch.dtype             = torch.long,
         device: Optional[torch.device]  = None,
-    ) -> torch.Tensor:
+    ) -> torch.LongTensor:
     """Return the 1-dimensional array of all possible entries in a frequency in DFT."""
     return torch.concatenate(
         (
@@ -44,9 +44,9 @@ def freq_tensor(
         
         dtype:      torch.dtype             = torch.long,
         device:     Optional[torch.device]  = None,
-    ) -> torch.Tensor:
+    ) -> torch.LongTensor:
     """Return the collection of all possible frequencies in DFT."""
-    freqs: torch.Tensor = torch.stack(
+    freqs: torch.LongTensor = torch.stack(
         torch.meshgrid(
             *repeat(fft_index(num_grid, dtype, device), dimension),
             indexing = 'ij',
@@ -67,7 +67,7 @@ def freq_pair_tensor(
         
         dtype:          torch.dtype     = torch.long,
         device:         Optional[torch.device]  = None,
-    ) -> torch.Tensor:
+    ) -> torch.LongTensor:
     """Return the collection of all possible pairs frequencies in DFT.
     
     Arguments:
@@ -80,7 +80,7 @@ def freq_pair_tensor(
         `dtype` (`torch.dtype`, default: `torch.long`): The data type of the output tensor.
         `device` (`torch.device`, default: `None`): The device of the output tensor.
     """
-    freq_pairs: torch.Tensor
+    freq_pairs: torch.LongTensor
     if diagonal_only:
         _freqs = freq_tensor(dimension, num_grid, keepdim=True, dtype=dtype, device=device)
         freq_pairs = torch.concatenate((_freqs, _freqs), dim=-1)
@@ -104,7 +104,7 @@ def freq_index_tensor(
         
         dtype:      torch.dtype     = torch.long,
         device:     Optional[torch.device]  = None,
-    ) -> torch.Tensor:
+    ) -> torch.LongTensor:
     """Return an array which contains all possible indices, i.e., all possible values of `|l+m|_2^2` and `|l-m|_2^2`."""
     return torch.arange((num_grid**2) * dimension + 1, dtype=dtype, device=device)
 
@@ -116,7 +116,7 @@ def freq_index_pair_tensor(
         
         dtype:          torch.dtype     = torch.long,
         device:     Optional[torch.device]  = None,
-    ) -> torch.Tensor:
+    ) -> torch.LongTensor:
     """Return an array which contains all possible pairs of indices, i.e., all possible values of `|l+m|_2^2` and `|l-m|_2^2`."""
     arr = freq_index_tensor(dimension, num_grid, dtype=dtype, device=device)
     if diagonal_only:

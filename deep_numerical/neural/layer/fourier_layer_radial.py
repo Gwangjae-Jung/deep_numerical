@@ -1,4 +1,5 @@
-from    typing      import  Union, Optional, List, override
+from    typing              import  Union, Optional, List
+from    typing_extensions   import  override
 import  torch
 from    torch       import  nn
 from    itertools   import  product
@@ -76,15 +77,22 @@ class RadialSpectralConv(nn.Module):
     
     @property
     def dim_domain(self) -> int:
+        """## Spatial domain dimension."""
         return self.__dim_domain
+
     @property
     def max_freq(self) -> int:
+        """## Maximum radial frequency mode."""
         return self.__max_freq
+
     @property
     def in_channels(self) -> int:
+        """## Number of input channels."""
         return self.__in_channels
+
     @property
     def out_channels(self) -> int:
+        """## Number of output channels."""
         return self.__out_channels
     @property
     def dtype(self) -> torch.dtype:
@@ -324,18 +332,27 @@ class RadialFourierLayer(nn.Module):
     
     @property
     def dim_domain(self) -> int:
+        """## Spatial domain dimension."""
         return self.spectral.dim_domain
+
     @property
     def max_freq(self) -> int:
+        """## Maximum radial frequency mode."""
         return self.spectral.max_freq
+
     @property
     def in_channels(self) -> int:
+        """## Number of input channels."""
         return self.spectral.in_channels
+
     @property
     def out_channels(self) -> int:
+        """## Number of output channels."""
         return self.spectral.out_channels
+
     @property
     def dtype(self) -> torch.dtype:
+        """## Floating point data type of the model."""
         return self.__dtype
 
     

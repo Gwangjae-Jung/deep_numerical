@@ -258,9 +258,20 @@ def get_bkw_coeff_int(dim: int, kernel: float, equation: Literal['boltzmann', 'f
 
 
 def get_bkw_coeff_ext(dim: int) -> float:
-    if dim==2:
+    """## Get BKW relaxation coefficient
+    
+    ## Description
+    Returns the exact relaxation coefficient `s` for the BKW (Bobylev-Krook-Wu) solution in 2D or 3D.
+    
+    ## Arguments
+    `dim` (`int`): Dimension of the domain (2 or 3).
+    
+    ## Returns
+    `float`: The relaxation coefficient for the BKW solution.
+    """
+    if dim == 2:
         return 0.5
-    elif dim==3:
+    elif dim == 3:
         return 1.0
     else:
         raise NotImplementedError(f"Check the dimension. ({dim=})")

@@ -162,6 +162,18 @@ def roots_circle(
 
 
 def polar_grid(radius: torch.Tensor, angle: torch.Tensor) -> torch.Tensor:
+    """## Polar coordinate grid
+    
+    ## Description
+    Constructs a 2D Cartesian coordinate grid from 1D radial and angular coordinate tensors.
+    
+    ## Arguments
+    `radius` (`torch.Tensor`): A 1D tensor containing the radial coordinates.
+    `angle` (`torch.Tensor`): A 1D tensor containing the polar angles in radians.
+    
+    ## Returns
+    `torch.Tensor`: A tensor of shape `(len(radius), len(angle), 2)` containing `(x, y)` Cartesian coordinates.
+    """
     if radius.ndim != 1 or angle.ndim != 1:
         raise RuntimeError(
             f"Check the dimensions of the input arrays:\n"
@@ -181,6 +193,19 @@ def spherical_grid(
         polar_angle:        torch.Tensor,
         azimuthal_angle:    torch.Tensor,
     ) -> torch.Tensor:
+    """## Spherical coordinate grid
+    
+    ## Description
+    Constructs a 3D Cartesian coordinate grid from 1D radial, polar (zenith), and azimuthal angle tensors.
+    
+    ## Arguments
+    `radius` (`torch.Tensor`): A 1D tensor containing the radial coordinates.
+    `polar_angle` (`torch.Tensor`): A 1D tensor containing the polar (zenith) angles `phi` in radians.
+    `azimuthal_angle` (`torch.Tensor`): A 1D tensor containing the azimuthal angles `theta` in radians.
+    
+    ## Returns
+    `torch.Tensor`: A tensor of shape `(len(radius), len(polar_angle), len(azimuthal_angle), 3)` containing `(x, y, z)` Cartesian coordinates.
+    """
     if radius.ndim != 1 or polar_angle.ndim != 1 or azimuthal_angle.ndim != 1:
         raise RuntimeError(
             f"Check the dimensions of the input arrays:\n"

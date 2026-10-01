@@ -65,12 +65,15 @@ class SeparableNet(BaseModule):
     
     @property
     def n_vars(self) -> int:
+        """The number of input variables (branches)."""
         return self.__n_vars
     @property
     def base_einsum_cmd(self) -> str:
+        """The default Einstein summation command for multi-dimensional tensor combination."""
         return self.__base_einsum_cmd
     @property
     def einsum_cmd(self) -> str:
+        """The active Einstein summation command."""
         return self.__einsum_cmd
     @property
     def branch_outputs(self) -> List[List[torch.Tensor]]:
@@ -137,10 +140,21 @@ class SeparableNet(BaseModule):
     
     
     def compute_gradient(self, deg_grad: Sequence[int]) -> torch.Tensor:
-        if len(deg_grad)!=self.__n_vars:
+        """## Compute partial derivatives
+        
+        ## Description
+        Computes the tensor of mixed partial derivatives of the separable network corresponding to the specified differentiation degrees for each branch.
+        
+        ## Arguments
+        `deg_grad` (`Sequence[int]`): A sequence specifying the degree of derivative with respect to each input coordinate variable.
+        
+        ## Returns
+        `torch.Tensor`: The tensor of evaluated partial derivatives.
+        """
+        if len(deg_grad) != self.__n_vars:
             raise ValueError(f"Length of 'deg_grad' is {len(deg_grad)}, while 'n_vars' is {self.__n_vars}.")
         for idx, (d_in, d_max) in enumerate(zip(deg_grad, self.__deg_grad)):
-            if d_in<0 or d_in>d_max:
+            if d_in < 0 or d_in > d_max:
                 raise ValueError(f"Invalid differentiation degree for variable index {idx}: {d_in} (max: {d_max}).")
         operands: List[torch.Tensor] = [self.__branch_outputs[idx][d] for idx, d in enumerate(deg_grad)]
         return torch.einsum(self.__einsum_cmd, *operands)

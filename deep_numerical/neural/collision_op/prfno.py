@@ -1,4 +1,5 @@
-from    typing      import  Self, Sequence, Optional, override
+from    typing              import  Sequence, Optional
+from    typing_extensions   import  Self, override
 import  torch
 from    deep_numerical.utils        import  type_as_real
 from    deep_numerical.neural       import  BaseModule

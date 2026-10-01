@@ -210,9 +210,12 @@ class SpectralMethodBase():
     # Properties - `torch`
     @property
     def dtype(self) -> torch.dtype:
+        """## Real floating-point data type."""
         return self._dtype
+
     @property
     def dtype_complex(self) -> torch.dtype:
+        """## Complex floating-point data type matching real dtype precision."""
         default_dtype = torch.get_default_dtype()
         if default_dtype==torch.double:
             return torch.cdouble
@@ -220,11 +223,15 @@ class SpectralMethodBase():
             return torch.cfloat
         else:
             raise TypeError(f"Unsupported default dtype: {default_dtype}")
+
     @property
     def device(self) -> torch.device:
+        """## Device on which solver tensors reside."""
         return self._device
+
     @property
     def dtype_and_device(self) -> dict[str, object]:
+        """## Dictionary of dtype and device keyword arguments."""
         return {'dtype': self._dtype, 'device': self._device}
     
     
@@ -250,12 +257,17 @@ class SpectralMethodBase():
     # Properties - Einsum
     @property
     def einsum_string_x(self) -> str:
+        """## Einsum subscript string for spatial dimensions."""
         return EINSUM_STRING[1:1+self._dimension]
+
     @property
     def einsum_string_v(self) -> str:
+        """## Einsum subscript string for velocity dimensions."""
         return EINSUM_STRING[1+self._dimension:1+2*self._dimension]
+
     @property
     def einsum_string_bxvd(self) -> str:
+        """## Einsum subscript string for batch, space, velocity, and channel axes."""
         return f"b{self.einsum_string_x}{self.einsum_string_v}d"
 
     
@@ -272,8 +284,10 @@ class SpectralMethodBase():
             __slices_d = tuple([slice(0, front_d, None), slice(-rear_d, None, None)])
             _freq_slices.append(__slices_d)
         return product(*_freq_slices)
+
     @property
     def truncated_ones(self) -> torch.Tensor:
+        """## Tensor of ones sized to the truncated spatio-velocity grid."""
         return torch.ones(
             (
                 1,

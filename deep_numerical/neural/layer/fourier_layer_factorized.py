@@ -252,15 +252,22 @@ class FactorizedFourierLayer(nn.Module):
     
     @property
     def n_modes(self) -> int:
+        """## Truncated Fourier modes."""
         return self.spectral.n_modes
+
     @property
     def in_channels(self) -> int:
+        """## Number of input channels."""
         return self.spectral.in_channels
+
     @property
     def out_channels(self) -> int:
+        """## Number of output channels."""
         return self.spectral.out_channels
+
     @property
     def dim_domain(self) -> int:
+        """## Spatial domain dimension."""
         return self.spectral.dim_domain
 
 

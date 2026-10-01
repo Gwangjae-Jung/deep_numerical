@@ -1,5 +1,4 @@
 from    typing              import  Callable, Optional
-from    typing_extensions   import  Self
 
 import  torch
 from    torch       import  nn
@@ -16,13 +15,19 @@ __all__: list[str]  = ['FourierBoltzmannLayer']
 ##################################################
 ##################################################
 class FourierBoltzmannLayer(BaseModule):
+    """## Fourier layer designed for Boltzmann collision operator approximation.
+
+    ## Description
+    Parameterized spectral layer structured after the fast spectral method for kinetic
+    Boltzmann collision operators, decoupling kernel integration via quadrature weights and Fourier modes.
+    """
     def __init__(
             self,
             dimension:      int,
             degree:         int,
             n_weights:      int,
             dtype_str:      str = "double",
-        ) -> Self:
+        ) -> None:
         """The initializer of the class `FourierBoltzmannLayer`.
         
         Arguments:
@@ -66,15 +71,22 @@ class FourierBoltzmannLayer(BaseModule):
     
     @property
     def dimension(self) -> int:
+        """## Spatial dimension."""
         return self.__dimension
+
     @property
     def n_modes(self) -> tuple[int, ...]:
+        """## Number of Fourier modes per dimension."""
         return self.__n_modes
+
     @property
     def n_weights(self) -> int:
+        """## Number of quadrature weights."""
         return self.__n_weights
+
     @property
     def n_channels(self) -> int:
+        """## Number of feature channels."""
         return self.__n_channels
     
     
@@ -177,6 +189,21 @@ class FourierBoltzmannLayer(BaseModule):
             delta_t:    float,
             RK_fcn:     Callable[[float, torch.Tensor, float, Callable], torch.Tensor] = one_step_RK4_classic,
         ) -> torch.Tensor:
+        """## Advances the solution by one time step using Runge-Kutta integration.
+
+        ## Description
+        Integrates the Fourier-transformed distribution `f_fft` forward by `delta_t`
+        using the specified Runge-Kutta time stepper on `compute_fft`.
+
+        ## Arguments
+        `_PLACEHOLDER__t_curr` (`Optional[float]`): Current time placeholder.
+        `f_fft` (`torch.Tensor`): Fourier coefficients of the distribution.
+        `delta_t` (`float`): Time step size.
+        `RK_fcn` (`Callable`, default: `one_step_RK4_classic`): Single-step Runge-Kutta integrator.
+
+        ## Returns
+        `torch.Tensor`: Time-evolved Fourier coefficients tensor.
+        """
         return RK_fcn(0.0, f_fft, delta_t, self.compute_fft)
 
 

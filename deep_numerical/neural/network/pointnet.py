@@ -34,6 +34,19 @@ class TNet(nn.Module):
             hidden_dimensions:  List[int]   = [64, 128, 1024, 512, 256],
             maxpool_at:         int         = 3,
         ) -> None:
+        """## The initializer of `TNet`
+        
+        ## Description
+        Initializes the spatial transformation network with convolutional feature extraction layers and an affine transformation matrix predictor.
+        
+        ## Arguments
+        `num_channels` (`int`): The number of input channels.
+        `hidden_dimensions` (`List[int]`, default: `[64, 128, 1024, 512, 256]`): Intermediate hidden channel dimensions.
+        `maxpool_at` (`int`, default: `3`): Index at which max pooling across points is performed.
+        
+        ## Returns
+        `None`: None.
+        """
         super().__init__()
         
         self.num_channels = num_channels
@@ -83,12 +96,36 @@ class TNetTransform(nn.Module):
             hidden_dimensions:  List[int]   = [64, 128, 1024, 512, 256],
             maxpool_at:         int         = 3,
         ) -> None:
+        """## The initializer of `TNetTransform`
+        
+        ## Description
+        Initializes the `TNetTransform` module wrapping a `TNet` instance for coordinate transformation.
+        
+        ## Arguments
+        `num_channels` (`int`): The number of input channels.
+        `hidden_dimensions` (`List[int]`, default: `[64, 128, 1024, 512, 256]`): Hidden dimensions of the internal `TNet`.
+        `maxpool_at` (`int`, default: `3`): Max pooling layer index in `TNet`.
+        
+        ## Returns
+        `None`: None.
+        """
         super().__init__()
         self.tnet = TNet(num_channels, hidden_dimensions, maxpool_at)
         return None
     
     
     def forward(self, X: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        """## Forward pass of `TNetTransform`
+        
+        ## Description
+        Computes the spatial transformation matrix `T` using `TNet` and applies it to the input point cloud `X`.
+        
+        ## Arguments
+        `X` (`torch.Tensor`): Input point cloud tensor of shape `(batch_size, num_channels, num_points)`.
+        
+        ## Returns
+        `Tuple[torch.Tensor, torch.Tensor]`: A tuple `(X_transformed, T)` containing the aligned point cloud and transformation matrix.
+        """
         T = self.tnet.forward(X)
         X = torch.einsum("bin,bij->bjn", [X, T])
         return (X, T)
@@ -107,6 +144,20 @@ class PointNetBase(nn.Module):
                     hidden_dimensions:  List[int]   = [64, 128, 1024, 512, 256],
                     maxpool_at:         int         = 3,
         ) -> None:
+        """## The initializer of `PointNetBase`
+        
+        ## Description
+        Initializes the shared PointNet backbone consisting of input transform, local feature MLP, feature transform, and global feature MLP.
+        
+        ## Arguments
+        `in_channels` (`int`, default: `3`): Number of input point feature channels (e.g., 3 for 3D coordinates).
+        `base_channels` (`int`, default: `64`): Channel dimension after initial 1D convolution.
+        `hidden_dimensions` (`List[int]`, default: `[64, 128, 1024, 512, 256]`): Hidden dimensions for the T-net modules.
+        `maxpool_at` (`int`, default: `3`): Layer index at which max pooling is performed in the T-net.
+        
+        ## Returns
+        `None`: None.
+        """
         super().__init__()
            
         self.transform_input    = TNetTransform(in_channels, hidden_dimensions, maxpool_at)
@@ -166,6 +217,21 @@ class PointNetClassification(PointNetBase):
                     hidden_dimensions:  List[int]   = [64, 128, 1024, 512, 256],
                     maxpool_at:         int         = 3,
         ) -> None:
+        """## The initializer of `PointNetClassification`
+        
+        ## Description
+        Initializes the PointNet architecture for point cloud classification with a classification MLP head.
+        
+        ## Arguments
+        `num_classes` (`int`): The number of target classes.
+        `in_channels` (`int`, default: `3`): Number of input point channels.
+        `base_channels` (`int`, default: `64`): Base feature channel dimension.
+        `hidden_dimensions` (`List[int]`, default: `[64, 128, 1024, 512, 256]`): Hidden dimensions for the T-net modules.
+        `maxpool_at` (`int`, default: `3`): Max pooling index for T-net.
+        
+        ## Returns
+        `None`: None.
+        """
         super().__init__(
             in_channels         = in_channels,
             base_channels       = base_channels,
@@ -210,10 +276,22 @@ class PointNetClassification(PointNetBase):
         return (X_class, T_input, T_feature)
     
     
-    def fit(self, X: torch.Tensor, y: torch.Tensor) -> None:
+    def fit(self, X: torch.Tensor, y: torch.LongTensor) -> None:
+        """## Fit classification model
+        
+        ## Description
+        Runs a forward pass on training point clouds `X` and targets `y`.
+        
+        ## Arguments
+        `X` (`torch.Tensor`): Input point cloud tensor of shape `(batch_size, in_channels, num_points)`.
+        `y` (`torch.LongTensor`): Target class label tensor of shape `(batch_size,)`.
+        
+        ## Returns
+        `None`: None.
+        """
         pred, T_input, T_output = self.forward(X)
         
-        return;
+        return
 
 
 
@@ -234,6 +312,21 @@ class PointNetSegmentation(PointNetBase):
                     hidden_dimensions:  List[int]   = [64, 128, 1024, 512, 256],
                     maxpool_at:         int         = 3,
         ) -> None:
+        """## The initializer of `PointNetSegmentation`
+        
+        ## Description
+        Initializes the PointNet architecture for point cloud part/semantic segmentation.
+        
+        ## Arguments
+        `num_classes` (`int`): The number of segmentation classes per point.
+        `in_channels` (`int`, default: `3`): Number of input point channels.
+        `base_channels` (`int`, default: `64`): Base feature channel dimension.
+        `hidden_dimensions` (`List[int]`, default: `[64, 128, 1024, 512, 256]`): Hidden dimensions for the T-net modules.
+        `maxpool_at` (`int`, default: `3`): Max pooling index for T-net.
+        
+        ## Returns
+        `None`: None.
+        """
         super().__init__(
             in_channels         = in_channels,
             base_channels       = base_channels,

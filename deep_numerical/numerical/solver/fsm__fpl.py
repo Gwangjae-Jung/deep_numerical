@@ -52,6 +52,27 @@ class FastSM_Landau_VHS(FastSM_Landau):
             dtype:  Optional[torch.dtype]   = None,
             device: Optional[torch.device]  = None,
         ) -> None:
+        """## The initializer of `FastSM_FPL`
+        
+        ## Description
+        Initializes the fast spectral method solver for the Fokker-Planck-Landau collision operator.
+        
+        ## Arguments
+        `dimension` (`int`): Dimension of the domain.
+        `v_num_grid` (`int`): Number of grid points along each velocity dimension.
+        `v_max` (`float`): Maximum velocity value defining the velocity truncation domain `[-v_max, v_max]^d`.
+        `x_num_grid` (`Optional[int]`, default: `None`): Number of grid points along each spatial dimension.
+        `x_max` (`Optional[float]`, default: `None`): Maximum spatial boundary coordinate.
+        `vhs_coeff` (`Optional[float]`, default: `None`): Collision kernel coefficient.
+        `vhs_alpha` (`Optional[float]`, default: `None`): Exponent of the relative velocity in the collision kernel.
+        `quad_order_uniform` (`Optional[int]`, default: `None`): Quadrature order for the uniform quadrature.
+        `quad_order_legendre` (`Optional[int]`, default: `None`): Quadrature order for the Legendre quadrature.
+        `dtype` (`Optional[torch.dtype]`, default: `None`): Data type for tensors.
+        `device` (`Optional[torch.device]`, default: `None`): Target computing device.
+        
+        ## Returns
+        `None`: None.
+        """
         super().__init__(
             dimension       = dimension,
             v_num_grid  = v_num_grid,
@@ -71,9 +92,11 @@ class FastSM_Landau_VHS(FastSM_Landau):
     
     @property
     def vhs_coeff(self) -> float:
+        """The coefficient of the collision kernel."""
         return self._vhs_coeff
     @property
     def vhs_alpha(self) -> float:
+        """The exponent of relative velocity in the collision kernel."""
         return self._vhs_alpha
     
     

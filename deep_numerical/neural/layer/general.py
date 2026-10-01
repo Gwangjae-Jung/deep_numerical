@@ -61,6 +61,17 @@ class MLP(nn.Module):
     
     
     def forward(self, X: torch.Tensor) -> torch.Tensor:
+        """## Computes forward pass of MLP.
+
+        ## Description
+        Applies sequential linear transformations and non-linear activations.
+
+        ## Arguments
+        `X` (`torch.Tensor`): Input tensor of shape `(..., in_channels)`.
+
+        ## Returns
+        `torch.Tensor`: Output tensor of shape `(..., out_channels)`.
+        """
         return self.net.forward(X)
     
     
@@ -78,6 +89,12 @@ class MLP(nn.Module):
 
 
 class HyperMLP(nn.Module):
+    """## Hypernetwork-driven Multi-Layer Perceptron.
+
+    ## Description
+    A Multi-Layer Perceptron whose weights and biases are generated dynamically
+    by a hypernetwork conditioning on hyper-input features.
+    """
     def __init__(
             self,
             channels:           Sequence[int],
@@ -239,19 +256,37 @@ class PatchEmbedding(nn.Module):
     
     @property
     def dim_domain(self) -> int:
+        """## Spatial domain dimension."""
         return self.__dim_domain
+
     @property
     def in_channels(self) -> int:
+        """## Number of input channels."""
         return self.__in_channels
+
     @property
     def patch_size(self) -> Tuple[int, ...]:
+        """## Patch size per spatial dimension."""
         return self.__patch_size
+
     @property
     def dim_embed(self) -> int:
+        """## Embedding dimension per patch."""
         return self.__dim_embed
     
     
     def forward(self, X: torch.Tensor) -> torch.Tensor:
+        """## Computes patch embedding forward pass.
+
+        ## Description
+        Permutes input to standard convolution channel ordering, computes patch projection, and permutes back.
+
+        ## Arguments
+        `X` (`torch.Tensor`): Input tensor of shape `(batch, *spatial_dims, in_channels)`.
+
+        ## Returns
+        `torch.Tensor`: Patch-embedded tensor of shape `(batch, *patched_spatial_dims, dim_embed)`.
+        """
         X = X.permute(self.__permute_1)
         X = self.patch_embed.forward(X)
         X = X.permute(self.__permute_2)
@@ -267,7 +302,26 @@ class PatchEmbedding(nn.Module):
 
 
 class Periodization1D(nn.Module):
-    def __init__(self, max_freq: int, sup: float, inf: Optional[float]=None) -> None:
+    """## 1D Fourier feature periodization layer.
+
+    ## Description
+    Maps 1D scalar coordinates onto periodic sinusoidal basis functions
+    `[cos(k*x), sin(k*x)]` for `k = 1, ..., max_freq`.
+    """
+    def __init__(self, max_freq: int, sup: float, inf: Optional[float] = None) -> None:
+        """## Initializes Periodization1D.
+
+        ## Description
+        Sets up the periodic interval `[inf, sup]` and number of frequency modes.
+
+        ## Arguments
+        `max_freq` (`int`): Maximum frequency mode count (positive integer).
+        `sup` (`float`): Upper bound of the domain interval.
+        `inf` (`Optional[float]`, default: `None`): Lower bound of the domain interval. Defaults to `-sup`.
+
+        ## Returns
+        `None`.
+        """
         super().__init__()
         if (not isinstance(max_freq, int)) or max_freq<=0:
             raise ValueError(f"'max_freq' should be a positive intege, but got {max_freq=}.")
@@ -282,14 +336,26 @@ class Periodization1D(nn.Module):
         return None
     
     @property
-    def in_channels(self) -> int:   return 1
+    def in_channels(self) -> int:
+        """## Input feature channels (always 1)."""
+        return 1
+
     @property
-    def out_channels(self) -> int:  return 2*self.__max_freq
+    def out_channels(self) -> int:
+        """## Output feature channels (2 * max_freq)."""
+        return 2*self.__max_freq
     
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        """
-        Arguments:
-            `X` (`torch.Tensor`): A 2-tensor of shape `(batch_size, 1)`.
+        """## Computes 1D Fourier expansion forward pass.
+
+        ## Description
+        Transforms 1D coordinates into sine and cosine frequencies up to `max_freq`.
+
+        ## Arguments
+        `X` (`torch.Tensor`): Input tensor of shape `(batch_size, 1)`.
+
+        ## Returns
+        `torch.Tensor`: Periodic features tensor of shape `(batch_size, 2 * max_freq)`.
         """
         X = (2*torch.pi)*(X-self.__inf)/self.__period
         Y = []

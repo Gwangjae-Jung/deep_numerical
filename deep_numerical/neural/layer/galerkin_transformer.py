@@ -62,10 +62,23 @@ class GalerkinTypeSelfAttention(nn.Module):
     
     @property
     def einsum_command(self) -> str:
+        """## Einsum command string for multi-head linear projection."""
         return f"b...c, chd -> b...hd"
     
     
     def forward(self, X: torch.Tensor) -> torch.Tensor:
+        """## Computes Galerkin-type self-attention forward pass.
+
+        ## Description
+        Applies linear projection to query, key, value spaces, normalizes keys and values,
+        and computes the attention output via spatial integration.
+
+        ## Arguments
+        `X` (`torch.Tensor`): Input tensor of shape `(batch, *spatial_dims, channels)`.
+
+        ## Returns
+        `torch.Tensor`: Output tensor of shape `(batch, *spatial_dims, channels)`.
+        """
         # Map to the query/key/value spaces
         X_query = torch.einsum(self.einsum_command, X, self.sa_query)
         X_key   = torch.einsum(self.einsum_command, X, self.sa_key)
@@ -243,6 +256,17 @@ class GalerkinTypeEncoderBlockSelfAttention(nn.Module):
 
     
     def forward(self, X: torch.Tensor) -> torch.Tensor:
+        """## Computes encoder block forward pass.
+
+        ## Description
+        Passes input through self-attention followed by MLP with residual skip connections.
+
+        ## Arguments
+        `X` (`torch.Tensor`): Input tensor of shape `(batch, *spatial_dims, channels)`.
+
+        ## Returns
+        `torch.Tensor`: Output tensor of shape `(batch, *spatial_dims, channels)`.
+        """
         X = X + self.sa.forward(X)
         X = X + self.mlp.forward(X)
         return X
@@ -313,16 +337,18 @@ class GalerkinTypeEncoderBlockCrossAttention(nn.Module):
 
     
     def forward(self, U: torch.Tensor, X: torch.Tensor) -> torch.Tensor:
-        """
-        Arguments:
-            `U` (`torch.Tensor`):
-                * `U` is the embedding of the input function.
-                * `U` has the shape `(B, *__domain__, C)`.
-                * `U` is input to the key map and the value map.
-            `X` (`torch.Tensor`):
-                * `X` is the 3-tensor saving the coordinates of the query points.
-                * `X` has the shape `(B, size(__domain__), dim(__domain__))`.
-                * `X` is input to the query map.
+        """## Computes cross-attention encoder block forward pass.
+
+        ## Description
+        Passes input function embedding and query coordinates through cross-attention
+        and an MLP with residual connections.
+
+        ## Arguments
+        `U` (`torch.Tensor`): Input function embedding of shape `(B, *domain, C)`.
+        `X` (`torch.Tensor`): Query coordinates tensor of shape `(B, N_query, dim_query)`.
+
+        ## Returns
+        `torch.Tensor`: Updated embedding tensor of shape `(B, *domain, C)`.
         """
         U = U + self.ca.forward(U, X)
         U = U + self.mlp.forward(U)

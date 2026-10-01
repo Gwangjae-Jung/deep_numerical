@@ -1,6 +1,7 @@
 import  torch
-from    typing      import  Any, Callable, Union, TypeAlias
-from    torch.func  import  vmap, jacfwd, jacrev
+from    typing              import  Any, Callable, Union
+from    typing_extensions   import  TypeAlias
+from    torch.func          import  vmap, jacfwd, jacrev
 
 
 __all__ = ['jacobian', 'hessian', 'derivatives',]
@@ -12,12 +13,19 @@ FuncType: TypeAlias = Callable[[torch.Tensor, Any], torch.Tensor]
 FuncTypeWithAux: TypeAlias = Callable[[torch.Tensor, Any], tuple[torch.Tensor, Any]]
 
 
-def jacobian(func: FuncType, return_out: bool=False) -> Union[FuncType, FuncTypeWithAux]:
-    """Returns a function which computes the Jacobian of `func`.
-    
-    Arguments:
-        `func` (`FuncType`): A Python function which maps a `k`-dimensional vector to a `d`-dimensional vector.
-        `return_out` (`bool`, default: `False`): Whether the output should also be given.
+def jacobian(func: FuncType, return_out: bool = False) -> Union[FuncType, FuncTypeWithAux]:
+    """## Computes the Jacobian function.
+
+    ## Description
+    Returns a vectorized function (`vmap`-wrapped) which computes the Jacobian of `func` using `torch.func.jacrev`.
+    If `return_out` is `True`, the returned function returns both the Jacobian and the function output.
+
+    ## Arguments
+    `func` (`FuncType`): A function mapping a tensor of points to output vectors.
+    `return_out` (`bool`, default: `False`): Whether to also return the evaluated function output.
+
+    ## Returns
+    `Union[FuncType, FuncTypeWithAux]`: Vectorized function computing the Jacobian.
     """
     if return_out:
         def modified_func(pts: torch.Tensor, **kwargs) -> tuple[torch.Tensor, torch.Tensor]:
@@ -28,12 +36,19 @@ def jacobian(func: FuncType, return_out: bool=False) -> Union[FuncType, FuncType
         return vmap(jacrev(func))
 
 
-def hessian(func: FuncType, return_out: bool=False) -> Union[FuncType, FuncTypeWithAux]:
-    """Returns a function which computes the Hessian of `func`.
-    
-    Arguments:
-        `func` (`FuncType`): A Python function which maps a `k`-dimensional vector to a `d`-dimensional vector.
-        `return_out` (`bool`, default: `False`): Whether the output should also be given.
+def hessian(func: FuncType, return_out: bool = False) -> Union[FuncType, FuncTypeWithAux]:
+    """## Computes the Hessian function.
+
+    ## Description
+    Returns a vectorized function (`vmap`-wrapped) which computes the Hessian of `func` using forward-over-reverse mode autodiff (`torch.func.jacfwd(torch.func.jacrev(...))`).
+    If `return_out` is `True`, the returned function returns both the Hessian and the function output.
+
+    ## Arguments
+    `func` (`FuncType`): A function mapping a tensor of points to output vectors.
+    `return_out` (`bool`, default: `False`): Whether to also return the evaluated function output.
+
+    ## Returns
+    `Union[FuncType, FuncTypeWithAux]`: Vectorized function computing the Hessian.
     """
     if return_out:
         def modified_func(pts: torch.Tensor, **kwargs) -> tuple[torch.Tensor, torch.Tensor]:
@@ -44,13 +59,20 @@ def hessian(func: FuncType, return_out: bool=False) -> Union[FuncType, FuncTypeW
         return vmap(jacfwd(jacrev(func)))
 
 
-def derivatives(func: FuncType, degree: int=1) -> Union[FuncType, FuncTypeWithAux]:
-    """Returns a function which computes the derivatives of `func` of order `degree`.
-    
-    Arguments:
-        `func` (`FuncType`): A Python function which maps a `k`-dimensional vector to a `d`-dimensional vector.
-        `degree` (`int`, default: `1`): The degree of differentiation. (Example: `1` for Jacobian, `2` for Hessian)
-        `return_out` (`bool`, default: `False`): Whether the output should also be given.
+def derivatives(func: FuncType, degree: int = 1) -> Union[FuncType, FuncTypeWithAux]:
+    """## Computes higher-order derivatives of a function.
+
+    ## Description
+    Returns a vectorized function (`vmap`-wrapped) which iteratively computes derivatives of `func` up to the given `degree` using `torch.func.jacfwd`.
+    If `return_out` is `True`, the returned function returns both the derivative and intermediate outputs.
+
+    ## Arguments
+    `func` (`FuncType`): A function mapping a tensor of points to output vectors.
+    `degree` (`int`, default: `1`): The order/degree of differentiation (e.g., 1 for Jacobian, 2 for Hessian).
+    `return_out` (`bool`, default: `False`): Whether to also return intermediate evaluation outputs.
+
+    ## Returns
+    `Union[FuncType, FuncTypeWithAux]`: Vectorized function computing the derivatives of order `degree`.
     """
     # Define helper functions
     def modified_func(pts: torch.Tensor, **kwargs) -> FuncTypeWithAux:

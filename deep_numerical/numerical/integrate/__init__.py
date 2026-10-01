@@ -4,7 +4,7 @@ from    .quadrature     import  *
 from    .quadrature     import  __all__ as  __all__quadrature
 
 
-_FUNCTIONS = {'integration_guass_legendre', 'integration_lebedev', 'integration_legendre', 'integration_S2'}
+_FUNCTIONS = {'integration_guass_legendre', 'integration_gauss_legendre', 'integration_lebedev', 'integration_legendre', 'integration_S2'}
 __all__: list[str] = list(set(__all__quadrature) | _FUNCTIONS)
 
 
@@ -73,8 +73,10 @@ def integration_lebedev(
     return torch.sum(f(roots) * weights)
 
 
-integration_legendre    = integration_guass_legendre
-integration_S2          = integration_lebedev
+integration_guass_legendre = integration_guass_legendre
+integration_gauss_legendre  = integration_guass_legendre
+integration_legendre        = integration_guass_legendre
+integration_S2              = integration_lebedev
 
 
 ##################################################

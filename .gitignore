@@ -2,10 +2,7 @@
 # Edit at https://www.toptal.com/developers/gitignore?templates=windows,macos,linux,python,jupyternotebooks
 
 ### Custom ignore ###
-experiments/
-**__deprecated_*
-deep_numerical/neural/parameterized_op
-deep_numerical/neural/__pending__conservative_op
+.agents
 
 
 ### JupyterNotebooks ###

@@ -1,11 +1,11 @@
 from    deep_numerical.neural.utils.model_construction \
-    import  count_parameters, get_activation, initialize_weights, activations, initializers, Activations, Initializers
+    import  count_parameters, get_activation, initialize_weights, warn_redundant_arguments, activations, initializers, Activations, Initializers
 from    deep_numerical.neural.utils.functional \
     import  positional_encoding
 
 
 __all__ = [
-    'count_parameters', 'get_activation', 'initialize_weights', 'activations', 'initializers', 'Activations', 'Initializers',
+    'count_parameters', 'get_activation', 'initialize_weights', 'warn_redundant_arguments', 'activations', 'initializers', 'Activations', 'Initializers',
     'positional_encoding',
 ]
 

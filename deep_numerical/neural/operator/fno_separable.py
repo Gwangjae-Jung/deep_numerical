@@ -1,4 +1,5 @@
-from    typing      import  Self, Sequence, Dict, Optional
+from    typing              import  Sequence, Dict, Optional
+from    typing_extensions   import  Self
 import  torch
 from    deep_numerical.utils            import  type_as_real
 from    deep_numerical.neural           import  BaseModule
@@ -127,12 +128,17 @@ class SeparableFourierNeuralOperator(BaseModule):
     
     @property
     def dim_domain(self) -> int:
+        """## Spatial domain dimension."""
         return self.__dim_domain
+
     @property
     def n_modes(self) -> tuple[int, ...]:
+        """## Truncated Fourier modes per spatial dimension."""
         return self.__n_modes
+
     @property
     def dtype(self) -> torch.dtype:
+        """## Floating point data type of the model."""
         return self.__dtype
 
 

@@ -252,6 +252,23 @@ class GridGenerator():
             # Allow loops
             allow_loop:         Optional[bool]  = _DEFAULT_ALLOW_LOOP,
         ) -> None:
+        """## Initializes the RegularGridGraphGenerator.
+
+        ## Description
+        Generates a uniform grid on `domain` with shape `grid_size`, and prepares parameters
+        for radius and k-nearest-neighbor subgraph generation.
+
+        ## Arguments
+        `domain` (`Sequence[Sequence[float]]`): Domain bounding box as min/max pairs for each dimension.
+        `grid_size` (`Sequence[int]`): Number of grid points along each dimension.
+        `radius_range` (`Optional[Sequence[float]]`, default: `_DEFAULT_RADIUS_RANGE`): Min and max radius for radius graph connections.
+        `radius_inclusion` (`Optional[Sequence[bool]]`, default: `_DEFAULT_RADIUS_INCLUSION`): Whether boundary radii are inclusive.
+        `max_neighbors` (`Optional[int]`, default: `_DEFAULT_MAX_NEIGHBORS`): Maximum number of nearest neighbors.
+        `allow_loop` (`Optional[bool]`, default: `_DEFAULT_ALLOW_LOOP`): Whether to allow self-loops in generated graphs.
+
+        ## Returns
+        `None`.
+        """
         self.__grid       = generate_grid(domain, grid_size, keep_shape = False)
         self.__grid_size  = grid_size
         

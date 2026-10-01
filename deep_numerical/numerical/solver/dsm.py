@@ -5,7 +5,8 @@ r"""## The module for the implementation of the direct spectral method
 This module provides the classes which are used to solve the homogeneous Boltzmann equation using the direct spectral method (which is based on the Fourier-Galerkin method).
 To this end, we assume that the solution is compactly supported (so that it can be periodized in a bounded computational domain) and the Fourier coefficients of the solution depends on time; then we construct the system of ordinary differential equations of the Fourier coefficients.
 """
-from    typing      import  Callable, Optional, override
+from    typing              import  Callable, Optional
+from    typing_extensions   import  override
 import  torch
 from    .base_classes       import  DirectSM_Base
 from    ._kernel_modes.boltzmann_VHS      import  *
@@ -42,6 +43,26 @@ class DirectSM_Boltzmann_VHS(DirectSM_Base):
             dtype:      Optional[torch.dtype]   = None,
             device:     Optional[torch.device]  = None,
         ) -> None:
+        """## The initializer of `DirectSM_Boltzmann_VHS`
+        
+        ## Description
+        Initializes the direct spectral method solver for the Boltzmann equation with the variable hard sphere (VHS) collision model.
+        
+        ## Arguments
+        `dim` (`int`): Dimension of the domain.
+        `v_num_grid` (`int`): Number of grid points along each velocity dimension.
+        `v_max` (`float`): Maximum velocity value defining the velocity truncation domain `[-v_max, v_max]^d`.
+        `x_num_grid` (`Optional[int]`, default: `None`): Number of grid points along each spatial dimension.
+        `x_max` (`Optional[float]`, default: `None`): Maximum spatial boundary coordinate.
+        `vhs_coeff` (`Optional[float]`, default: `None`): Coefficient `C_gamma` of the VHS collision kernel.
+        `vhs_alpha` (`Optional[float]`, default: `None`): Velocity exponent `alpha` of the VHS collision kernel.
+        `order` (`Optional[int]`, default: `None`): Approximation order or quadrature order.
+        `dtype` (`Optional[torch.dtype]`, default: `None`): Data type for computation.
+        `device` (`Optional[torch.device]`, default: `None`): Target computing device.
+        
+        ## Returns
+        `None`: None.
+        """
         super().__init__(
             dimension   = dim,
             v_num_grid  = v_num_grid,
@@ -52,8 +73,8 @@ class DirectSM_Boltzmann_VHS(DirectSM_Base):
             dtype       = dtype,
             device      = device,
         )
-        if vhs_alpha is None or vhs_alpha is None:
-            raise ValueError(f"'vhs_coeff' and 'vhs_alpha' should be given. ({vhs_alpha=:.2e}, {vhs_coeff=:.2f})")
+        if vhs_coeff is None or vhs_alpha is None:
+            raise ValueError(f"'vhs_coeff' and 'vhs_alpha' should be given. ({vhs_coeff=:.2e}, {vhs_alpha=:.2f})")
         self._vhs_coeff = vhs_coeff
         self._vhs_alpha = vhs_alpha
         self.precompute()
@@ -62,9 +83,11 @@ class DirectSM_Boltzmann_VHS(DirectSM_Base):
     
     @property
     def vhs_coeff(self) -> float:
+        """The coefficient of the VHS collision model."""
         return self._vhs_coeff
     @property
     def vhs_alpha(self) -> float:
+        """The exponent of the relative velocity in the VHS collision model."""
         return self._vhs_alpha
 
 

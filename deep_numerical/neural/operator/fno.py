@@ -129,12 +129,17 @@ class FourierNeuralOperator(BaseModule):
     
     @property
     def dim_domain(self) -> int:
+        """## Spatial domain dimension."""
         return self.__dim_domain
+
     @property
     def n_modes(self) -> Tuple[int, ...]:
+        """## Truncated Fourier modes per spatial dimension."""
         return self.__n_modes
+
     @property
     def dtype(self) -> torch.dtype:
+        """## Floating point data type of the model."""
         return self.__dtype
 
 

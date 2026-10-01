@@ -5,3 +5,10 @@ In order to facilitate vectorized operations, it leverages `vmap` from `torch.fu
 """
 from    deep_numerical.autograd.grad   import  compute_grad
 from    deep_numerical.autograd.vmap   import  jacobian, hessian, derivatives
+
+__all__ = [
+    "compute_grad",
+    "jacobian",
+    "hessian",
+    "derivatives",
+]
