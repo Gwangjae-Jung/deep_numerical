@@ -16,10 +16,9 @@ if _HAS_TORCH_GEOMETRIC:
     __all__.append("VectorSelfAttention")
 
 
-##################################################
-##################################################
+
 class LinearSelfAttention(nn.Module):
-    """## Linear self-attention
+    """Linear self-attention
     
     -----
     ### Description
@@ -117,7 +116,7 @@ class LinearSelfAttention(nn.Module):
 
 
 class LinearCrossAttention(nn.Module):
-    """## Linear cross-attention
+    """Linear cross-attention
     
     -----
     ### Description
@@ -231,10 +230,9 @@ class LinearCrossAttention(nn.Module):
 
 
 
-##################################################
-##################################################
+
 class ModifiedMLP(nn.Module):
-    """## Modified MLP
+    """Modified MLP
     
     -----
     ### Reference
@@ -288,27 +286,27 @@ class ModifiedMLP(nn.Module):
     
     @property
     def in_channels(self) -> int:
-        """## Number of input channels."""
+        """Number of input channels."""
         return self.__in_channels
 
     @property
     def hidden_channels(self) -> int:
-        """## Number of hidden channels."""
+        """Number of hidden channels."""
         return self.__hidden_channels
 
     @property
     def out_channels(self) -> int:
-        """## Number of output channels."""
+        """Number of output channels."""
         return self.__out_channels
 
     @property
     def n_layers(self) -> int:
-        """## Number of hidden layers."""
+        """Number of hidden layers."""
         return self.__n_layers
     
     
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        """## Computes forward pass of ModifiedMLP.
+        """Computes forward pass of ModifiedMLP.
 
         ## Description
         Applies input-basis gating across hidden layers using transform and coefficient sub-networks.
@@ -329,10 +327,9 @@ class ModifiedMLP(nn.Module):
         return out
     
 
-##################################################
-##################################################
+
 class HyperLinearSelfAttention(nn.Module):
-    """## Linear self-attention with hyper-networks
+    """Linear self-attention with hyper-networks
     
     -----
     ### Description
@@ -381,17 +378,17 @@ class HyperLinearSelfAttention(nn.Module):
     
     @property
     def einsum_domain(self) -> str:
-        """## Spatial domain einsum subscript."""
+        """Spatial domain einsum subscript."""
         return self.__EINSUM_DOMAIN
 
     @property
     def einsum_command(self) -> str:
-        """## Einsum command string for multi-head linear projection."""
+        """Einsum command string for multi-head linear projection."""
         return self.__EINSUM_COMMAND
     
     
     def forward(self, X: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
-        """## Computes hypernetwork linear self-attention forward pass.
+        """Computes hypernetwork linear self-attention forward pass.
 
         ## Description
         Generates query, key, and value projection weights from hyper-parameters `p` via MLPs,
@@ -429,7 +426,10 @@ class HyperLinearSelfAttention(nn.Module):
         return f"LinearSelfAttention(dim_domain: {self.__dim_domain}, hidden_channels: {self.__hidden_channels}, n_heads: {self.__n_heads})"
 
 
+##################################################
+def main() -> None:
+    pass
 
-##################################################
-##################################################
-# End of file
+
+if __name__ == '__main__':
+    main()

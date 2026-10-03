@@ -1,37 +1,41 @@
-"""## The module for computation of several distribution functions and their physical quantities
+"""The module for computation of several distribution functions and their physical quantities.
 
 -----
 ### Description
-This module provides some functions which are used to compute several distribution functions and their physical quantities.
-    * `_density_function`
-        provides several density functions (distribution functions), which can be used as test functions.
-    * `_physical_quantity`
-        provides functions for the computation of some physical quantities; density, momentum, energy, entropy, etc.
+This module provides functions which are used to compute several distribution functions and their physical quantities:
+    * `_density_function`: provides several density functions (distribution functions), which can be used as test functions.
+    * `_physical_quantity`: provides functions for the computation of some physical quantities; density, momentum, energy, entropy, etc.
+    * `_collision_kernels`: provides collision kernels.
+
 -----
 ### Note
-
 1. Notation
-    Throughout this submodule, we define the following notaions.
-        * `B`: The number of the instances,
+    Throughout this submodule, we define the following notations:
+        * `B`: The number of instances,
         * `d`: The dimension of the space.
-        * `(N_1, ..., N_d)`: The shape of the spatial grid. Hence, the shape of the spatial grid with the coordinates is `(N_1, ..., N_d, d)`.
-        * `(K_1, ..., K_d)`: The shape of the velocity grid. Hence, the shape of the velocity grid with the coordinates is `(K_1, ..., K_d, d)`.
+        * `(N_1, ..., N_d)`: The shape of the spatial grid.
+        * `(K_1, ..., K_d)`: The shape of the velocity grid.
 
 2. Shapes of the input tensors
-    We assume that all input tensors for the distribution functions are of the following shape:
+    All input tensors for the distribution functions are of the shape:
         `(num_instances, *physical_domain, *velocity_space, num_functions)`.
 """
-from    ._density_function      import  *
-from    ._physical_quantity     import  *
-from    ._collision_kernels     import  *
+from deep_numerical.numerical.distribution._density_function  import *
+from deep_numerical.numerical.distribution._physical_quantity import *
+from deep_numerical.numerical.distribution._collision_kernels import *
 
-from    ._density_function      import  __all__ as  __all_density
-from    ._physical_quantity     import  __all__ as  __all_physical
-from    ._collision_kernels     import  __all__ as  __all_collision
+from deep_numerical.numerical.distribution._density_function  import __all__ as __all_density
+from deep_numerical.numerical.distribution._physical_quantity import __all__ as __all_physical
+from deep_numerical.numerical.distribution._collision_kernels import __all__ as __all_collision
 
-__all__ = list(__all_density) + list(__all_physical) + list(__all_collision)
+
+__all__: list[str] = list(__all_density) + list(__all_physical) + list(__all_collision)
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

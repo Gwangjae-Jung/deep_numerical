@@ -12,10 +12,9 @@ from    deep_numerical.neural.layer.general import  MLP
 __all__ = ["SpectralConv", "FourierLayer"]
 
 
-##################################################
-##################################################
+
 class SpectralConv(nn.Module):
-    """## Spectral convolutional layer
+    """Spectral convolutional layer
     
     The convolution of two *real-valued* functions as the multiplication of their Fourier transforms.
     """
@@ -166,7 +165,7 @@ class SpectralConv(nn.Module):
 
 
 class FourierLayer(nn.Module):
-    """## Fourier layer
+    """Fourier layer
     
     The Fourier layer is a combination of a linear layer and a spectral convolutional layer.
     Note that the activation function is not included in this layer.
@@ -285,8 +284,7 @@ class FourierLayer(nn.Module):
         return self.__dtype
 
 
-##################################################
-##################################################
+
 if __name__=="__main__":
     # For quick test
     torch.set_default_dtype(torch.double)
@@ -304,5 +302,9 @@ if __name__=="__main__":
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

@@ -27,7 +27,7 @@ else:
     ##################################################
     ##################################################
     class MultipoleGraphNeuralOperator(BaseModule):
-        """## Multipole Graph Neural Operator (MGNO)
+        """Multipole Graph Neural Operator (MGNO)
         ### Integral operator via graph neural network with the V-cycle algorithm
         
         -----
@@ -59,7 +59,7 @@ else:
                 activation_name:    str = "relu",
                 activation_kwargs:  dict[str, object] = {},
             ) -> None:
-            """## The initializer of the class `MultipoleGraphNeuralOperator`
+            """The initializer of the class `MultipoleGraphNeuralOperator`
             
             Arguments:
                 `in_channels` (`int`): The number of the input node features.
@@ -145,7 +145,7 @@ else:
         
         @property
         def n_layers(self) -> int:
-            """## Number of multipole graph kernel layers."""
+            """Number of multipole graph kernel layers."""
             return self.__n_layers
 
 
@@ -153,5 +153,9 @@ else:
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

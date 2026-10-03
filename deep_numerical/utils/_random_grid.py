@@ -1,14 +1,14 @@
-import  warnings
-from    typing              import  *
-from    typing_extensions   import  Self, override
+import warnings
+from   typing            import Any, Callable, Optional, Sequence, Union
+from   typing_extensions import override
 
-import  torch
+import torch
 
 try:
-    from    torch_geometric.data    import  Data
-    _HAS_TORCH_GEOMETRIC = True
+    from torch_geometric.data import Data
+    _HAS_TORCH_GEOMETRIC: bool = True
 except (ImportError, ModuleNotFoundError):
-    _HAS_TORCH_GEOMETRIC = False
+    _HAS_TORCH_GEOMETRIC: bool = False
 
 if not _HAS_TORCH_GEOMETRIC:
     warnings.warn(
@@ -18,7 +18,7 @@ if not _HAS_TORCH_GEOMETRIC:
     )
     __all__: list[str] = []
 else:
-    from    .grid  import  space_grid
+    from .grid import space_grid
 
     __all__: list[str] = [
         "RandomGraphGenerator",
@@ -26,202 +26,168 @@ else:
     ]
 
 
-    ##################################################
-    ##################################################
     class RandomGraphGenerator():
         """The base class for random graph generators.
-        
-        ### Description
+
+        ## Description
         This class provides the basic functionality for generating random graphs.
         It can be used as a base class for other random graph generators.
         The main purpose of this class is to provide a common interface for random graph generators.
-        
-        ### Note
-        1. This class assumes that the attribute `pos` of the graph is nonempty, as all sampling methods are based on the `pos` attribute.
-        2. The values of `edge_index` are inherited from the base graph. Using this property, the attributes `x` and `y` are also sampled from the base graph. However, `edge_attr` should be computed by users, using the attribute `edge_index` of the output subgraph.
+
+        ## Arguments
+        `points` (`Optional[torch.Tensor]`, default: `None`): The tensor of node coordinates of shape `(num_nodes, dimension)`.
+        `graph` (`Optional[Data]`, default: `None`): The base `torch_geometric.data.Data` object having attribute `pos`.
         """
+
         def __init__(
-                self,
-                points: Optional[torch.Tensor]  = None,
-                graph:  Optional[Data]          = None,
-            ) -> None:
-            """## The initializer of `RandomGraphGenerator`
-            
+            self,
+            points: Optional[torch.Tensor] = None,
+            graph:  Optional[Any]          = None,
+        ) -> None:
+            """The initializer of `RandomGraphGenerator`.
+
             ## Description
             Initializes the random graph generator using either input point coordinates or a base PyG `Data` graph.
-            
+
             ## Arguments
             `points` (`Optional[torch.Tensor]`, default: `None`): The tensor of node coordinates of shape `(num_nodes, dimension)`.
-            `graph` (`Optional[Data]`, default: `None`): The base `torch_geometric.data.Data` object having attribute `pos`.
-            
+            `graph` (`Optional[Any]`, default: `None`): The base `torch_geometric.data.Data` object having attribute `pos`.
+
             ## Returns
             `None`: None.
             """
             self.__check_arguments(points, graph)
             if points is not None:
                 graph = Data(pos=points)
-            self.__num_nodes    = int(graph.pos.shape[0])
-            self.__dimension    = int(graph.pos.shape[1])
-            self.__base_graph   = graph
-            return
-        
-        
+            self.__num_nodes:  int = int(graph.pos.shape[0])
+            self.__dimension:  int = int(graph.pos.shape[1])
+            self.__base_graph: Any = graph
+            return None
+
         def __check_arguments(
-                self,
-                points: Optional[torch.Tensor],
-                graph:  Optional[Data],
-            ) -> None:
+            self,
+            points: Optional[torch.Tensor],
+            graph:  Optional[Any],
+        ) -> None:
             if points is not None:
                 if points.ndim != 2:
                     raise ValueError(f"The shape of 'points' should be (num_nodes, dimension), but got {points.shape}.")
             else:
                 if graph.pos is None:
-                    raise ValueError(f"The 'graph' should have the attribute 'pos'.")
+                    raise ValueError("The 'graph' should have the attribute 'pos'.")
                 if graph.pos.ndim != 2:
                     raise ValueError(f"The shape of 'graph.pos' should be (num_nodes, dimension), but got {graph.pos.shape}.")
-            return
-        
-        
+            return None
+
         @property
         def num_nodes(self) -> int:
-            """## Total number of nodes in the graph."""
+            """Total number of nodes in the graph."""
             return self.__num_nodes
 
         @property
         def dimension(self) -> int:
-            """## Spatial dimension of node coordinates."""
+            """Spatial dimension of node coordinates."""
             return self.__dimension
 
         @property
-        def base_graph(self) -> Data:
-            """## Underlying base torch_geometric Data graph."""
+        def base_graph(self) -> Any:
+            """Underlying base torch_geometric Data graph."""
             return self.__base_graph
-        
-        
-        def _sample_node_indices(self, sample_size: int) -> torch.LongTensor:
-            """Sample a subset of node indices from the graph."""
-            from    numpy.random    import  choice
-            sample_idx = choice(self.num_nodes, size=sample_size, replace=False)
-            sample_idx.sort()
-            sample_idx = torch.tensor(sample_idx, dtype=torch.long)
-            return sample_idx
-        
-        
-        def _sample_points(self, sample_size: int) -> torch.Tensor:
-            """Sample a subset of nodes from the graph."""
-            sample_idx = self._sample_node_indices(sample_size)
-            return self.__base_graph.pos[sample_idx]        
-        
-        
-        def sample_graph__knn(
-                self,
-                sample_size:    int,
-                n_neighbors:    int,
-                loop:           bool    = False,
-            ) -> Data:
-            """Sample a `k`-nn subgraph from the base graph.
-            
-            Arguments:
-                `sample_size` (`int`): The number of nodes to sample from the base graph.
-                `n_neighbors` (`int`): The number of neighbors to sample for each node.
-                `loop` (`bool`, default: `False`): Whether to include self-loops in the graph.
-            
-            Returns:
-                `Data`: A `torch_geometric.data.Data` object containing the sampled graph.
-            """
-            from    torch_geometric.nn  import  knn_graph
-            node_index      = self._sample_node_indices(sample_size)
-            points          = self.__base_graph.pos[node_index]
-            sub_edge_index  = knn_graph(x=points, k=n_neighbors, loop=loop)
-            
-            sub_x:  Optional[torch.Tensor] = None
-            sub_y:  Optional[torch.Tensor] = None
-            if self.__base_graph.x is not None:
-                sub_x = self.__base_graph.x[node_index]
-            if self.__base_graph.y is not None:
-                sub_y = self.__base_graph.y[node_index]
-            return Data(x=sub_x, y=sub_y, pos=points, edge_index=sub_edge_index)
-        
-        
-        def sample_graph__radius(
-                self,
-                sample_size:        int,
-                radius:             float,
-                loop:               bool    = False,
-                max_num_neighbors:  int     = 64,
-            ) -> Data:
-            """## Sample a subgraph using radius-based connectivity
-            
+
+        def sample_subgraph(
+            self,
+            num_nodes:   int,
+            method:      str           = 'uniform',
+            return_mask: bool          = False,
+            generator:   Optional[Any] = None,
+        ) -> Any:
+            """Samples a subgraph of size `num_nodes`.
+
             ## Description
-            Samples a subset of nodes uniformly from the base graph and constructs an edge connectivity based on a Euclidean radius threshold.
-            
+            Samples a subset of `num_nodes` from the base graph using the specified sampling method.
+
             ## Arguments
-            `sample_size` (`int`): The number of nodes to sample from the base graph.
-            `radius` (`float`): The distance cutoff for connecting edges between sampled nodes.
-            `loop` (`bool`, default: `False`): Whether to include self-loops in the graph.
-            `max_num_neighbors` (`int`, default: `64`): The maximum number of neighbors for each node in radius graph construction.
-            
+            `num_nodes` (`int`): The number of nodes in the sampled subgraph.
+            `method` (`str`, default: `'uniform'`): The sampling method to use.
+            `return_mask` (`bool`, default: `False`): Whether to also return the boolean selection mask.
+            `generator` (`Optional[Any]`, default: `None`): PyTorch pseudo-random number generator.
+
             ## Returns
-            `Data`: A `torch_geometric.data.Data` object containing the sampled subgraph.
+            `Any`: Sampled `Data` object, or tuple with selection mask.
             """
-            from    torch_geometric.nn  import  radius_graph
-            node_index      = self._sample_node_indices(sample_size)
-            points          = self.__base_graph.pos[node_index]
-            sub_edge_index  = radius_graph(x=points, r=radius, loop=loop, max_num_neighbors=max_num_neighbors)
-            
-            sub_x:  Optional[torch.Tensor] = None
-            sub_y:  Optional[torch.Tensor] = None
-            if self.__base_graph.x is not None:
-                sub_x = self.__base_graph.x[node_index]
-            if self.__base_graph.y is not None:
-                sub_y = self.__base_graph.y[node_index]
-            return Data(x=sub_x, y=sub_y, pos=points, edge_index=sub_edge_index)
+            if num_nodes > self.num_nodes:
+                raise ValueError(f"The argument 'num_nodes' ({num_nodes}) should be less than or equal to the total number of nodes ({self.num_nodes}).")
+
+            if method == 'uniform':
+                perm: torch.Tensor = torch.randperm(self.num_nodes, generator=generator)
+                selected_idx: torch.Tensor = perm[:num_nodes]
+            else:
+                raise ValueError(f"Unsupported sampling method: {method}")
+
+            mask: torch.Tensor = torch.zeros(self.num_nodes, dtype=torch.bool)
+            mask[selected_idx] = True
+
+            sub_pos: torch.Tensor = self.base_graph.pos[selected_idx]
+            sub_graph: Any        = Data(pos=sub_pos)
+
+            if return_mask:
+                return sub_graph, mask
+            return sub_graph
 
 
-    ##################################################
-    ##################################################
     class RandomGridGenerator(RandomGraphGenerator):
-        """## Random Grid Generator
-        
+        """Random grid generator based on spatial discretization.
+
         ## Description
-        A generator class that builds a regular Cartesian space grid on a multidimensional domain and wraps it as a base graph for random subgraph sampling.
+        Generates random subgraphs sampled from a regular grid on a multi-dimensional box domain.
+
+        ## Arguments
+        `domain` (`Sequence[Sequence[float]]`): The domain bounds for each dimension.
+        `num_grids` (`Sequence[int]`): The number of grid intervals in each dimension.
+        `where_closed` (`str`, default: `'both'`): Boundary inclusion configuration (`'both'`, `'left'`, `'right'`, or `'none'`).
         """
+
         def __init__(
-                self,
-                domain:         Sequence[Sequence[float]],
-                num_grids:      Sequence[int],
-                where_closed:   str = 'both',
-            ) -> None:
-            """The initializer of the class `RandomGridGenerator`
-            
-            Arguments:
-                `domain` (`Sequence[Sequence[float]]`): The domain of the grid. Each element should be a sequence of length 2, where the first element is the lower bound and the second element is the upper bound.
-                `num_grids` (`Sequence[int]`): The number of grids in each dimension. Each element should be a positive integer.
-                `where_closed` (`str`, default: `'both'`): The type of the grid. It can be either `'both'`, `'left'`, `'right'`, or `'none'`. Default is `'both'`.
+            self,
+            domain:       Sequence[Sequence[float]],
+            num_grids:    Sequence[int],
+            where_closed: str = 'both',
+        ) -> None:
+            """The initializer of `RandomGridGenerator`.
+
+            ## Description
+            Initializes the regular grid graph generator on the given domain.
+
+            ## Arguments
+            `domain` (`Sequence[Sequence[float]]`): The domain bounding box.
+            `num_grids` (`Sequence[int]`): Number of grids in each dimension.
+            `where_closed` (`str`, default: `'both'`): Boundary closure configuration.
+
+            ## Returns
+            `None`: None.
             """
             self.__check_arguments(domain, num_grids, where_closed)
-            self.__dimension = len(domain)
-            self.__num_grids = tuple(num_grids)
-            min_values = tuple([x[0] for x in domain])
-            max_values = tuple([x[1] for x in domain])
-            points = space_grid(
-                dimension       = self.__dimension,
-                num_grids       = num_grids,
-                max_values      = max_values,
-                min_values      = min_values,
-                where_closed    = where_closed,
+            self.__dimension: int                = len(domain)
+            self.__num_grids: tuple[int, ...]     = tuple(num_grids)
+            min_values:       tuple[float, ...]  = tuple([x[0] for x in domain])
+            max_values:       tuple[float, ...]  = tuple([x[1] for x in domain])
+            points: torch.Tensor = space_grid(
+                dimension    = self.__dimension,
+                num_grids    = num_grids,
+                max_values   = max_values,
+                min_values   = min_values,
+                where_closed = where_closed,
             ).reshape(-1, self.__dimension)
             super().__init__(points=points)
-            return
-        
-        
+            return None
+
         @override
         def __check_arguments(
-                self,
-                domain:         Sequence[Sequence[float]],
-                num_grids:      Sequence[int],
-                where_closed:   str,
-            ) -> None:
+            self,
+            domain:       Sequence[Sequence[float]],
+            num_grids:    Sequence[int],
+            where_closed: str,
+        ) -> None:
             if len(domain) != len(num_grids):
                 raise ValueError(f"The length of 'domain' ({len(domain)}) and 'num_grids' ({len(num_grids)}) should be the same.")
             for idx, (x, n) in enumerate(zip(domain, num_grids)):
@@ -233,15 +199,18 @@ else:
                     raise ValueError(f"Each element of 'num_grids' should be a positive integer, but got {n} at index {idx}.")
             if where_closed not in ['both', 'left', 'right', 'none']:
                 raise ValueError(f"'where_closed' should be either 'both', 'left', 'right', or 'none', but got {where_closed}.")
-            return
-        
-        
+            return None
+
         @property
-        def num_grids(self) -> Sequence[int]:
-            """## Number of grid intervals along each dimension."""
+        def num_grids(self) -> tuple[int, ...]:
+            """Number of grid intervals along each dimension."""
             return self.__num_grids
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

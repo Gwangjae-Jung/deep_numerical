@@ -1,11 +1,9 @@
-from    typing              import  Optional
-import  torch
-from    scipy.special       import  roots_legendre
-from    scipy.integrate     import  lebedev_rule
+from   typing          import Optional
+import torch
+from   scipy.integrate import lebedev_rule
+from   scipy.special   import roots_legendre
 
 
-##################################################
-##################################################
 __all__: list[str] = [
     'roots_uniform_shifted',
     'roots_linspace',
@@ -17,12 +15,9 @@ __all__: list[str] = [
 ]
 
 
-##################################################
-##################################################
-# Quadrature and grid
-DEFAULT_QUAD_ORDER_UNIFORM:     int = 30
-DEFAULT_QUAD_ORDER_LEGENDRE:    int = 20
-DEFAULT_QUAD_ORDER_LEBEDEV:     int = 7
+DEFAULT_QUAD_ORDER_UNIFORM:  int = 30
+DEFAULT_QUAD_ORDER_LEGENDRE: int = 20
+DEFAULT_QUAD_ORDER_LEBEDEV:  int = 7
 """
 ### Note
 The following is the collection of the pairs of the degree of the Lebedev quadrature and the number of points in the quadrature, supported by the function `scipy.integrate.lebedev_rule`.\n
@@ -61,7 +56,21 @@ The following is the collection of the pairs of the degree of the Lebedev quadra
 """
 
 
+##################################################
 def _check_interval(n: int, a: float, b: float) -> None:
+    """Validates the input interval and number of quadrature points.
+
+    ## Description
+    Ensures that the number of quadrature points `n` is greater than 1, and that the lower bound `a` is strictly less than the upper bound `b`.
+
+    ## Arguments
+    `n` (`int`): Number of quadrature points. Must be greater than 1.
+    `a` (`float`): Lower bound of the interval.
+    `b` (`float`): Upper bound of the interval.
+
+    ## Returns
+    `None`: Returns `None` if validation passes, otherwise raises `ValueError`.
+    """
     if n <= 1:
         raise ValueError(f"'n' should be a positive integer greater than 1, but [{n=}].")
     if a >= b:
@@ -70,26 +79,43 @@ def _check_interval(n: int, a: float, b: float) -> None:
 
 
 def roots_uniform_shifted(
-        n:              int,
-        a:              float,
-        b:              float,
-        is_symmetric:   bool = False,
-        dtype:          Optional[torch.dtype]   = None,
-        device:         Optional[torch.device]  = None,
+        n:            int,
+        a:            float,
+        b:            float,
+        is_symmetric: bool                   = False,
+        dtype:        Optional[torch.dtype]  = None,
+        device:       Optional[torch.device] = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-    """Returns 1-dimensional arrays of the Legendre quadrature points and weights."""
+    """Returns 1-dimensional arrays of uniform quadrature points and weights.
+
+    ## Description
+    Computes shifted uniform quadrature points and uniform weights on the interval `[a, b]`.
+    If `is_symmetric` is `True`, points are centered within sub-intervals (midpoint rule);
+    otherwise, points start at `a`.
+
+    ## Arguments
+    `n` (`int`): The number of quadrature points.
+    `a` (`float`): Lower bound of the interval.
+    `b` (`float`): Upper bound of the interval.
+    `is_symmetric` (`bool`, default: `False`): Whether to use centered midpoint points.
+    `dtype` (`Optional[torch.dtype]`, default: `None`): The data type of the output tensors.
+    `device` (`Optional[torch.device]`, default: `None`): The device of the output tensors.
+
+    ## Returns
+    `tuple[torch.Tensor, torch.Tensor]`: A tuple containing `(roots, weights)`.
+    """
     _check_interval(n, a, b)
     if dtype is None:
         dtype = torch.get_default_dtype()
     if device is None:
         device = torch.get_default_device()
-    delta = (b-a) / n
+    delta: float = (b - a) / n
     roots: torch.Tensor
     if is_symmetric:
-        roots = torch.linspace(a+delta/2, b-delta/2, n, dtype=dtype)
+        roots = torch.linspace(a + delta / 2, b - delta / 2, n, dtype=dtype, device=device)
     else:
-        roots = a + delta*torch.arange(n, dtype=dtype, device=device)
-    weights = delta * torch.ones_like(roots, dtype=dtype, device=device)
+        roots = a + delta * torch.arange(n, dtype=dtype, device=device)
+    weights: torch.Tensor = delta * torch.ones_like(roots, dtype=dtype, device=device)
     return (roots, weights)
 
 
@@ -97,17 +123,31 @@ def roots_linspace(
         n:      int,
         a:      float,
         b:      float,
-        dtype:  Optional[torch.dtype]   = None,
-        device: Optional[torch.device]  = None,
+        dtype:  Optional[torch.dtype]  = None,
+        device: Optional[torch.device] = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-    """Returns 1-dimensional arrays of the uniform quadrature points and weights."""
+    """Returns 1-dimensional arrays of evenly spaced quadrature points and trapezoidal-like uniform weights.
+
+    ## Description
+    Generates `n` linearly spaced points on `[a, b]` with uniform weights `(b - a) / (n - 1)`.
+
+    ## Arguments
+    `n` (`int`): The number of points.
+    `a` (`float`): Lower bound of the interval.
+    `b` (`float`): Upper bound of the interval.
+    `dtype` (`Optional[torch.dtype]`, default: `None`): The data type of the output tensors.
+    `device` (`Optional[torch.device]`, default: `None`): The device of the output tensors.
+
+    ## Returns
+    `tuple[torch.Tensor, torch.Tensor]`: A tuple containing `(roots, weights)`.
+    """
     _check_interval(n, a, b)
     if dtype is None:
         dtype = torch.get_default_dtype()
     if device is None:
         device = torch.get_default_device()
-    roots = torch.linspace(a, b, n, dtype=dtype, device=device)
-    weights = (b-a) * torch.ones_like(roots, dtype=dtype, device=device) / (n-1)
+    roots:   torch.Tensor = torch.linspace(a, b, n, dtype=dtype, device=device)
+    weights: torch.Tensor = (b - a) * torch.ones_like(roots, dtype=dtype, device=device) / (n - 1)
     return (roots, weights)
 
 
@@ -115,62 +155,100 @@ def roots_legendre_shifted(
         n:      int,
         a:      float,
         b:      float,
-        dtype:  Optional[torch.dtype]   = None,
-        device: Optional[torch.device]  = None,
+        dtype:  Optional[torch.dtype]  = None,
+        device: Optional[torch.device] = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-    """Returns 1-dimensional arrays of the Legendre quadrature points and weights."""
+    """Returns 1-dimensional arrays of Gauss-Legendre quadrature points and weights shifted to `[a, b]`.
+
+    ## Description
+    Calculates the roots and weights for Gauss-Legendre quadrature of order `n`, affine-transformed from `[-1, 1]` to the interval `[a, b]`.
+
+    ## Arguments
+    `n` (`int`): The quadrature order.
+    `a` (`float`): Lower bound of the interval.
+    `b` (`float`): Upper bound of the interval.
+    `dtype` (`Optional[torch.dtype]`, default: `None`): The data type of the output tensors.
+    `device` (`Optional[torch.device]`, default: `None`): The device of the output tensors.
+
+    ## Returns
+    `tuple[torch.Tensor, torch.Tensor]`: A tuple containing `(roots, weights)`.
+    """
     _check_interval(n, a, b)
     if dtype is None:
         dtype = torch.get_default_dtype()
     if device is None:
         device = torch.get_default_device()
-    roots, weights = roots_legendre(n)
-    roots   = torch.tensor((a+b)/2 + (b-a)*roots/2, dtype=dtype, device=device)
-    weights = torch.tensor((b-a)*weights/2, dtype=dtype, device=device)
+    raw_roots, raw_weights = roots_legendre(n)
+    roots:   torch.Tensor = torch.tensor((a + b) / 2 + (b - a) * raw_roots / 2, dtype=dtype, device=device)
+    weights: torch.Tensor = torch.tensor((b - a) * raw_weights / 2, dtype=dtype, device=device)
     return (roots, weights)
 
 
 def roots_lebedev(
         order:  int,
-        dtype:  Optional[torch.dtype]   = None,
-        device: Optional[torch.device]  = None,
+        dtype:  Optional[torch.dtype]  = None,
+        device: Optional[torch.device] = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-    """Returns a 2-dimensional array of the Lebedev quadrature points on the unit sphere of shape `(N, 3)` and a 1-dimensional array of weights, where `N` is the number of points in the quadrature."""
+    """Returns Lebedev quadrature points on the unit sphere and their corresponding weights.
+
+    ## Description
+    Computes Lebedev quadrature points on `S^2` of shape `(N, 3)` and weights of shape `(N,)` for a given order, where `N` is the number of points.
+
+    ## Arguments
+    `order` (`int`): The degree / order of the Lebedev quadrature rule.
+    `dtype` (`Optional[torch.dtype]`, default: `None`): The data type of the output tensors.
+    `device` (`Optional[torch.device]`, default: `None`): The device of the output tensors.
+
+    ## Returns
+    `tuple[torch.Tensor, torch.Tensor]`: A tuple of `(roots, weights)` on `S^2`.
+    """
     if dtype is None:
         dtype = torch.get_default_dtype()
     if device is None:
         device = torch.get_default_device()
-    roots, weights = lebedev_rule(order)
-    roots   = torch.tensor(roots,   dtype=dtype, device=device).transpose(1, 0)
-    weights = torch.tensor(weights, dtype=dtype, device=device)
-    return roots, weights
+    raw_roots, raw_weights = lebedev_rule(order)
+    roots:   torch.Tensor = torch.tensor(raw_roots,   dtype=dtype, device=device).transpose(1, 0)
+    weights: torch.Tensor = torch.tensor(raw_weights, dtype=dtype, device=device)
+    return (roots, weights)
 
 
 def roots_circle(
         n:      int,
-        dtype:  Optional[torch.dtype]   = None,
-        device: Optional[torch.device]  = None,
+        dtype:  Optional[torch.dtype]  = None,
+        device: Optional[torch.device] = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-    """Returns a 2-dimensional array of the uniform quadrature points on the unit circle of shape `(N, 2)` and a 1-dimensional array of weights, where `N` is the number of points in the quadrature."""
+    """Returns uniform quadrature points on the unit circle `S^1` and their weights.
+
+    ## Description
+    Generates `n` uniformly distributed points on the unit circle in 2D Cartesian coordinates `(x, y)` with uniform integration weights.
+
+    ## Arguments
+    `n` (`int`): The number of quadrature points on the circle.
+    `dtype` (`Optional[torch.dtype]`, default: `None`): The data type of the output tensors.
+    `device` (`Optional[torch.device]`, default: `None`): The device of the output tensors.
+
+    ## Returns
+    `tuple[torch.Tensor, torch.Tensor]`: A tuple `(roots, weights)` where `roots` has shape `(n, 2)` and `weights` has shape `(n,)`.
+    """
     if dtype is None:
         dtype = torch.get_default_dtype()
     if device is None:
         device = torch.get_default_device()
-    _thetas, weights = roots_uniform_shifted(n, 0, 2*torch.pi, dtype=dtype, device=device)
-    roots = torch.stack((torch.cos(_thetas), torch.sin(_thetas)), dim=-1)
+    _thetas, weights = roots_uniform_shifted(n, 0.0, 2.0 * torch.pi, dtype=dtype, device=device)
+    roots: torch.Tensor = torch.stack((torch.cos(_thetas), torch.sin(_thetas)), dim=-1)
     return (roots, weights)
 
 
 def polar_grid(radius: torch.Tensor, angle: torch.Tensor) -> torch.Tensor:
-    """## Polar coordinate grid
-    
+    """Constructs a 2D Cartesian coordinate grid from radial and angular coordinate tensors.
+
     ## Description
     Constructs a 2D Cartesian coordinate grid from 1D radial and angular coordinate tensors.
-    
+
     ## Arguments
-    `radius` (`torch.Tensor`): A 1D tensor containing the radial coordinates.
-    `angle` (`torch.Tensor`): A 1D tensor containing the polar angles in radians.
-    
+    `radius` (`torch.Tensor`): A 1D tensor containing radial coordinates.
+    `angle` (`torch.Tensor`): A 1D tensor containing polar angles in radians.
+
     ## Returns
     `torch.Tensor`: A tensor of shape `(len(radius), len(angle), 2)` containing `(x, y)` Cartesian coordinates.
     """
@@ -180,29 +258,29 @@ def polar_grid(radius: torch.Tensor, angle: torch.Tensor) -> torch.Tensor:
             f"* radius.ndim: {radius.ndim}\n"
             f"* angle.ndim:  {angle.ndim}"
         )
-    r = radius.reshape(-1, 1)
-    t = angle.reshape( 1, -1)
-    x = r * torch.cos(t)
-    y = r * torch.sin(t)
-    grid = torch.stack((x, y), dim=-1)
+    r:    torch.Tensor = radius.reshape(-1, 1)
+    t:    torch.Tensor = angle.reshape(1, -1)
+    x:    torch.Tensor = r * torch.cos(t)
+    y:    torch.Tensor = r * torch.sin(t)
+    grid: torch.Tensor = torch.stack((x, y), dim=-1)
     return grid
-        
+
 
 def spherical_grid(
-        radius:             torch.Tensor,
-        polar_angle:        torch.Tensor,
-        azimuthal_angle:    torch.Tensor,
+        radius:          torch.Tensor,
+        polar_angle:     torch.Tensor,
+        azimuthal_angle: torch.Tensor,
     ) -> torch.Tensor:
-    """## Spherical coordinate grid
-    
+    """Constructs a 3D Cartesian coordinate grid from radial, polar, and azimuthal angle tensors.
+
     ## Description
     Constructs a 3D Cartesian coordinate grid from 1D radial, polar (zenith), and azimuthal angle tensors.
-    
+
     ## Arguments
-    `radius` (`torch.Tensor`): A 1D tensor containing the radial coordinates.
-    `polar_angle` (`torch.Tensor`): A 1D tensor containing the polar (zenith) angles `phi` in radians.
-    `azimuthal_angle` (`torch.Tensor`): A 1D tensor containing the azimuthal angles `theta` in radians.
-    
+    `radius` (`torch.Tensor`): A 1D tensor containing radial coordinates.
+    `polar_angle` (`torch.Tensor`): A 1D tensor containing polar (zenith) angles `phi` in radians.
+    `azimuthal_angle` (`torch.Tensor`): A 1D tensor containing azimuthal angles `theta` in radians.
+
     ## Returns
     `torch.Tensor`: A tensor of shape `(len(radius), len(polar_angle), len(azimuthal_angle), 3)` containing `(x, y, z)` Cartesian coordinates.
     """
@@ -213,18 +291,22 @@ def spherical_grid(
             f"* polar_angle.ndim:     {polar_angle.ndim}\n"
             f"* azimuthal_angle.ndim: {azimuthal_angle.ndim}"
         )
-    rho     = radius.reshape(         -1, 1, 1)
-    phi     = polar_angle.reshape(    1, -1, 1)
-    theta   = azimuthal_angle.reshape(1, 1, -1)
-    _xy = rho * torch.sin(phi)
-    x   = _xy * torch.cos(theta)
-    y   = _xy * torch.sin(theta)
-    z   = rho * torch.cos(phi)
-    z   = torch.tile(z, reps=(1, 1, len(azimuthal_angle)))
-    grid = torch.stack((x, y, z), dim=-1)
+    rho:   torch.Tensor = radius.reshape(-1, 1, 1)
+    phi:   torch.Tensor = polar_angle.reshape(1, -1, 1)
+    theta: torch.Tensor = azimuthal_angle.reshape(1, 1, -1)
+    _xy:   torch.Tensor = rho * torch.sin(phi)
+    x:     torch.Tensor = _xy * torch.cos(theta)
+    y:     torch.Tensor = _xy * torch.sin(theta)
+    z:     torch.Tensor = rho * torch.cos(phi)
+    z = torch.tile(z, reps=(1, 1, len(azimuthal_angle)))
+    grid:  torch.Tensor = torch.stack((x, y, z), dim=-1)
     return grid
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

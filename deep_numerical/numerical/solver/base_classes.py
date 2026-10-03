@@ -1,19 +1,23 @@
-import  warnings
+from   itertools         import product
+from   typing            import Callable, Optional, Sequence
+import warnings
 
-from    typing              import  Callable, Optional, Sequence
-from    typing_extensions   import  Self, override
+import torch
+from   scipy.interpolate import RegularGridInterpolator
+from   typing_extensions import Self, override
 
-from    itertools           import  product
-
-import  torch
-from    scipy.interpolate   import  RegularGridInterpolator
-
-from    deep_numerical          import  repeat, ones, EINSUM_STRING
-from    deep_numerical.utils    import  space_grid, velocity_grid, arg_boundary_inflow, arg_specular_velocity, get_trange
-from    deep_numerical.fft      import  freq_tensor, convolve_freqs
-from    deep_numerical.numerical.integrate  import  integration_guass_legendre
-from    .constants              import  LAMBDA, LAMBDA_FPL, DEFAULT_QUAD_ORDER_LEBEDEV
-from    .runge_kutta            import  one_step_RK4_classic
+from   deep_numerical                     import EINSUM_STRING, ones, repeat
+from   deep_numerical.fft                 import convolve_freqs, freq_tensor
+from   deep_numerical.numerical.integrate import integration_guass_legendre
+from   deep_numerical.utils               import (
+    arg_boundary_inflow,
+    arg_specular_velocity,
+    get_trange,
+    space_grid,
+    velocity_grid,
+)
+from   .constants                         import DEFAULT_QUAD_ORDER_LEBEDEV, LAMBDA, LAMBDA_FPL
+from   .runge_kutta                       import one_step_RK4_classic
 
 
 __all__: list[str] = [
@@ -25,8 +29,8 @@ __all__: list[str] = [
 
 
 DEBUG: bool = False
-##################################################
-##################################################
+
+
 class SpectralMethodBase():
     r"""The base class for the spectral methods for the kinetic equations.
     
@@ -209,13 +213,19 @@ class SpectralMethodBase():
     
     # Properties - `torch`
     @property
+
     def dtype(self) -> torch.dtype:
-        """## Real floating-point data type."""
+
+        """Real floating-point data type."""
         return self._dtype
 
     @property
+
+
     def dtype_complex(self) -> torch.dtype:
-        """## Complex floating-point data type matching real dtype precision."""
+
+
+        """Complex floating-point data type matching real dtype precision."""
         default_dtype = torch.get_default_dtype()
         if default_dtype==torch.double:
             return torch.cdouble
@@ -225,13 +235,21 @@ class SpectralMethodBase():
             raise TypeError(f"Unsupported default dtype: {default_dtype}")
 
     @property
+
+
     def device(self) -> torch.device:
-        """## Device on which solver tensors reside."""
+
+
+        """Device on which solver tensors reside."""
         return self._device
 
     @property
+
+
     def dtype_and_device(self) -> dict[str, object]:
-        """## Dictionary of dtype and device keyword arguments."""
+
+
+        """Dictionary of dtype and device keyword arguments."""
         return {'dtype': self._dtype, 'device': self._device}
     
     
@@ -256,18 +274,28 @@ class SpectralMethodBase():
     
     # Properties - Einsum
     @property
+
     def einsum_string_x(self) -> str:
-        """## Einsum subscript string for spatial dimensions."""
+
+        """Einsum subscript string for spatial dimensions."""
         return EINSUM_STRING[1:1+self._dimension]
 
     @property
+
+
     def einsum_string_v(self) -> str:
-        """## Einsum subscript string for velocity dimensions."""
+
+
+        """Einsum subscript string for velocity dimensions."""
         return EINSUM_STRING[1+self._dimension:1+2*self._dimension]
 
     @property
+
+
     def einsum_string_bxvd(self) -> str:
-        """## Einsum subscript string for batch, space, velocity, and channel axes."""
+
+
+        """Einsum subscript string for batch, space, velocity, and channel axes."""
         return f"b{self.einsum_string_x}{self.einsum_string_v}d"
 
     
@@ -286,8 +314,12 @@ class SpectralMethodBase():
         return product(*_freq_slices)
 
     @property
+
+
     def truncated_ones(self) -> torch.Tensor:
-        """## Tensor of ones sized to the truncated spatio-velocity grid."""
+
+
+        """Tensor of ones sized to the truncated spatio-velocity grid."""
         return torch.ones(
             (
                 1,
@@ -590,8 +622,7 @@ class SpectralMethodBase():
         )
 
 
-##################################################
-##################################################
+
 class DirectSM_Base(SpectralMethodBase):
     r"""The base class for the direct spectral methods for the homogeneous Boltzmann equation.
     """
@@ -787,10 +818,9 @@ class DirectSM_Base(SpectralMethodBase):
         return ret
     
 
-##################################################
-##################################################
+
 class FastSM_Boltzmann(SpectralMethodBase):
-    r"""## The base class for the fast spectral method for solving the Boltzmann equation.
+    r"""The base class for the fast spectral method for solving the Boltzmann equation.
     
     -----
     ### Description
@@ -996,10 +1026,9 @@ class FastSM_Boltzmann(SpectralMethodBase):
         return self
     
 
-##################################################
-##################################################
+
 class FastSM_Landau(SpectralMethodBase):
-    """## The class for the fast spectral method for solving the Fokker-Planck-Landau equation with the VHS model.
+    """The class for the fast spectral method for solving the Fokker-Planck-Landau equation with the VHS model.
     
     -----
     ### Description
@@ -1323,6 +1352,10 @@ class FastSM_Landau(SpectralMethodBase):
         return self
     
 
-# ##################################################
-# ##################################################
-# End of file
+##################################################
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

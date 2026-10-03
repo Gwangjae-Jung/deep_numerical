@@ -1,24 +1,28 @@
-from    typing              import  Literal, Sequence, Optional
-from    typing_extensions   import  Self, override
-import  torch
-from    deep_numerical.utils        import  type_as_real
-from    deep_numerical.neural       import  BaseModule
-from    deep_numerical.neural.utils import  Activations
-from    deep_numerical.neural.layer import  MLP, RadialFourierLayer
-from    deep_numerical.neural.collision_op._utils   import  compute_moments_homogeneous, maxwellian_homogeneous
+from   typing                                    import Literal, Optional, Sequence
+import torch
+from   typing_extensions                         import override
+
+from   deep_numerical.neural                     import BaseModule
+from   deep_numerical.neural.collision_op._utils import (
+    compute_moments_homogeneous,
+    maxwellian_homogeneous,
+)
+from   deep_numerical.neural.layer               import MLP, RadialFourierLayer
+from   deep_numerical.neural.utils               import Activations
+from   deep_numerical.utils                      import type_as_real
 
 
-__all__ = ["ConservativeRFNO"]
+__all__: list[str] = ["ConservativeRFNO"]
 
 
-KeyRegistry = Literal['v_grid', 'pos_code', 'gaussian']
+KeyRegistry: type = Literal['v_grid', 'pos_code', 'gaussian']
 
 
-##################################################
-##################################################
 class ConservativeRFNO(BaseModule):
-    """## Radial Fourier Neural Operator (Radial-FNO)
-    ### Integral operator via discrete Fourier transform
+    """Conservative Radial Fourier Neural Operator (RFNO) for collision operators.
+
+    ## Description
+    Radially symmetric Fourier neural operator for kinetic collision operators.
     
     -----
     ### Description
@@ -46,8 +50,8 @@ class ConservativeRFNO(BaseModule):
             activation_kwargs:  dict[str, object]   = {},
             
             dtype:              Optional[torch.dtype]   = None,
-        ) -> Self:
-        """## The initializer of the class `FourierNeuralOperator`
+        ) -> None:
+        """Initializes the `ConservativeRFNO` model.
         
         Arguments:
             `dim_domain` (`int`):
@@ -230,44 +234,11 @@ class ConservativeRFNO(BaseModule):
         return self.__dtype
 
 
-##################################################
-##################################################
-if __name__=="__main__":
-    torch.set_default_dtype(torch.double)
-    
-    model = ConservativeRFNO(
-        dim_domain          = 2,
-        max_freq            = 8,
-        max_domain_value    = 6.62,
-        hidden_channels     = 64,
-        bias                = False,
-        activation_name     = "tanh",
-    )
-    rho = torch.ones((10, 1))*2
-    u   = torch.ones((10, 2))*1.3
-    T   = torch.ones((10, 1))
-    res = 2**6
-    model.update_register(res)
-    v_grid: torch.Tensor = model._ConservativeRFNO__register['v_grid']
-    x = maxwellian_homogeneous(v_grid, rho, u, T) + maxwellian_homogeneous(v_grid, rho*3.7, -u/5, T*1.5)
-    y = model.forward(x)
-    print('~'*20)
-    print(y.norm(p=torch.inf).item(), y.shape)
-    signed_density  = y.sum(dim=(1, 2)) * (2*6.62/res)**2
-    signed_momentum = torch.einsum('bUVd, UVd -> bd', y, v_grid) * (2*6.62/res)**2
-    signed_energy   = torch.einsum('bUVd, UVd -> b',  y, (v_grid**2).sum(dim=-1, keepdim=True)) * (2*6.62/res)**2
-    print(f"* Signed density   : {signed_density.norm(torch.inf).item() :.4e}")
-    print(f"* Signed momentum  : {signed_momentum.norm(torch.inf).item():.4e}")
-    print(f"* Signed energy    : {signed_energy.norm(torch.inf).item()  :.4e}")
-    unsigned_density    = y.abs().sum(dim=(1, 2)) * (2*6.62/res)**2
-    unsigned_momentum   = torch.einsum('bUVd, UVd -> bd', y.abs(), v_grid) * (2*6.62/res)**2
-    unsigned_energy     = torch.einsum('bUVd, UVd -> b',  y.abs(), (v_grid**2).sum(dim=-1, keepdim=True)) * (2*6.62/res)**2
-    print(f"* Unsigned density : {unsigned_density.norm(torch.inf).item() :.4e}")
-    print(f"* Unsigned momentum: {unsigned_momentum.norm(torch.inf).item():.4e}")
-    print(f"* Unsigned energy  : {unsigned_energy.norm(torch.inf).item()  :.4e}")
-    print('~'*20)
-
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

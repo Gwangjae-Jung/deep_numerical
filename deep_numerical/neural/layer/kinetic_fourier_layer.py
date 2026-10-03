@@ -12,10 +12,9 @@ from    deep_numerical.numerical.solver import  one_step_RK4_classic
 __all__: list[str]  = ['FourierBoltzmannLayer']
 
 
-##################################################
-##################################################
+
 class FourierBoltzmannLayer(BaseModule):
-    """## Fourier layer designed for Boltzmann collision operator approximation.
+    """Fourier layer designed for Boltzmann collision operator approximation.
 
     ## Description
     Parameterized spectral layer structured after the fast spectral method for kinetic
@@ -71,22 +70,22 @@ class FourierBoltzmannLayer(BaseModule):
     
     @property
     def dimension(self) -> int:
-        """## Spatial dimension."""
+        """Spatial dimension."""
         return self.__dimension
 
     @property
     def n_modes(self) -> tuple[int, ...]:
-        """## Number of Fourier modes per dimension."""
+        """Number of Fourier modes per dimension."""
         return self.__n_modes
 
     @property
     def n_weights(self) -> int:
-        """## Number of quadrature weights."""
+        """Number of quadrature weights."""
         return self.__n_weights
 
     @property
     def n_channels(self) -> int:
-        """## Number of feature channels."""
+        """Number of feature channels."""
         return self.__n_channels
     
     
@@ -114,7 +113,7 @@ class FourierBoltzmannLayer(BaseModule):
             _PLACEHOLDER__t_curr:   Optional[float],
             X_fft:                  torch.Tensor,
         ) -> torch.Tensor:
-        """## The forward propagation of `FourierBoltzmannLayer`
+        """The forward propagation of `FourierBoltzmannLayer`
         
         -----
         ### Description
@@ -189,7 +188,7 @@ class FourierBoltzmannLayer(BaseModule):
             delta_t:    float,
             RK_fcn:     Callable[[float, torch.Tensor, float, Callable], torch.Tensor] = one_step_RK4_classic,
         ) -> torch.Tensor:
-        """## Advances the solution by one time step using Runge-Kutta integration.
+        """Advances the solution by one time step using Runge-Kutta integration.
 
         ## Description
         Integrates the Fourier-transformed distribution `f_fft` forward by `delta_t`
@@ -208,5 +207,9 @@ class FourierBoltzmannLayer(BaseModule):
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

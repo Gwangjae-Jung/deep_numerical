@@ -61,5 +61,9 @@ except (ImportError, ModuleNotFoundError, AttributeError):
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

@@ -1,21 +1,18 @@
-from    typing              import  Optional, Callable
+from   typing        import Callable, Optional
+import torch
+from   torch.special import bessel_j0 as j0
 
-import  torch
-from    torch.special       import  bessel_j0   as  j0
-
-from    .base_classes       import  FastSM_Landau
-from    deep_numerical      import  repeat, ones, zeros
-from    deep_numerical.numerical.math       import  sinc
-from    deep_numerical.numerical.integrate  import  roots_legendre_shifted
+from   deep_numerical                     import ones, repeat, zeros
+from   deep_numerical.numerical.integrate import roots_legendre_shifted
+from   deep_numerical.numerical.math      import sinc
+from   .base_classes                      import FastSM_Landau
 
 
 __all__: list[str] = ['FastSM_Landau_VHS']
 
 
-##################################################
-##################################################
 class FastSM_Landau_VHS(FastSM_Landau):
-    """## The class for the fast spectral method for solving the Fokker-Planck-Landau equation with the VHS model.
+    """The class for the fast spectral method for solving the Fokker-Planck-Landau equation with the VHS model.
     
     -----
     ### Description
@@ -52,7 +49,7 @@ class FastSM_Landau_VHS(FastSM_Landau):
             dtype:  Optional[torch.dtype]   = None,
             device: Optional[torch.device]  = None,
         ) -> None:
-        """## The initializer of `FastSM_FPL`
+        """The initializer of `FastSM_FPL`
         
         ## Description
         Initializes the fast spectral method solver for the Fokker-Planck-Landau collision operator.
@@ -293,7 +290,7 @@ class FastSM_Landau_VHS(FastSM_Landau):
         return
 
 
-##################################################
+
 ##################################################
 # Computation of several weight functions
 def _fpl_character_2__weight_C(
@@ -301,7 +298,7 @@ def _fpl_character_2__weight_C(
         quad_order_uniform: int,
         dtype:  Optional[torch.dtype]   = None,
         device: Optional[torch.device]  = None,
-    ) -> Callable[[torch.Tensor], torch.Tensor]:
+    ) -> torch.Tensor:
     r"""Returns the weight function defined as below:
     
         $x \mapsto \int_{0}{2\pi} \cos(2t) \cos(x\cos(t)) \, dt$
@@ -412,6 +409,11 @@ def _fpl_character_2_3D__entry22_weight(
     return torch.sum(integrand*w, dim=-1)
 
 
+
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

@@ -1,35 +1,32 @@
-from    typing      import  Optional, Sequence, Union
-import  torch
+from   typing import Optional, Sequence, Union
+import torch
 
 
-__all__ = ["absolute_error", "relative_error", "psnr"]
+__all__: list[str] = ["absolute_error", "relative_error", "psnr"]
 
 
-##################################################
 ##################################################
 def absolute_error(
-        preds:      torch.Tensor,
-        targets:    torch.Tensor,
-        p:          Union[float, str] = 2.0,
-        dim:        Optional[Sequence[int]] = None,
-        scale:      Optional[torch.Tensor]  = None,
-    ) -> torch.Tensor:
-    """Returns the instance-wise absolute error between the `preds` and `targets`.
-    
-    Given to sequences `preds` and `targets` of shape `(N, ...)` (where `N` is the number of the instances), this function returns the array `error` of shape `(N,)`, where `error[k]` is the absolute error of `preds[k]` of order `ord` from `targets[k]` for `k` in `range(N)`.
-    
-    Arguments:
-        `preds` (`torch.Tensor`): The predictions.
-        `targets` (`torch.Tensor`): The targets.
-        `p` (`float` or `str`): The order of the error. If `p` is a string, it must be one of the following: 'inf', '1', '2'.
-        `dim` (`Sequence[int]`, optional): The dimensions to compute the error over. If `None`, all dimensions are used.
-        `scale` (`torch.Tensor`, optional): A scaling factor for the error. If `None`, no scaling is applied.
-    
-    Returns:
-        `torch.Tensor`: The tensor of the absolute errors.
-    
-    ### Note
-    To compute the error using the maximum function, pass `ord='inf'`.
+    preds:   torch.Tensor,
+    targets: torch.Tensor,
+    p:       Union[float, str]       = 2.0,
+    dim:     Optional[Sequence[int]] = None,
+    scale:   Optional[torch.Tensor]  = None,
+) -> torch.Tensor:
+    """Returns the instance-wise absolute error between `preds` and `targets`.
+
+    ## Description
+    Given sequences `preds` and `targets` of shape `(N, ...)`, returns the absolute error tensor of shape `(N,)`, where each entry is the norm of `preds - targets` of order `p`.
+
+    ## Arguments
+    `preds` (`torch.Tensor`): The predictions.
+    `targets` (`torch.Tensor`): The targets.
+    `p` (`Union[float, str]`, default: `2.0`): The order of the error norm. If string, must be `'inf'`, `'1'`, or `'2'`.
+    `dim` (`Optional[Sequence[int]]`, default: `None`): The dimensions to compute the error over. If `None`, all dimensions except batch dimension are used.
+    `scale` (`Optional[torch.Tensor]`, default: `None`): A scaling factor for the error.
+
+    ## Returns
+    `torch.Tensor`: The tensor of absolute errors.
     """
     if preds.shape != targets.shape:
         raise ValueError(f'The shapes of `preds` and `targets` must be equal, but got {preds.shape} and {targets.shape} instead.')
@@ -40,34 +37,34 @@ def absolute_error(
         if p == 'inf':
             p = torch.inf
     if scale is None:
-        scale: torch.Tensor = torch.ones((preds.size(0),), device=preds.device)
-    diff        = torch.norm(preds-targets, dim=dim, p=p)
-    scale       = scale.reshape(diff.shape)
-    abs_error   = scale * diff
-    return abs_error
+        scale_tensor: torch.Tensor = torch.ones((preds.size(0),), device=preds.device)
+    else:
+        scale_tensor = scale
+    diff:      torch.Tensor = torch.norm(preds - targets, dim=dim, p=p)
+    scale_val: torch.Tensor = scale_tensor.reshape(diff.shape)
+    abs_err:   torch.Tensor = scale_val * diff
+    return abs_err
 
 
 def relative_error(
-        preds:      torch.Tensor,
-        targets:    torch.Tensor,
-        p:          Union[float, str] = 2.0,
-        dim:        Optional[Sequence[int]] = None,
-    ) -> torch.Tensor:
-    """Returns the instance-wise relative error between the `preds` and `targets`.
-    
-    Given to sequences `preds` and `targets` of shape `(N, ...)` (where `N` is the number of the instances), this function returns the array `error` of shape `(N,)`, where `error[k]` is the relative error of `preds[k]` of order `ord` from `targets[k]` for `k` in `range(N)`.
-    
-    Arguments:
-        `preds` (`torch.Tensor`): The predictions.
-        `targets` (`torch.Tensor`): The targets.
-        `p` (`float` or `str`): The order of the error. If `p` is a string, it must be one of the following: 'inf', '1', '2'.
-        `dim` (`Sequence[int]`, optional): The dimensions to compute the error over. If `None`, all dimensions except for the batch dimension are used.
-    
-    Returns:
-        `torch.Tensor`: The tensor of the relative errors of shape `(N,)`.
-    
-    ### Note
-    To compute the error using the maximum function, pass `ord='inf'`.
+    preds:   torch.Tensor,
+    targets: torch.Tensor,
+    p:       Union[float, str]       = 2.0,
+    dim:     Optional[Sequence[int]] = None,
+) -> torch.Tensor:
+    """Returns the instance-wise relative error between `preds` and `targets`.
+
+    ## Description
+    Given sequences `preds` and `targets` of shape `(N, ...)`, returns the relative error tensor of shape `(N,)`.
+
+    ## Arguments
+    `preds` (`torch.Tensor`): The predictions.
+    `targets` (`torch.Tensor`): The targets.
+    `p` (`Union[float, str]`, default: `2.0`): The order of the error norm. If string, must be `'inf'`, `'1'`, or `'2'`.
+    `dim` (`Optional[Sequence[int]]`, default: `None`): The dimensions to compute the error over. If `None`, all dimensions except batch dimension are used.
+
+    ## Returns
+    `torch.Tensor`: The tensor of relative errors.
     """
     if preds.shape != targets.shape:
         raise ValueError(f'The shapes of `preds` and `targets` must be equal, but got {preds.shape} and {targets.shape} instead.')
@@ -77,31 +74,40 @@ def relative_error(
         p = p.lower()
         if p == 'inf':
             p = torch.inf
-    numer = torch.norm(preds-targets, dim=dim, p=p)
-    denom = torch.norm(targets, dim=dim, p=p)
-    return numer/denom
+    numer: torch.Tensor = torch.norm(preds - targets, dim=dim, p=p)
+    denom: torch.Tensor = torch.norm(targets, dim=dim, p=p)
+    return numer / denom
 
 
-##################################################
-##################################################
 def psnr(
-        preds:          torch.Tensor,
-        targets:        torch.Tensor,
-        max_intensity:  float   = 1.0,
-    ) -> torch.Tensor:
+    preds:         torch.Tensor,
+    targets:       torch.Tensor,
+    max_intensity: float = 1.0,
+) -> torch.Tensor:
     """Returns the PSNR (peak signal-to-noise ratio) of `preds` to `targets`.
-    
-    Arguments:
-        `preds` (`torch.Tensor`): The predictions.
-        `targets` (`torch.Tensor`): The targets.
-        `max_intensity` (`float`, default: `1.0): The maximum intensity of the data. In vision tasks with the images loaded as float (or double) tensors, images are usually normalized in `[0, 1]`, whence `max_intensity==1.0`.
+
+    ## Description
+    Computes the peak signal-to-noise ratio (PSNR) in decibels between `preds` and `targets`.
+
+    ## Arguments
+    `preds` (`torch.Tensor`): The predictions.
+    `targets` (`torch.Tensor`): The targets.
+    `max_intensity` (`float`, default: `1.0`): The maximum intensity of the data.
+
+    ## Returns
+    `torch.Tensor`: The PSNR value tensor.
     """
-    assert preds.shape==targets.shape
-    ndim = preds.ndim
-    mse = (preds-targets).pow(2).mean(tuple(range(1, ndim)))
-    return 10*((max_intensity**2)/mse).log10()
+    if preds.shape != targets.shape:
+        raise ValueError(f'The shapes of `preds` and `targets` must be equal, but got {preds.shape} and {targets.shape} instead.')
+    ndim: int          = preds.ndim
+    mse:  torch.Tensor = (preds - targets).pow(2).mean(tuple(range(1, ndim)))
+    return 10 * ((max_intensity ** 2) / mse).log10()
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

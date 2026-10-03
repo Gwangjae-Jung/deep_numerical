@@ -1,22 +1,24 @@
-from    typing                  import  Any, Callable, Sequence, List, Tuple, Optional
-from    collections             import  deque
-import  torch
-from    deep_numerical          import  EINSUM_STRING
-from    deep_numerical.autograd import  derivatives
-from    deep_numerical.neural   import  BaseModule
+from   collections             import deque
+from   typing                  import Any, Callable, List, Optional, Sequence, Tuple
+import torch
+
+from   deep_numerical          import EINSUM_STRING
+from   deep_numerical.autograd import derivatives
+from   deep_numerical.neural   import BaseModule
 
 
-__all__ = ['SeparableNet']
+__all__: list[str] = ['SeparableNet']
 
 
-##################################################
-##################################################
 _BRANCH_IN_FEATURES:    int = 1
 _BRANCH_NDIM:           int = 2
 
 
 class SeparableNet(BaseModule):
-    """## Separable neural network - Dimensionwise forward propagation for efficient training of neural networks
+    """Separable neural network for dimensionwise forward propagation.
+
+    ## Description
+    Separable neural network architecture handling multi-variable PDEs and functions dimensionwise.
     
     -----
     ### Description
@@ -140,7 +142,7 @@ class SeparableNet(BaseModule):
     
     
     def compute_gradient(self, deg_grad: Sequence[int]) -> torch.Tensor:
-        """## Compute partial derivatives
+        """Computes partial derivatives of the separable network.
         
         ## Description
         Computes the tensor of mixed partial derivatives of the separable network corresponding to the specified differentiation degrees for each branch.
@@ -160,6 +162,11 @@ class SeparableNet(BaseModule):
         return torch.einsum(self.__einsum_cmd, *operands)
 
 
+
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

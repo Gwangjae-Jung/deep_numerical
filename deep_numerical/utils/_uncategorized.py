@@ -1,10 +1,8 @@
-from    typing      import  Sequence
-import  torch
+from   typing import Sequence
+import torch
 
-    
-##################################################
-##################################################
-__all__:    list[str] = [
+
+__all__: list[str] = [
     'isometric_augmentation_2D',
     'isometric_augmentation_3D',
     'periodization',
@@ -13,41 +11,49 @@ __all__:    list[str] = [
 
 
 ##################################################
-##################################################
 def isometric_augmentation_2D(data: torch.Tensor) -> torch.Tensor:
     """Conducts 8 isometries on the input `data`.
-    
-    Given a batch of 2D images of shape `(B, N, N, C)`, this function returns the tensor of shape `(8*B, N, N, C)`, where
-    * the first half is obtained by rotating `data` along the dimensions `(1, 2)` by 0, 90, 180, and 270 degrees, and
-    * the last half is obtained by permuting the dimensions `(1, 2)`.
+
+    ## Description
+    Given a batch of 2D images of shape `(B, N, N, C)`, returns a tensor of shape `(8*B, N, N, C)` obtained by 4 rotations and reflections.
+
+    ## Arguments
+    `data` (`torch.Tensor`): Input 2D tensor of shape `(B, N, N, C)`.
+
+    ## Returns
+    `torch.Tensor`: Augmented tensor of shape `(8*B, N, N, C)`.
     """
-    data = torch.cat([data.rot90(k, dims=(1,2)) for k in range(4)], dim=0)
-    data = torch.cat([data, data.flip((2,))], dim=0)
-    return data
-    
+    rotated:   torch.Tensor = torch.cat([data.rot90(k, dims=(1, 2)) for k in range(4)], dim=0)
+    augmented: torch.Tensor = torch.cat([rotated, rotated.flip((2,))], dim=0)
+    return augmented
+
 
 def isometric_augmentation_3D(data: torch.Tensor) -> torch.Tensor:
     """Conducts 48 isometries on the input `data`.
-    
-    Given a batch of 3D images of shape `(B, N, N, N, C)`, this function returns the tensor of shape `(48*B, N, N, N, C)`, where
-    * the first one eights (from the batch index `0` to `6*B`) are obtained by permuting the axes,
-    * and the remaining are obtained by flipping across each axes.
+
+    ## Description
+    Given a batch of 3D images of shape `(B, N, N, N, C)`, returns a tensor of shape `(48*B, N, N, N, C)` obtained by permutations and axis flips.
+
+    ## Arguments
+    `data` (`torch.Tensor`): Input 3D tensor of shape `(B, N, N, N, C)`.
+
+    ## Returns
+    `torch.Tensor`: Augmented tensor of shape `(48*B, N, N, N, C)`.
     """
-    from    itertools       import  permutations
-    dims = (1, 2, 3)
+    from itertools import permutations
+    dims: tuple[int, int, int] = (1, 2, 3)
     perms = permutations(dims)
-    data = torch.cat([data.permute(p) for p in perms], dim=0)
+    augmented: torch.Tensor = torch.cat([data.permute(p) for p in perms], dim=0)
     for d in dims:
-        data = torch.cat([data, data.flip(d)], dim=0)
-    return data
+        augmented = torch.cat([augmented, augmented.flip(d)], dim=0)
+    return augmented
 
 
 def periodization(X: torch.Tensor, axes: Sequence[int]) -> torch.Tensor:
-    """## Applies periodic boundary padding along specified axes.
+    """Applies periodic boundary padding along specified axes.
 
     ## Description
-    Trims the last boundary element along the given `axes` and then applies circular wrapping (`mode="wrap"`)
-    to enforce periodic boundary conditions on the tensor `X`.
+    Trims the last boundary element along the given `axes` and then applies circular wrapping (`mode="wrap"`) to enforce periodic boundary conditions on the tensor `X`.
 
     ## Arguments
     `X` (`torch.Tensor`): Input data tensor.
@@ -56,8 +62,8 @@ def periodization(X: torch.Tensor, axes: Sequence[int]) -> torch.Tensor:
     ## Returns
     `torch.Tensor`: Periodized tensor.
     """
-    sl          = [Ellipsis for _ in range(X.ndim)]
-    pad_width   = [(0, 0)   for _ in range(X.ndim)]
+    sl:        list[object]         = [Ellipsis for _ in range(X.ndim)]
+    pad_width: list[tuple[int, int]] = [(0, 0) for _ in range(X.ndim)]
     for ax in axes:
         sl[ax] = slice(0, -1)
         pad_width[ax] = (0, 1)
@@ -65,47 +71,51 @@ def periodization(X: torch.Tensor, axes: Sequence[int]) -> torch.Tensor:
 
 
 def positional_encoding(
-        shape:      Sequence[int],
-        enc_type:   str,
-        dtype:      torch.dtype     = torch.float,
-        device:     torch.device    = torch.device('cpu'),
-    ) -> torch.Tensor:
-    """
-    Generate a positional encoding tensor of the given shape.
+    shape:    Sequence[int],
+    enc_type: str,
+    dtype:    torch.dtype  = torch.float,
+    device:   torch.device = torch.device('cpu'),
+) -> torch.Tensor:
+    """Generate a positional encoding tensor of the given shape.
 
-    *Remark*:
-        The shape of the tensor should be given in the form of `(batch_size, *space, num_channels)`. 
-        
-    Arguments:
-        `shape` (`Sequence[int]`): The shape of the output tensor.
-        `enc_type` (`str`): The type of positional encoding to generate.
-            * Supported types include: `'cartesian'`, `'radial'`, `'sinusoidal'`.
-        `dtype` (`torch.dtype`, default: `torch.float`): The data type of the output tensor. Defaults to torch.float.
-        `device` (`torch.device`, default: `torch.device('cpu')`): The device on which to create the tensor. Defaults to torch.device('cpu').
+    ## Description
+    Generates a positional encoding tensor for the given grid shape using Cartesian, radial, or sinusoidal encoding.
 
-    Returns:
-        torch.Tensor: The generated positional encoding tensor.
+    ## Arguments
+    `shape` (`Sequence[int]`): The shape of the output tensor `(batch_size, *space, num_channels)`.
+    `enc_type` (`str`): The type of positional encoding (`'cartesian'`, `'radial'`, or `'sinusoidal'`).
+    `dtype` (`torch.dtype`, default: `torch.float`): The data type of the output tensor.
+    `device` (`torch.device`, default: `torch.device('cpu')`): The device on which to create the tensor.
+
+    ## Returns
+    `torch.Tensor`: The generated positional encoding tensor.
     """
-    from    deep_numerical.utils.grid  import  space_grid
-    X_ndim = len(shape)
-    dimension = X_ndim-2
-    _grid = space_grid(dimension, shape[1:-1], 1, -1, 'none', dtype=dtype, device=device)
+    from deep_numerical.utils.grid import space_grid
+
+    x_ndim:    int = len(shape)
+    dimension: int = x_ndim - 2
+    _grid: torch.Tensor = space_grid(dimension, shape[1:-1], 1, -1, 'none', dtype=dtype, device=device)
+    pos: torch.Tensor
     if enc_type == 'cartesian':
         pos = _grid
     elif enc_type == 'radial':
         pos = _grid.norm(p=2, dim=-1, keepdim=True)
     elif enc_type == 'sinusoidal':
-        pos = []
+        pos_list: list[torch.Tensor] = []
         for d in range(dimension):
-            pos.append( torch.sin(torch.pi*_grid[..., d]) )
-            pos.append( torch.cos(torch.pi*_grid[..., d]) )
-        pos = torch.stack(pos, dim=-1)
+            pos_list.append(torch.sin(torch.pi * _grid[..., d]))
+            pos_list.append(torch.cos(torch.pi * _grid[..., d]))
+        pos = torch.stack(pos_list, dim=-1)
     else:
         raise ValueError(f"Unsupported encoding type: {enc_type}")
-    pos = pos[None, ...].repeat(shape[0], *(1 for _ in range(X_ndim-1)))
+    pos = pos[None, ...].repeat(shape[0], *(1 for _ in range(x_ndim - 1)))
     return pos
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

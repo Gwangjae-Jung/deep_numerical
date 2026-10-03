@@ -9,10 +9,9 @@ from    deep_numerical.neural.layer     import  MLP, FactorizedFourierLayer
 __all__: list[str] = ["FactorizedFourierNeuralOperator", "FactorizedFNO", "FFNO"]
 
 
-##################################################
-##################################################
+
 class FactorizedFourierNeuralOperator(BaseModule):
-    """## Factorized Fourier Neural Operator (FFNO)
+    """Factorized Fourier Neural Operator (FFNO)
     -----
     ### Description
     The FFNO is a neural operator modelling integral operators with a skip connection, using the dimensionwise Fourier transform.
@@ -37,7 +36,7 @@ class FactorizedFourierNeuralOperator(BaseModule):
             
             dtype:              Optional[torch.dtype] = None,
         ) -> None:
-        """## The initializer of the class `FFNO`
+        """The initializer of the class `FFNO`
         
         Arguments:
             `n_modes` (`Sequence[int]`):
@@ -106,23 +105,27 @@ class FactorizedFourierNeuralOperator(BaseModule):
     
     @property
     def dim_domain(self) -> int:
-        """## Spatial domain dimension."""
+        """Spatial domain dimension."""
         return self.__dim_domain
 
     @property
     def n_modes(self) -> Tuple[int, ...]:
-        """## Truncated Fourier modes per spatial dimension."""
+        """Truncated Fourier modes per spatial dimension."""
         return self.__n_modes
 
     @property
     def dtype(self) -> torch.dtype:
-        """## Floating point data type of the model."""
+        """Floating point data type of the model."""
         return self.__dtype
 
 
 FactorizedFNO = FactorizedFourierNeuralOperator
-    
+
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

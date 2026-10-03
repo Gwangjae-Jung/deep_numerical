@@ -1,21 +1,25 @@
-from    typing              import  Sequence, Optional
-from    typing_extensions   import  Self, override
-import  torch
-from    deep_numerical.utils        import  type_as_real
-from    deep_numerical.neural       import  BaseModule
-from    deep_numerical.neural.utils import  Activations
-from    deep_numerical.neural.layer import  MLP, RadialFourierLayer
-from    deep_numerical.neural.collision_op._utils   import  compute_moments_homogeneous, maxwellian_homogeneous
+from   typing                                    import Optional, Sequence
+import torch
+from   typing_extensions                         import override
+
+from   deep_numerical.neural                     import BaseModule
+from   deep_numerical.neural.collision_op._utils import (
+    compute_moments_homogeneous,
+    maxwellian_homogeneous,
+)
+from   deep_numerical.neural.layer               import MLP, RadialFourierLayer
+from   deep_numerical.neural.utils               import Activations
+from   deep_numerical.utils                      import type_as_real
 
 
-__all__ = ["PRFNO",]
+__all__: list[str] = ["PRFNO"]
 
 
-##################################################
-##################################################
 class PRFNO(BaseModule):
-    """## Parameterized Radial Fourier Neural Operator (RFNO)
-    ### Integral operator via discrete Fourier transform
+    """Parameterized Radial Fourier Neural Operator (PRFNO) for collision operators.
+
+    ## Description
+    Radially symmetric parameterized Fourier Neural Operator for collision operators.
     
     -----
     ### Description
@@ -47,8 +51,8 @@ class PRFNO(BaseModule):
             activation_kwargs:  dict[str, object]   = {},
             
             dtype:              Optional[torch.dtype]   = None,
-        ) -> Self:
-        """## The initializer of the class `RadialFourierNeuralOperator`
+        ) -> None:
+        """Initializes the `PRFNO` model.
 
         Arguments:
             `dim_domain` (`int`):
@@ -196,6 +200,11 @@ class PRFNO(BaseModule):
         return self.__dtype
 
 
+
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

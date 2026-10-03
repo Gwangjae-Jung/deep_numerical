@@ -21,68 +21,72 @@ The neural network architectures provided by this library can be found in the su
 
 [2] I. M. Gamba, J. R. Haack, C. D. Hauck, and J. Hu, A fast spectral method for the Boltzmann collision operator with general collision kernels, SIAM J. Sci. Comput., 39 (2017), pp. B658–B674, https://doi.org/10.1137/16M1096001.
 """
-from    typing              import  TYPE_CHECKING
-from    typing              import  TypeVar, Generic, Iterable, Union, Set
-from    typing_extensions   import  Self, TypeAlias
-import  importlib
+import importlib
+from   typing            import Any, Generic, Iterable, Set, TypeVar, Union, TYPE_CHECKING
+from   typing_extensions import Self, TypeAlias
 
 
 if TYPE_CHECKING:
-    from    numpy   import  ndarray
-    from    torch   import  Tensor
-    from    .   import  autograd
-    from    .   import  fft
-    from    .   import  neural
-    from    .   import  numerical
-    from    .   import  utils
+    from numpy import ndarray
+    from torch import Tensor
+    from .     import autograd
+    from .     import fft
+    from .     import neural
+    from .     import numerical
+    from .     import utils
 
-    ArrayData:  TypeAlias   = Union[ndarray, Tensor]
+    ArrayData: TypeAlias = Union[ndarray, Tensor]
     """The typealias for the available tensors (`numpy.ndarray` and `torch.Tensor`)."""
 
 
-_SUBMODULES:    Set[str] = {'autograd', 'fft', 'neural', 'numerical', 'utils'}
-_VARIABLES:     Set[str] = {'Objects', 'ArrayData', 'EINSUM_STRING'}
-_FUNCTIONS:     Set[str] = {'repeat', 'ones', 'zeros'}
-__all__ = list(_SUBMODULES | _VARIABLES | _FUNCTIONS)
+_SUBMODULES:   Set[str]  = {'autograd', 'fft', 'neural', 'numerical', 'utils'}
+_VARIABLES:    Set[str]  = {'Objects', 'ArrayData', 'EINSUM_STRING'}
+_FUNCTIONS:    Set[str]  = {'repeat', 'ones', 'zeros'}
+__all__:       list[str] = list(_SUBMODULES | _VARIABLES | _FUNCTIONS)
 
-
-##################################################
 T = TypeVar("T")
-Objects:    TypeAlias   = Union[T, Iterable[T]]
+Objects:       TypeAlias = Union[T, Iterable[T]]
 """The typealias for the available objects (`Any` and `Iterable`)."""
 
-
-EINSUM_STRING:  str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+EINSUM_STRING: str       = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 """The string of 26 uppercase alphabets (`ABC...XYZ`), which is used to define an Einstein summation command by slicing the string."""
 
 
 class repeat(Generic[T]):
-    """## Repeat iterator
-    
+    """Repeat iterator.
+
     ## Description
     An iterator that yields the same object `k` times.
+
+    ## Arguments
+    `obj` (`T`): The object to repeat.
+    `k` (`int`): The number of times to yield `obj`.
+
+    ## Returns
+    `repeat`: The iterator object.
     """
+
     def __init__(self, obj: T, k: int) -> None:
-        """## The initializer of `repeat`
-        
+        """The initializer of `repeat`.
+
         ## Description
         Initializes the iterator with an object and a repetition count.
-        
+
         ## Arguments
         `obj` (`T`): The object to repeat.
         `k` (`int`): The number of times to yield `obj`.
-        
+
         ## Returns
         `None`: None.
         """
-        self.__object = obj
-        self.__k = k
-        self.__current = 0
+        self.__object:  T   = obj
+        self.__k:       int = k
+        self.__current: int = 0
         return None
-    
+
     def __iter__(self) -> Self:
         return self
-    
+
     def __next__(self) -> T:
         if self.__current < self.__k:
             self.__current += 1
@@ -91,15 +95,16 @@ class repeat(Generic[T]):
             raise StopIteration
 
 
+##################################################
 def ones(k: int) -> repeat[int]:
-    """## Iterator repeating integer 1
-    
+    """Iterator repeating integer 1.
+
     ## Description
     Returns a `repeat` iterator that yields integer `1` for `k` times.
-    
+
     ## Arguments
     `k` (`int`): The number of repetitions.
-    
+
     ## Returns
     `repeat[int]`: An iterator yielding 1 `k` times.
     """
@@ -107,32 +112,31 @@ def ones(k: int) -> repeat[int]:
 
 
 def zeros(k: int) -> repeat[int]:
-    """## Iterator repeating integer 0
-    
+    """Iterator repeating integer 0.
+
     ## Description
     Returns a `repeat` iterator that yields integer `0` for `k` times.
-    
+
     ## Arguments
     `k` (`int`): The number of repetitions.
-    
+
     ## Returns
     `repeat[int]`: An iterator yielding 0 `k` times.
     """
     return repeat(0, k)
 
 
-##################################################
 def __dir__() -> list[str]:
     return __all__
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     if name in _SUBMODULES:
         return importlib.import_module(f'.{name}', package=__name__)
     elif name == 'ArrayData':
         from numpy import ndarray
         from torch import Tensor
-        val = Union[ndarray, Tensor]
+        val: Any = Union[ndarray, Tensor]
         globals()['ArrayData'] = val
         return val
     elif name == 'Tensor':
@@ -151,8 +155,12 @@ def __getattr__(name: str):
 
 
 ##################################################
-if __name__ == '__main__':
-    import os, sys
+def main() -> None:
+    import os
+    import sys
+
+    from   neural.layer import MLP
+
     sys.path.append(".")
     os.system("cls")
     print("Begin import...")
@@ -165,10 +173,10 @@ if __name__ == '__main__':
     import numerical
     print(f"numerical: {numerical.__name__}")
 
-    from neural.layer import MLP
-    mlp = MLP([3, 10, 2])
+    mlp: MLP = MLP([3, 10, 2])
     print(mlp.forward(X=11))
-    
+    return None
 
-##################################################
-# End of file
+
+if __name__ == '__main__':
+    main()

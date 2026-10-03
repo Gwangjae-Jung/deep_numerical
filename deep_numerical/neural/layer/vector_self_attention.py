@@ -23,7 +23,7 @@ else:
     ##################################################
     ##################################################
     class VectorSelfAttention(MessagePassing):
-        """## Vector self-attention
+        """Vector self-attention
         
         -----
         ### Description
@@ -86,27 +86,27 @@ else:
         
         @property
         def einsum_command(self) -> str:
-            """## Einsum command string for multi-head projection."""
+            """Einsum command string for multi-head projection."""
             return self.__EINSUM_COMMAND
 
         @property
         def channels(self) -> int:
-            """## Total number of hidden channels."""
+            """Total number of hidden channels."""
             return self.__channels
 
         @property
         def n_heads(self) -> int:
-            """## Number of attention heads."""
+            """Number of attention heads."""
             return self.__n_heads
 
         @property
         def use_softmax(self) -> bool:
-            """## Whether softmax normalization is applied to attention weights."""
+            """Whether softmax normalization is applied to attention weights."""
             return self.__use_softmax
 
         @property
         def use_linear(self) -> bool:
-            """## Whether a linear skip connection is used."""
+            """Whether a linear skip connection is used."""
             return self.__use_linear
         
         
@@ -205,5 +205,9 @@ else:
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

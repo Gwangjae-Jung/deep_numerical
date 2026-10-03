@@ -102,7 +102,7 @@ else:
                 x_j:            torch.Tensor,
                 sub_edge_attr:  torch.Tensor,
             ) -> torch.Tensor:
-            """## Computes edge messages at the current multipole level.
+            """Computes edge messages at the current multipole level.
 
             ## Description
             Evaluates the kernel MLP at sub-edge attributes and applies the linear kernel to source features.
@@ -119,7 +119,7 @@ else:
         
         
         def update(self, aggr_out: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
-            """## Updates node features by adding aggregated messages.
+            """Updates node features by adding aggregated messages.
 
             ## Arguments
             `aggr_out` (`torch.Tensor`): Aggregated edge messages.
@@ -134,7 +134,7 @@ else:
     ##################################################
     ##################################################
     class MultipoleGraphKernelLayer(MessagePassing):
-        """## Multipole Graph kernel layer
+        """Multipole Graph kernel layer
         ### Kernel integration via message passing with fast multipole method
         
         -----
@@ -155,7 +155,7 @@ else:
                 activation_name:    str                 = "relu",
                 activation_kwargs:  Dict[str, object]   = {},
             ) -> None:
-            """## The initializer of `MultipoleGraphKernelLayer`
+            """The initializer of `MultipoleGraphKernelLayer`
             
             ## Description
             Initializes the multipole graph kernel layer with inter-level downward, isolevel, and upward message-passing networks.
@@ -231,7 +231,7 @@ else:
         
         @property
         def n_poles(self) -> int:
-            """## Number of multipole expansion levels."""
+            """Number of multipole expansion levels."""
             return self.__n_poles
 
         
@@ -320,5 +320,9 @@ else:
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

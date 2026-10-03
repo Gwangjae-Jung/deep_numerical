@@ -9,10 +9,9 @@ from    deep_numerical.neural.layer.general     import  MLP
 __all__: List[str] = ["TensorizedSpectralConv", "TensorizedFourierLayer"]
 
 
-##################################################
-##################################################
+
 class TensorizedSpectralConv(nn.Module):
-    """## Tensorized spectral convolutional layer
+    """Tensorized spectral convolutional layer
     
     The convolution of two *real-valued* functions as the multiplication of their Fourier transforms.
     """
@@ -183,37 +182,37 @@ class TensorizedSpectralConv(nn.Module):
     
     @property
     def n_modes(self) -> Tuple[int, ...]:
-        """## Truncated Fourier modes per spatial dimension."""
+        """Truncated Fourier modes per spatial dimension."""
         return self.__n_modes
 
     @property
     def in_channels(self) -> int:
-        """## Number of input channels."""
+        """Number of input channels."""
         return self.__in_channels
 
     @property
     def out_channels(self) -> int:
-        """## Number of output channels."""
+        """Number of output channels."""
         return self.__out_channels
 
     @property
     def dim_domain(self) -> int:
-        """## Spatial domain dimension."""
+        """Spatial domain dimension."""
         return len(self.__n_modes)
 
     @property
     def kernel_degree(self) -> int:
-        """## Degree of tensor decomposition."""
+        """Degree of tensor decomposition."""
         return self.__kernel_degree
 
     @property
     def kernel_rank(self) -> int:
-        """## Rank of tensor decomposition."""
+        """Rank of tensor decomposition."""
         return self.__kernel_rank
 
 
 class TensorizedFourierLayer(nn.Module):
-    """## Tensorized Fourier layer
+    """Tensorized Fourier layer
     
     The tensorized Fourier layer is a combination of a linear layer and a spectral convolutional layer.
     Note that the activation function is not included in this layer.
@@ -279,30 +278,34 @@ class TensorizedFourierLayer(nn.Module):
     
     @property
     def n_modes(self) -> int:
-        """## Truncated Fourier modes per spatial dimension."""
+        """Truncated Fourier modes per spatial dimension."""
         return self.spectral.n_modes
 
     @property
     def in_channels(self) -> int:
-        """## Number of input channels."""
+        """Number of input channels."""
         return self.spectral.in_channels
 
     @property
     def out_channels(self) -> int:
-        """## Number of output channels."""
+        """Number of output channels."""
         return self.spectral.out_channels
 
     @property
     def rank(self) -> int:
-        """## Rank of tensor decomposition."""
+        """Rank of tensor decomposition."""
         return self.spectral.rank
 
     @property
     def dim_domain(self) -> int:
-        """## Spatial domain dimension."""
+        """Spatial domain dimension."""
         return self.spectral.dim_domain
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

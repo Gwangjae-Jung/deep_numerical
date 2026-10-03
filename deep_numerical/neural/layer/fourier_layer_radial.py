@@ -12,16 +12,11 @@ from    deep_numerical.neural.layer.general import  MLP
 __all__ = ["RadialSpectralConv", "RadialFourierLayer"]
 
 
-##################################################
-##################################################
-def _generate_mask(dimension: int, max_freq: int) -> torch.Tensor:
-    mask = freq_tensor(dimension, 1+2*max_freq, True)[..., :1+max_freq, :]
-    mask = mask.pow(2).sum(-1)[..., None, None] # Two more dimensions to match the dimension of the kernel
-    return torch.where(mask<=max_freq**2, 1, 0)
+
 
 
 class RadialSpectralConv(nn.Module):
-    """## Radial spectral convolutional layer - The spectral convolutional layer with radial symmetry
+    """Radial spectral convolutional layer - The spectral convolutional layer with radial symmetry
 
     The convolution of two *real-valued* functions as the multiplication of their Fourier transforms.
     In particular, this layer provides the Fourier transform of a radially symmetric function, which is invariant under orthogonal transforms on the real Euclidean spaces, enforcing the equivariance under the orthogonal group.
@@ -77,22 +72,22 @@ class RadialSpectralConv(nn.Module):
     
     @property
     def dim_domain(self) -> int:
-        """## Spatial domain dimension."""
+        """Spatial domain dimension."""
         return self.__dim_domain
 
     @property
     def max_freq(self) -> int:
-        """## Maximum radial frequency mode."""
+        """Maximum radial frequency mode."""
         return self.__max_freq
 
     @property
     def in_channels(self) -> int:
-        """## Number of input channels."""
+        """Number of input channels."""
         return self.__in_channels
 
     @property
     def out_channels(self) -> int:
-        """## Number of output channels."""
+        """Number of output channels."""
         return self.__out_channels
     @property
     def dtype(self) -> torch.dtype:
@@ -228,7 +223,7 @@ class RadialSpectralConv(nn.Module):
 
 
 class RadialFourierLayer(nn.Module):
-    """## Radial Fourier layer
+    """Radial Fourier layer
     
     The Fourier layer is a combination of a linear layer and a spectral convolutional layer.
     Note that the activation function is not included in this layer.
@@ -332,30 +327,41 @@ class RadialFourierLayer(nn.Module):
     
     @property
     def dim_domain(self) -> int:
-        """## Spatial domain dimension."""
+        """Spatial domain dimension."""
         return self.spectral.dim_domain
 
     @property
     def max_freq(self) -> int:
-        """## Maximum radial frequency mode."""
+        """Maximum radial frequency mode."""
         return self.spectral.max_freq
 
     @property
     def in_channels(self) -> int:
-        """## Number of input channels."""
+        """Number of input channels."""
         return self.spectral.in_channels
 
     @property
     def out_channels(self) -> int:
-        """## Number of output channels."""
+        """Number of output channels."""
         return self.spectral.out_channels
 
     @property
     def dtype(self) -> torch.dtype:
-        """## Floating point data type of the model."""
+        """Floating point data type of the model."""
         return self.__dtype
 
-    
+
 ##################################################
+def _generate_mask(dimension: int, max_freq: int) -> torch.Tensor:
+    mask = freq_tensor(dimension, 1+2*max_freq, True)[..., :1+max_freq, :]
+    mask = mask.pow(2).sum(-1)[..., None, None] # Two more dimensions to match the dimension of the kernel
+    return torch.where(mask<=max_freq**2, 1, 0)
+
+
 ##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

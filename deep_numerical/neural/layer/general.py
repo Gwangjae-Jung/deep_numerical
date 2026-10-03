@@ -9,10 +9,9 @@ from    deep_numerical.neural   import  get_activation, Activations
 __all__ = ["MLP", "HyperMLP", "PatchEmbedding", "Periodization1D"]
 
 
-##################################################
-##################################################
+
 class MLP(nn.Module):
-    """## Multi-layer perceptron
+    """Multi-layer perceptron
     
     -----
     ### Description
@@ -61,7 +60,7 @@ class MLP(nn.Module):
     
     
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        """## Computes forward pass of MLP.
+        """Computes forward pass of MLP.
 
         ## Description
         Applies sequential linear transformations and non-linear activations.
@@ -89,7 +88,7 @@ class MLP(nn.Module):
 
 
 class HyperMLP(nn.Module):
-    """## Hypernetwork-driven Multi-Layer Perceptron.
+    """Hypernetwork-driven Multi-Layer Perceptron.
 
     ## Description
     A Multi-Layer Perceptron whose weights and biases are generated dynamically
@@ -104,7 +103,7 @@ class HyperMLP(nn.Module):
             activation_kwargs:  Dict[str, object]   = {},
             dtype:              torch.dtype         = torch.float,
         ) -> None:
-        """## The initializer of the class `HyperMLP`
+        """The initializer of the class `HyperMLP`
         
         Arguments:
             `channels` (`Sequence[int]`): The number of the channels in each layer, from the input layer to the output layer.
@@ -208,7 +207,7 @@ class HyperMLP(nn.Module):
 
 
 class PatchEmbedding(nn.Module):
-    """## Patch embedding
+    """Patch embedding
     
     -----
     ### Description
@@ -256,27 +255,27 @@ class PatchEmbedding(nn.Module):
     
     @property
     def dim_domain(self) -> int:
-        """## Spatial domain dimension."""
+        """Spatial domain dimension."""
         return self.__dim_domain
 
     @property
     def in_channels(self) -> int:
-        """## Number of input channels."""
+        """Number of input channels."""
         return self.__in_channels
 
     @property
     def patch_size(self) -> Tuple[int, ...]:
-        """## Patch size per spatial dimension."""
+        """Patch size per spatial dimension."""
         return self.__patch_size
 
     @property
     def dim_embed(self) -> int:
-        """## Embedding dimension per patch."""
+        """Embedding dimension per patch."""
         return self.__dim_embed
     
     
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        """## Computes patch embedding forward pass.
+        """Computes patch embedding forward pass.
 
         ## Description
         Permutes input to standard convolution channel ordering, computes patch projection, and permutes back.
@@ -302,14 +301,14 @@ class PatchEmbedding(nn.Module):
 
 
 class Periodization1D(nn.Module):
-    """## 1D Fourier feature periodization layer.
+    """1D Fourier feature periodization layer.
 
     ## Description
     Maps 1D scalar coordinates onto periodic sinusoidal basis functions
     `[cos(k*x), sin(k*x)]` for `k = 1, ..., max_freq`.
     """
     def __init__(self, max_freq: int, sup: float, inf: Optional[float] = None) -> None:
-        """## Initializes Periodization1D.
+        """Initializes Periodization1D.
 
         ## Description
         Sets up the periodic interval `[inf, sup]` and number of frequency modes.
@@ -337,16 +336,16 @@ class Periodization1D(nn.Module):
     
     @property
     def in_channels(self) -> int:
-        """## Input feature channels (always 1)."""
+        """Input feature channels (always 1)."""
         return 1
 
     @property
     def out_channels(self) -> int:
-        """## Output feature channels (2 * max_freq)."""
+        """Output feature channels (2 * max_freq)."""
         return 2*self.__max_freq
     
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        """## Computes 1D Fourier expansion forward pass.
+        """Computes 1D Fourier expansion forward pass.
 
         ## Description
         Transforms 1D coordinates into sine and cosine frequencies up to `max_freq`.
@@ -365,8 +364,12 @@ class Periodization1D(nn.Module):
             Y.append(kX.cos())
             Y.append(kX.sin())
         return torch.cat(Y, dim=1)
-    
-    
+
+
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

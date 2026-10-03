@@ -10,10 +10,9 @@ from    deep_numerical.neural.layer import  MLP, RadialFourierLayer
 __all__ = ["RadialFourierNeuralOperator", "RadialFNO"]
 
 
-##################################################
-##################################################
+
 class RadialFourierNeuralOperator(BaseModule):
-    """## Radial Fourier Neural Operator (Radial-FNO)
+    """Radial Fourier Neural Operator (Radial-FNO)
     ### Integral operator via discrete Fourier transform
     
     -----
@@ -45,7 +44,7 @@ class RadialFourierNeuralOperator(BaseModule):
             
             dtype:              Optional[torch.dtype]   = None,
         ) -> None:
-        """## The initializer of the class `FourierNeuralOperator`
+        """The initializer of the class `FourierNeuralOperator`
         
         Arguments:
             `dim_domain` (`int`):
@@ -144,17 +143,17 @@ class RadialFourierNeuralOperator(BaseModule):
     
     @property
     def dim_domain(self) -> int:
-        """## Spatial domain dimension."""
+        """Spatial domain dimension."""
         return self.__dim_domain
 
     @property
     def max_freq(self) -> int:
-        """## Maximum radial frequency mode."""
+        """Maximum radial frequency mode."""
         return self.__max_freq
 
     @property
     def dtype(self) -> torch.dtype:
-        """## Floating point data type of the model."""
+        """Floating point data type of the model."""
         return self.__dtype
     
 
@@ -162,5 +161,9 @@ RFNO = RadialFNO = RadialFourierNeuralOperator
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

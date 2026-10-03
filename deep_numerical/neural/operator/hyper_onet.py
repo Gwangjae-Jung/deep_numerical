@@ -9,33 +9,12 @@ from    deep_numerical.neural.layer import  MLP, HyperMLP
 __all__: list[str] = ['HyperDeepONet', 'HyperMIONet', 'ParameterizedMIONet']
 
 
-##################################################
-##################################################
-def n_parameters_in_mlp(dimensions: Sequence[int]) -> int:
-    """## Count MLP parameters
-    
-    ## Description
-    Counts the total number of weights and biases in a multi-layer perceptron (MLP) with the specified layer dimensions.
-    
-    ## Arguments
-    `dimensions` (`Sequence[int]`): The sequence of layer dimensions of the MLP.
-    
-    ## Returns
-    `int`: The total number of parameters in the MLP.
-    """
-    length = len(dimensions)
-    n_params = 0
-    for idx in range(length-1):
-        ch_in, ch_out = dimensions[idx], dimensions[idx+1]
-        n_params += ch_in * ch_out  # Linear layer
-        n_params += ch_out          # Bias
-    return n_params
+
         
 
-##################################################
-##################################################
+
 class HyperDeepONet(torch.nn.Module):
-    """## Hypernetwork DeepONet
+    """Hypernetwork DeepONet
     
     ## Description
     A Deep Operator Network (DeepONet) variant where the trunk network weights and biases are generated dynamically by a hypernetwork branch.
@@ -45,7 +24,7 @@ class HyperDeepONet(torch.nn.Module):
             hypernet_prior: Sequence[torch.nn.Module],
             dim_trunk:      Sequence[int] = [1+2, 32, 32, 32, 32, 1],
         ) -> None:
-        """## The initializer of `HyperDeepONet`
+        """The initializer of `HyperDeepONet`
         
         ## Description
         Initializes the `HyperDeepONet` architecture with a prior hypernetwork module sequence and trunk layer dimensions.
@@ -89,7 +68,7 @@ class HyperDeepONet(torch.nn.Module):
             X:      torch.Tensor,
             query:  torch.Tensor,
         ) -> torch.Tensor:
-        """## Forward propagation of `HyperDeepONet`
+        """Forward propagation of `HyperDeepONet`
         
         ## Description
         Evaluates the hypernetwork on input branch features `X` to generate trunk parameters, then applies the synthesized trunk network to query points.
@@ -116,10 +95,9 @@ class HyperDeepONet(torch.nn.Module):
         return out
 
 
-##################################################
-##################################################
+
 class HyperMIONet(BaseModule):
-    """## Hypernetwork Multiple-Input Operator Network (HyperMIONet)
+    """Hypernetwork Multiple-Input Operator Network (HyperMIONet)
     
     ## Description
     A multiple-input operator network architecture with convolutional and hyper-MLP branches conditioned on parameters.
@@ -128,7 +106,7 @@ class HyperMIONet(BaseModule):
             self,
             dimension:  int,
         ) -> None:
-        """## The initializer of `HyperMIONet`
+        """The initializer of `HyperMIONet`
         
         ## Description
         Initializes the `HyperMIONet` model components for the specified spatial dimension.
@@ -171,7 +149,7 @@ class HyperMIONet(BaseModule):
 
     
     def forward(self, X: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
-        """## Forward propagation of `HyperMIONet`
+        """Forward propagation of `HyperMIONet`
         
         ## Description
         Computes the multiple-input operator evaluation given function data `X` and parameter `p`.
@@ -197,7 +175,7 @@ class HyperMIONet(BaseModule):
 
 
 class ParameterizedMIONet(BaseModule):
-    """## Parameterized Multiple-Input Operator Network (ParameterizedMIONet)
+    """Parameterized Multiple-Input Operator Network (ParameterizedMIONet)
     
     ## Description
     A parameterized MIONet architecture combining convolutional feature extraction, parameter encodings, and a trunk network.
@@ -206,7 +184,7 @@ class ParameterizedMIONet(BaseModule):
             self,
             dimension:  int,
         ) -> None:
-        """## The initializer of `ParameterizedMIONet`
+        """The initializer of `ParameterizedMIONet`
         
         ## Description
         Initializes the subnetworks and convolutional branches of `ParameterizedMIONet` for the given dimension.
@@ -258,7 +236,7 @@ class ParameterizedMIONet(BaseModule):
             query:  torch.Tensor,
             params: torch.Tensor,
         ) -> torch.Tensor:
-        """## Forward propagation of `ParameterizedMIONet`
+        """Forward propagation of `ParameterizedMIONet`
         
         ## Description
         Evaluates the parameterized MIONet on input functions `X`, query locations `query`, and parameters `params`.
@@ -281,8 +259,34 @@ class ParameterizedMIONet(BaseModule):
         # trunk = self.trunk.forward(query, params)
         trunk = self.trunk.forward(query)
         return branch @ trunk.T
-    
+
 
 ##################################################
+def n_parameters_in_mlp(dimensions: Sequence[int]) -> int:
+    """Counts total weights and biases in a multi-layer perceptron (MLP).
+
+    ## Description
+    Counts the total number of weights and biases in a multi-layer perceptron (MLP) with the specified layer dimensions.
+
+    ## Arguments
+    `dimensions` (`Sequence[int]`): The sequence of layer dimensions of the MLP.
+
+    ## Returns
+    `int`: The total number of parameters in the MLP.
+    """
+    length = len(dimensions)
+    n_params = 0
+    for idx in range(length-1):
+        ch_in, ch_out = dimensions[idx], dimensions[idx+1]
+        n_params += ch_in * ch_out  # Linear layer
+        n_params += ch_out          # Bias
+    return n_params
+
+
 ##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

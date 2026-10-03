@@ -14,10 +14,9 @@ __all__: list[str] = [
 ]
 
 
-##################################################
-##################################################
+
 class GalerkinTransformerSelfAttention(BaseModule):
-    """## Galerkin Transformer with self-attention
+    """Galerkin Transformer with self-attention
     ### Neural Operator based on a softmax-free self-attention
     
     -----
@@ -47,7 +46,7 @@ class GalerkinTransformerSelfAttention(BaseModule):
             
             pos_enc:            bool    = True,
         ) -> None:
-        """## The initializer of `GalerkinTransformerSelfAttention`
+        """The initializer of `GalerkinTransformerSelfAttention`
         
         ## Description
         Initializes the Galerkin Transformer model with self-attention encoder blocks.
@@ -128,10 +127,9 @@ class GalerkinTransformerSelfAttention(BaseModule):
         return X
 
 
-##################################################
-##################################################
+
 class GalerkinTransformerCrossAttention(BaseModule):
-    """## Galerkin Transformer with cross-attention
+    """Galerkin Transformer with cross-attention
     ### Neural Operator based on a softmax-free cross-attention
     
     -----
@@ -163,7 +161,7 @@ class GalerkinTransformerCrossAttention(BaseModule):
             pos_enc:            bool    = True,
             **kwargs,
         ) -> None:
-        """## The initializer of `GalerkinTransformerCrossAttention`
+        """The initializer of `GalerkinTransformerCrossAttention`
         
         ## Description
         Initializes the Galerkin Transformer model with cross-attention encoder blocks between input and query domains.
@@ -248,11 +246,14 @@ class GalerkinTransformerCrossAttention(BaseModule):
         return U
 
 
-##################################################
-##################################################
+
 GalerkinTransformer = GalerkinTransformerSelfAttention
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

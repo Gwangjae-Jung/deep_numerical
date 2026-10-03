@@ -26,7 +26,7 @@ else:
     ##################################################
     ##################################################
     class GraphNeuralOperator(BaseModule):
-        """## Graph Neural Operator (GNO)
+        """Graph Neural Operator (GNO)
         ### Integral operator via graph neural network
         
         -----
@@ -59,7 +59,7 @@ else:
                 activation_name:    str = "relu",
                 activation_kwargs:  Dict[str, object] = {},
             ) -> None:
-            """## The initializer of the class `GraphNeuralOperator`
+            """The initializer of the class `GraphNeuralOperator`
             
             Arguments:
                 `in_channels` (`int`): The number of the input channels.
@@ -136,5 +136,9 @@ else:
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

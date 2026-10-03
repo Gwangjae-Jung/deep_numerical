@@ -10,10 +10,9 @@ from    deep_numerical.numerical.integrate  import  roots_linspace
 __all__ = ['IntegralLinearV1', 'IntegralLinear', 'IntegralConv2D', 'IntegralConv2D_']
 
 
-##################################################
-##################################################
+
 class IntegralLinearV1(BaseModule):
-    """## Linear layer as a kernel integration.
+    """Linear layer as a kernel integration.
     
     -----
     ### Description
@@ -33,7 +32,7 @@ class IntegralLinearV1(BaseModule):
             
             bias:           bool = True,
         ) -> None:
-        """## Initializes IntegralLinearV1.
+        """Initializes IntegralLinearV1.
 
         ## Description
         Sets up trainable kernel modes for continuous kernel integration.
@@ -126,17 +125,18 @@ class IntegralLinearV1(BaseModule):
             channels_in: int,
             channels_out: int
         ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        ### Note
-        This method returns the grid on `[-1, 1]^n`, which is not of the `'ij'`-indexing.
-        The grid is indexed so that, *after expanding a new dimension at `dim=0`*,  it can be readily used as the input of `torch.nn.functional.grid_sample()`.
-        
-        * The input channel is aligned horizontally from left to right, the output channel is aligned vertically from top to bottom.
-        
-        -----
-        ### Returns
-        * `grid`: The grid on which the kernel function is interpolated.
-        * `w_x`:  The weights to be used to conduct numerical integration along the input dimension (the $x$-axis).
+        """Computes interpolation grid and quadrature weights for continuous kernel evaluation.
+
+        ## Description
+        Constructs an evaluation grid on `[-1, 1]^2` indexed for `torch.nn.functional.grid_sample`.
+        Input channels align horizontally and output channels align vertically.
+
+        ## Arguments
+        `channels_in` (`int`): Number of input discretization channels.
+        `channels_out` (`int`): Number of output discretization channels.
+
+        ## Returns
+        `Tuple[torch.Tensor, torch.Tensor]`: Tuple `(grid, w_x)` containing interpolation grid and quadrature weights.
         """
         grid_x, w_x = roots_linspace(channels_in,  -1, 1)
         grid_y, _   = roots_linspace(channels_out, -1, 1)
@@ -175,10 +175,9 @@ class IntegralLinearV1(BaseModule):
         return torch.einsum('ij, ...j, j -> ...i', kernel, X, weight) + bias
         
 
-##################################################
-##################################################
+
 class IntegralLinear(BaseModule):
-    """## Linear layer as a kernel integration.
+    """Linear layer as a kernel integration.
     
     -----
     ### Description
@@ -195,7 +194,7 @@ class IntegralLinear(BaseModule):
             
             bias:           bool = True,
         ) -> None:
-        """## Initializes IntegralLinear.
+        """Initializes IntegralLinear.
 
         ## Description
         Sets up trainable kernel modes for continuous kernel integration across variable discretizations.
@@ -292,10 +291,9 @@ class IntegralLinear(BaseModule):
         return torch.einsum('ij, ...j, j -> ...i', kernel, X, weight) + bias
 
 
-##################################################
-##################################################
+
 class IntegralConv2D(BaseModule):
-    """## 2D continuous kernel convolutional layer.
+    """2D continuous kernel convolutional layer.
 
     ## Description
     Implements 2D numerical kernel integration parameterized by continuous kernel modes,
@@ -313,7 +311,7 @@ class IntegralConv2D(BaseModule):
             
             bias:   bool = True,
         ) -> None:
-        """## Initializes IntegralConv2D.
+        """Initializes IntegralConv2D.
 
         ## Description
         Sets up mode counts across channels and 2D spatial axes.
@@ -437,10 +435,9 @@ class IntegralConv2D(BaseModule):
         return torch.nn.functional.conv2d(input=X, weight=filters, bias=bias, stride=stride, padding=padding)
     
 
-##################################################
-##################################################
+
 class IntegralConv2D_(torch.nn.Module):
-    """## 2D continuous kernel convolutional layer with default channels.
+    """2D continuous kernel convolutional layer with default channels.
 
     ## Description
     Implements 2D numerical kernel integration with optional default channel dimensions.
@@ -460,7 +457,7 @@ class IntegralConv2D_(torch.nn.Module):
             
             bias:   bool = True,
         ) -> None:
-        """## Initializes IntegralConv2D_.
+        """Initializes IntegralConv2D_.
 
         ## Description
         Sets up mode counts and default channel configurations for 2D continuous convolution.
@@ -600,5 +597,9 @@ class IntegralConv2D_(torch.nn.Module):
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

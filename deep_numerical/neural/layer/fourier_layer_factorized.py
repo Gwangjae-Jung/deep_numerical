@@ -10,10 +10,9 @@ from    deep_numerical.neural.layer.general     import  MLP
 __all__ = ["FactorizedSpectralConv", "FactorizedFourierLayer"]
 
 
-##################################################
-##################################################
+
 class FactorizedSpectralConv(nn.Module):
-    """## Factorized spectral convolutional layer
+    """Factorized spectral convolutional layer
     ### A separable version of `SpectralConv`.
     """
     def __init__(
@@ -175,10 +174,9 @@ class FactorizedSpectralConv(nn.Module):
         return out
     
 
-##################################################
-##################################################
+
 class FactorizedFourierLayer(nn.Module):
-    """## Factorized Fourier layer
+    """Factorized Fourier layer
     
     The factorized Fourier layer is a combination of a linear layer and a spectral convolutional layer.
     Note that the activation function is not included in this layer.
@@ -252,25 +250,29 @@ class FactorizedFourierLayer(nn.Module):
     
     @property
     def n_modes(self) -> int:
-        """## Truncated Fourier modes."""
+        """Truncated Fourier modes."""
         return self.spectral.n_modes
 
     @property
     def in_channels(self) -> int:
-        """## Number of input channels."""
+        """Number of input channels."""
         return self.spectral.in_channels
 
     @property
     def out_channels(self) -> int:
-        """## Number of output channels."""
+        """Number of output channels."""
         return self.spectral.out_channels
 
     @property
     def dim_domain(self) -> int:
-        """## Spatial domain dimension."""
+        """Spatial domain dimension."""
         return self.spectral.dim_domain
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

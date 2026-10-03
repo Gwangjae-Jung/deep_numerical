@@ -1,4 +1,4 @@
-r"""## The implementation of the fast spectral method for solving the homogeneous Boltzmann equation
+r"""The implementation of the fast spectral method for solving the homogeneous Boltzmann equation
 
 -----
 ### Description
@@ -6,27 +6,24 @@ Based on the rewriting of the expression of the kernel modes, this module aims t
 
 Reference: [Irene M. Gamba, Jeffrey R. Haack, Cory D. Hauck, and Jingwei Hu, A Fast Spectral Method for the Boltzmann Collision Operator with General Collision Kernels, SIAM Journal on Scientific Computing, Volume 39, Issue 1, 2017, Pages B658-B674](https://epubs.siam.org/doi/10.1137/16M1096001)
 """
-from    typing              import  Optional
-from    typing_extensions   import  override
+from   typing            import Optional
+import torch
+from   torch.special     import bessel_j0 as j0
+from   typing_extensions import override
 
-import  torch
-from    torch.special       import  bessel_j0   as  j0
-
-from    .base_classes               import  FastSM_Boltzmann
-from    deep_numerical              import  repeat, ones
-from    deep_numerical.numerical    import  sinc
-from    deep_numerical.fft          import  freq_tensor
-from    deep_numerical.numerical.integrate  import  roots_legendre_shifted, roots_circle, roots_lebedev
-from    ._kernel_modes.boltzmann_VHS    import  Boltzmann_VHS_kernel_modes
+from   deep_numerical                     import ones, repeat
+from   deep_numerical.fft                 import freq_tensor
+from   deep_numerical.numerical           import sinc
+from   deep_numerical.numerical.integrate import roots_circle, roots_lebedev, roots_legendre_shifted
+from   ._kernel_modes.boltzmann_VHS       import Boltzmann_VHS_kernel_modes
+from   .base_classes                      import FastSM_Boltzmann
 
 
 __all__: list[str] = ['FastSM_Boltzmann_VHS', 'FastSM_Boltzmann_VSS']
-   
-    
-##################################################
-##################################################
+
+
 class FastSM_Boltzmann_VHS(FastSM_Boltzmann):
-    r"""## The class for the fast spectral method for solving the homogeneous Boltzmann equation with the VHS model.
+    r"""The class for the fast spectral method for solving the homogeneous Boltzmann equation with the VHS model.
     
     -----
     ### Description
@@ -57,7 +54,7 @@ class FastSM_Boltzmann_VHS(FastSM_Boltzmann):
             dtype:  Optional[torch.dtype]   = None,
             device: Optional[torch.device]  = None,
         ) -> None:
-        """## The initializer of `FastSM_Boltzmann_VHS`
+        """The initializer of `FastSM_Boltzmann_VHS`
         
         ## Description
         Initializes the fast spectral method solver for the homogeneous Boltzmann equation with the variable hard sphere (VHS) model.
@@ -225,15 +222,14 @@ class FastSM_Boltzmann_VHS(FastSM_Boltzmann):
     
     
     def _precompute_fsm_gain_2D(self) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        ### Note
-        Here, we order data in the following order:
-            `(batch, space, velocity, data, *quadrature_rules)`
-        """
-        """
-        Commnets
-        
-        1. The tensor of the points sampled uniformly on $S^1$ is initially saved in a tensor of shape `(quad_order_uniform, dim)`. As this tensor has to be reshaped to a tensor of shape `(1, *ones(dim), *ones(dim), dim, *(1, quad_order_uniform))`, transposition is required.
+        """Precomputes 2D gain kernel modes for the fast spectral method.
+
+        ## Description
+        Computes the scaling and phase factor tensors using polar quadrature on `S^1`.
+        Data ordering: `(batch, space, velocity, data, *quadrature_rules)`.
+
+        ## Returns
+        `tuple[torch.Tensor, torch.Tensor, torch.Tensor]`: Tensors `(fsm_scale, fsm_phase_1, fsm_phase_2)`.
         """
         # Get the frequency tensor
         freqs = freq_tensor(self._dimension, self._v_num_grid, True, dtype=self._dtype, device=self._device)
@@ -274,14 +270,14 @@ class FastSM_Boltzmann_VHS(FastSM_Boltzmann):
     
     
     def _precompute_fsm_gain_3D(self) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Here, we order data in the following order:
-            `(batch, space, velocity, data, *quadrature_rules)`
-        """
-        """
-        Comments
-        
-        1. The tensor of the Lebedev quarature points on $S^2$ is initially saved in a tensor of shape `(-1, dim)`, so it should be transposed to a tensor of shape `(dim, -1)`.
+        """Precomputes 3D gain kernel modes for the fast spectral method.
+
+        ## Description
+        Computes the scaling and phase factor tensors using spherical Lebedev quadrature on `S^2`.
+        Data ordering: `(batch, space, velocity, data, *quadrature_rules)`.
+
+        ## Returns
+        `tuple[torch.Tensor, torch.Tensor, torch.Tensor]`: Tensors `(fsm_scale, fsm_phase_1, fsm_phase_2)`.
         """
         # Get the frequency tensor
         freqs = freq_tensor(self._dimension, self._v_num_grid, True, dtype=self._dtype, device=self._device)
@@ -330,10 +326,9 @@ class FastSM_Boltzmann_VHS(FastSM_Boltzmann):
         return int(self._fsm_phase_1.size(-2) * self._fsm_phase_1.size(-1))
     
     
-##################################################
-##################################################
+
 class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
-    r"""## The class for the fast spectral method for solving the homogeneous Boltzmann equation with the VSS model.
+    r"""The class for the fast spectral method for solving the homogeneous Boltzmann equation with the VSS model.
     
     -----
     ### Description
@@ -365,7 +360,7 @@ class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
             dtype:  Optional[torch.dtype]   = None,
             device: Optional[torch.device]  = None,
         ) -> None:
-        """## The initializer of `FastSM_Boltzmann_VSS`
+        """The initializer of `FastSM_Boltzmann_VSS`
         
         ## Description
         Initializes the fast spectral method solver for the homogeneous Boltzmann equation with the variable soft sphere (VSS) model.
@@ -593,15 +588,14 @@ class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
     
     
     def _precompute_fsm_gain_2D(self) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        ### Note
-        Here, we order data in the following order:
-            `(batch, space, velocity, data, *quadrature_rules)`
-        """
-        """
-        Commnets
-        
-        1. The tensor of the points sampled uniformly on $S^1$ is initially saved in a tensor of shape `(quad_order_uniform, dim)`. As this tensor has to be reshaped to a tensor of shape `(1, *ones(dim), *ones(dim), dim, *(1, quad_order_uniform))`, transposition is required.
+        """Precomputes 2D gain kernel modes for the fast spectral method.
+
+        ## Description
+        Computes the scaling and phase factor tensors using polar quadrature on `S^1`.
+        Data ordering: `(batch, space, velocity, data, *quadrature_rules)`.
+
+        ## Returns
+        `tuple[torch.Tensor, torch.Tensor, torch.Tensor]`: Tensors `(fsm_scale, fsm_phase_1, fsm_phase_2)`.
         """
         # Get the frequency tensor
         freqs = freq_tensor(self._dimension, self._v_num_grid, True, dtype=self._dtype, device=self._device)
@@ -654,14 +648,14 @@ class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
     
     
     def _precompute_fsm_gain_3D(self) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Here, we order data in the following order:
-            `(batch, space, velocity, data, *quadrature_rules)`
-        """
-        """
-        Comments
-        
-        1. The tensor of the Lebedev quarature points on $S^2$ is initially saved in a tensor of shape `(-1, dim)`, so it should be transposed to a tensor of shape `(dim, -1)`.
+        """Precomputes 3D gain kernel modes for the fast spectral method.
+
+        ## Description
+        Computes the scaling and phase factor tensors using spherical Lebedev quadrature on `S^2`.
+        Data ordering: `(batch, space, velocity, data, *quadrature_rules)`.
+
+        ## Returns
+        `tuple[torch.Tensor, torch.Tensor, torch.Tensor]`: Tensors `(fsm_scale, fsm_phase_1, fsm_phase_2)`.
         """
         # Get the frequency tensor
         freqs = freq_tensor(self._dimension, self._v_num_grid, True, dtype=self._dtype, device=self._device)
@@ -730,6 +724,11 @@ class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
         return int(self._fsm_phase_1.size(-2) * self._fsm_phase_1.size(-1))
     
     
+
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

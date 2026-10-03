@@ -1,36 +1,38 @@
-import  torch
-from    typing      import  Optional
+from   typing import Optional
+import torch
 
 
-__all__ = ['compute_grad']
+__all__: list[str] = ['compute_grad']
 
 
-##################################################
 ##################################################
 def compute_grad(
-        outputs:        torch.Tensor,
-        inputs:         torch.Tensor,
-        create_graph:   bool            = True,
-        retain_graph:   Optional[bool]  = None,
-    ) -> torch.Tensor:
+    outputs:      torch.Tensor,
+    inputs:       torch.Tensor,
+    create_graph: bool           = True,
+    retain_graph: Optional[bool] = None,
+) -> torch.Tensor:
     """Computes the gradient of `outputs` at `inputs` using `torch.autograd.grad()`.
-    
-    Arguments:
-        `outputs` (`torch.Tensor`): A 1-dimensional tensor, which acts as an array of the values of a function of `inputs`. This function aims at computing the gradient of `outputs` at `inputs`.
-        `inputs` (`torch.Tensor`): A tensor object at which the gradient of `outputs` shall be computed.
-        `create_graph` (`bool`, default: `True`): See Appendix below.
-        `retain_graph` (`bool`, default: `None`): See Appendix below. When this parameter is not initialized, it is initialized to `create_graph` by default.
-    
-    Returns:
-        This function returns the gradient of `outputs` at `inputs`.
-        
+
+    ## Description
+    Computes the gradient of `outputs` at `inputs` using `torch.autograd.grad()`.
+
+    ## Arguments
+    `outputs` (`torch.Tensor`): A 1-dimensional tensor, which acts as an array of the values of a function of `inputs`. This function aims at computing the gradient of `outputs` at `inputs`.
+    `inputs` (`torch.Tensor`): A tensor object at which the gradient of `outputs` shall be computed.
+    `create_graph` (`bool`, default: `True`): See Appendix below.
+    `retain_graph` (`Optional[bool]`, default: `None`): See Appendix below. When this parameter is not initialized, it is initialized to `create_graph` by default.
+
+    ## Returns
+    `torch.Tensor`: The gradient of `outputs` at `inputs`.
+
     -----
     ### Remark
     1. (Dimensionality)
         `outputs` is required to be a tensor of dimension 1.
     2. (Slicing)
         Since generates a new tensor, slicing `outputs` does not matter in back-propagation, while slicing `inputs` generates a tensor which is not connected with `outputs` in the computational graph of `outputs`.
-    
+
     -----
     ### Examples
 
@@ -53,9 +55,6 @@ def compute_grad(
     >>> u_xy.requires_grad
     False
 
-    Example 3.
-    >>> To be added.
-
     -----
     ### Appendix. Some parameters of `torch.autograd.grad()`
     Here, `R` is the set of the real numbers.
@@ -75,33 +74,34 @@ def compute_grad(
     This boolean parameter determines whether the computational graph for computing the derivative should be preserved.
         * When `True`, the computational graph is preserved.
         * When `False`, the computational graph is deleted.
-    
+
     3. (`allow_unused` (`bool`))
     When `inputs` does not contribute in computing `outputs` (so that the true gradient is obviously the zero vector), then `inputs` is not contained in the computational graph of `outputs`, so `torch.autograd.grad()` cannot properly compute the gradient.
         * When `True`, then `torch.autograd.grad()` returns the tuple `(None,)`.
         * When `False`, then `torch.autograd.grad()` throws a runtime error.
     """
-    # Initialize `retain_graph` if it is not initialized
     if retain_graph is None:
         retain_graph = create_graph
-    
-    # Compute the gradient
-    return_value = torch.autograd.grad(
-        outputs         = outputs,
-        inputs          = inputs,
-        grad_outputs    = torch.ones_like(outputs),
-        create_graph    = create_graph,
-        retain_graph    = retain_graph,
-        allow_unused    = True,
+
+    return_value: Optional[torch.Tensor] = torch.autograd.grad(
+        outputs      = outputs,
+        inputs       = inputs,
+        grad_outputs = torch.ones_like(outputs),
+        create_graph = create_graph,
+        retain_graph = retain_graph,
+        allow_unused = True,
     )[0]
-    
-    # If no backward propagation is executed, set the gradient to the zero vector
+
     if return_value is None:
         return_value = torch.zeros_like(inputs)
-    
+
     return return_value
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

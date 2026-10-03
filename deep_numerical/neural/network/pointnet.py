@@ -4,19 +4,17 @@ Remark
 
 1. In forward propagation, the input tensor is assumed to have the shape `(batch, channel, num_points)`, as it is conventional in PyTorch.
 """
-from    typing  import  Sequence, List, Tuple
-import  torch
-from    torch   import  nn
-import  torch.nn.functional as  F
+from   typing import List, Sequence, Tuple
+import torch
+from   torch import nn
+import torch.nn.functional as F
 
 
-__all__ = ["PointNetClassification", "PointNetSegmentation"]
+__all__: list[str] = ["PointNetClassification", "PointNetSegmentation"]
 
 
-##################################################
-##################################################
 class TNet(nn.Module):
-    """## The T-net in PointNet
+    """T-net predicting canonical affine transformations for point clouds.
     
     ### Description
     T-net aims to predict an affine transform matrix so as to align the input tensor to a canonical space before feature extraction.
@@ -34,7 +32,7 @@ class TNet(nn.Module):
             hidden_dimensions:  List[int]   = [64, 128, 1024, 512, 256],
             maxpool_at:         int         = 3,
         ) -> None:
-        """## The initializer of `TNet`
+        """The initializer of `TNet`
         
         ## Description
         Initializes the spatial transformation network with convolutional feature extraction layers and an affine transformation matrix predictor.
@@ -88,7 +86,7 @@ class TNet(nn.Module):
 
 
 class TNetTransform(nn.Module):
-    """## The T-net transformer in PointNet
+    """T-net feature transformation layer for point clouds.
     """
     def __init__(
             self,
@@ -96,7 +94,7 @@ class TNetTransform(nn.Module):
             hidden_dimensions:  List[int]   = [64, 128, 1024, 512, 256],
             maxpool_at:         int         = 3,
         ) -> None:
-        """## The initializer of `TNetTransform`
+        """The initializer of `TNetTransform`
         
         ## Description
         Initializes the `TNetTransform` module wrapping a `TNet` instance for coordinate transformation.
@@ -115,7 +113,7 @@ class TNetTransform(nn.Module):
     
     
     def forward(self, X: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        """## Forward pass of `TNetTransform`
+        """Forward pass of `TNetTransform`
         
         ## Description
         Computes the spatial transformation matrix `T` using `TNet` and applies it to the input point cloud `X`.
@@ -131,8 +129,6 @@ class TNetTransform(nn.Module):
         return (X, T)
 
 
-##################################################
-##################################################
 class PointNetBase(nn.Module):
     """Base model for PointNet
     """
@@ -144,7 +140,7 @@ class PointNetBase(nn.Module):
                     hidden_dimensions:  List[int]   = [64, 128, 1024, 512, 256],
                     maxpool_at:         int         = 3,
         ) -> None:
-        """## The initializer of `PointNetBase`
+        """The initializer of `PointNetBase`
         
         ## Description
         Initializes the shared PointNet backbone consisting of input transform, local feature MLP, feature transform, and global feature MLP.
@@ -182,12 +178,16 @@ class PointNetBase(nn.Module):
         
     
     def forward_base_global(self, X: torch.Tensor) -> Sequence[torch.Tensor]:
-        """
-        ### Return
-        * `X_base (B, C_base, N)`
-        * `X_global (B, C_global, 1)`
-        * `T_input (B, C_in, C_in)`
-        * `T_feature (B, C_feature, C_feature)`
+        """Computes base and global point cloud features.
+
+        ## Description
+        Transforms point clouds and extracts both local per-point base features and max-pooled global features.
+
+        ## Arguments
+        `X` (`torch.Tensor`): Input point cloud tensor of shape `(B, in_channels, N)`.
+
+        ## Returns
+        `Sequence[torch.Tensor]`: Tuple of `(X_base, X_global, T_input, T_feature)`.
         """
         X, T_input = self.transform_input(X)
         X = F.relu(self.bn_base(self.mlp_base(X)))
@@ -195,14 +195,10 @@ class PointNetBase(nn.Module):
         X_global = self.mlp_global.forward(X_base)
         X_global = F.max_pool1d(X_global, kernel_size = X_global.size(-1))
         return (X_base, X_global, T_input, T_feature)
-    
-    
-##################################################
-##################################################
 
 
 class PointNetClassification(PointNetBase):
-    """## PointNet for classification
+    """PointNet architecture for point cloud classification.
     ### A neural network for point clouds
     -----
     ### Description
@@ -217,7 +213,7 @@ class PointNetClassification(PointNetBase):
                     hidden_dimensions:  List[int]   = [64, 128, 1024, 512, 256],
                     maxpool_at:         int         = 3,
         ) -> None:
-        """## The initializer of `PointNetClassification`
+        """The initializer of `PointNetClassification`
         
         ## Description
         Initializes the PointNet architecture for point cloud classification with a classification MLP head.
@@ -263,11 +259,16 @@ class PointNetClassification(PointNetBase):
         
     
     def forward(self, X: torch.Tensor) -> Sequence[torch.Tensor]:
-        """
-        ### Return
-        * `X_class (torch.Tensor)`: Shape: `(B, num_classes)`
-        * `T_input (torch.Tensor)`: Shape: `(B, C_input, C_input)`
-        * `T_feature (torch.Tensor)`: Shape: `(B, C_feature, C_feature)`
+        """Forward pass for point cloud classification.
+
+        ## Description
+        Computes classification logits using extracted global point cloud representations.
+
+        ## Arguments
+        `X` (`torch.Tensor`): Input point cloud tensor of shape `(B, in_channels, N)`.
+
+        ## Returns
+        `Sequence[torch.Tensor]`: Tuple `(X_class, T_input, T_feature)`.
         """
         _, X_class, T_input, T_feature = self.forward_base_global(X)
         X_class = X_class.squeeze(-1)
@@ -277,7 +278,7 @@ class PointNetClassification(PointNetBase):
     
     
     def fit(self, X: torch.Tensor, y: torch.LongTensor) -> None:
-        """## Fit classification model
+        """Fits the classification model on training data.
         
         ## Description
         Runs a forward pass on training point clouds `X` and targets `y`.
@@ -297,7 +298,7 @@ class PointNetClassification(PointNetBase):
 
 
 class PointNetSegmentation(PointNetBase):
-    """## PointNet for segmentation
+    """PointNet architecture for point cloud segmentation.
     ### A neural network for point clouds
     -----
     ### Description
@@ -312,7 +313,7 @@ class PointNetSegmentation(PointNetBase):
                     hidden_dimensions:  List[int]   = [64, 128, 1024, 512, 256],
                     maxpool_at:         int         = 3,
         ) -> None:
-        """## The initializer of `PointNetSegmentation`
+        """The initializer of `PointNetSegmentation`
         
         ## Description
         Initializes the PointNet architecture for point cloud part/semantic segmentation.
@@ -353,11 +354,16 @@ class PointNetSegmentation(PointNetBase):
         
     
     def forward(self, X: torch.Tensor) -> Sequence[torch.Tensor]:
-        """
-        ### Return
-        * `X_class (torch.Tensor)`: Shape: `(B, num_classes, num_points)`
-        * `T_input (torch.Tensor)`: Shape: `(B, C_input, C_input)`
-        * `T_feature (torch.Tensor)`: Shape: `(B, C_feature, C_feature)`
+        """Forward pass for point cloud segmentation.
+
+        ## Description
+        Concatenates local and global feature representations to predict per-point segmentation classes.
+
+        ## Arguments
+        `X` (`torch.Tensor`): Input point cloud tensor of shape `(B, in_channels, N)`.
+
+        ## Returns
+        `Sequence[torch.Tensor]`: Tuple `(X_class, T_input, T_feature)` where `X_class` has shape `(B, num_classes, N)`.
         """
         X_base, X_global, T_input, T_feature = self.forward_base_global(X)
         X_base = torch.concat(
@@ -371,4 +377,9 @@ class PointNetSegmentation(PointNetBase):
 
 
 ##################################################
-##################################################
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

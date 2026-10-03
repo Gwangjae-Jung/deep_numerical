@@ -7,10 +7,9 @@ from    deep_numerical.neural.layer import  MLP, TensorizedFourierLayer
 __all__ = ["TensorizedFourierNeuralOperator", "TensorizedFNO",]
 
 
-##################################################
-##################################################
+
 class TensorizedFourierNeuralOperator(BaseModule):
-    """## Tensorized Fourier Neural Operator (TFNO)
+    """Tensorized Fourier Neural Operator (TFNO)
     ### Integral operator via discrete Fourier transform
     
     -----
@@ -42,7 +41,7 @@ class TensorizedFourierNeuralOperator(BaseModule):
             
             **kwargs,
         ) -> None:
-        """## The initializer of the class `SeparableFourierNeuralOperator`
+        """The initializer of the class `SeparableFourierNeuralOperator`
         
         Arguments:
             `n_modes` (`Sequence[int]`):
@@ -119,7 +118,7 @@ class TensorizedFourierNeuralOperator(BaseModule):
     
     @property
     def dim_domain(self) -> int:
-        """## Spatial domain dimension."""
+        """Spatial domain dimension."""
         return self.__dim_domain
 
 
@@ -127,5 +126,9 @@ TensorizedFNO = TensorizedFourierNeuralOperator
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

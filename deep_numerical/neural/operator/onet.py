@@ -12,10 +12,9 @@ __all__: list[str] = [
 ]
 
 
-##################################################
-##################################################
+
 class DeepONet(BaseModule):
-    """## Deep Operator Network (DeepONet) - Structured version
+    """Deep Operator Network (DeepONet) - Structured version
     ### Approximation of a continuous operator of function spaces with a single input, using a branch net and a trunk net
     
     -----
@@ -37,7 +36,7 @@ class DeepONet(BaseModule):
             bias:               bool                        = True,
             dtype:              torch.dtype                 = torch.float,
         ) -> None:
-        """## The initializer of the class `DeepONet`
+        """The initializer of the class `DeepONet`
         
         Arguments:
             `branch` (`Optional[torch.nn.Module]`, default: `None`):
@@ -125,7 +124,7 @@ class DeepONet(BaseModule):
 
 
 class DeepONetUnstructured(BaseModule):
-    """## Deep Operator Network (DeepONet) - Unstructured version
+    """Deep Operator Network (DeepONet) - Unstructured version
     ### Approximation of a continuous operator of function spaces with a single input, using a branch net and a trunk net
     
     -----
@@ -151,7 +150,7 @@ class DeepONetUnstructured(BaseModule):
             bias:               bool                        = True,
             dtype:              torch.dtype                 = torch.float,
         ) -> None:
-        """## The initializer of the class `DeepONetUnstructured`
+        """The initializer of the class `DeepONetUnstructured`
         
         Arguments:
             `branch` (`Optional[torch.nn.Module]`, default: `None`):
@@ -238,10 +237,9 @@ class DeepONetUnstructured(BaseModule):
         return inner_prod + self.bias
 
 
-##################################################
-##################################################
+
 class MIONet(BaseModule):
-    """## Multiple-Input Operator Network (MIONet)
+    """Multiple-Input Operator Network (MIONet)
     ### Approximation of a continuous operator of Banach spaces, using a branch neta and a trunk net
     
     -----
@@ -267,7 +265,7 @@ class MIONet(BaseModule):
             bias:               bool                        = True,
             dtype:              torch.dtype                 = torch.float,
         ) -> None:
-        """## The initializer of the class `MIONet`
+        """The initializer of the class `MIONet`
         
         Arguments:
             `channels_branches` (`Sequence[Sequence[int]]`):
@@ -358,7 +356,7 @@ class MIONet(BaseModule):
 
 
 class MIONetUnstructured(BaseModule):
-    """## Multiple-Input Operator Network (MIONet) - Unstructured version
+    """Multiple-Input Operator Network (MIONet) - Unstructured version
     ### Approximation of a continuous operator of Banach spaces, using a branch neta and a trunk net
     
     -----
@@ -384,7 +382,7 @@ class MIONetUnstructured(BaseModule):
             bias:               bool                        = True,
             dtype:              torch.dtype                 = torch.float,
         ) -> None:
-        """## The initializer of the class `MIONetUnstructured`
+        """The initializer of the class `MIONetUnstructured`
         
         Arguments:
             `channels_branches` (`Sequence[Sequence[int]]`):
@@ -475,5 +473,9 @@ class MIONetUnstructured(BaseModule):
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

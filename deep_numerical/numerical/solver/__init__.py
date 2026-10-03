@@ -1,42 +1,30 @@
-"""## Implementation of spectral numerical methods for solving kinetic equations
+"""Implementation of spectral numerical methods for solving kinetic equations.
 
 -----
 ### Description
-This module provides several classes which compute the numerical solution of several kinetic equations based on the spectral method (Fourier-Galerkin method).
-
-* `dsm`
-    provides the direct spectral method for solving the Boltzmann equation.
-* `fsm__boltzmann`
-    provides the fast spectral method which can be used for general collision kernels, suggested in [(Gamba, 2017)](https://epubs.siam.org/doi/10.1137/16M1096001).
-* `fsm__fpl`
-    provides the fast spectral method for the Fokker-Planck-Landau equation, with the fast algorithm suggested in [(Pareschi, 2000)](https://www.sciencedirect.com/science/article/pii/S0021999100966129).
+This module provides classes which compute the numerical solution of several kinetic equations based on the spectral method (Fourier-Galerkin method):
+* `dsm`: Direct spectral method for the Boltzmann equation.
+* `fsm__boltzmann`: Fast spectral method for general collision kernels.
+* `fsm__fpl`: Fast spectral method for the Fokker-Planck-Landau equation.
 
 -----
-### Reference
-[(Gamba, 2017)]: [Irene M. Gamba, Jeffrey R. Haack, Cory D. Hauck, and Jingwei Hu, A Fast Spectral Method for the Boltzmann Collision Operator with General Collision Kernels, SIAM Journal on Scientific Computing, Volume 39, Issue 1, 2017, Pages B658-B674](https://epubs.siam.org/doi/10.1137/16M1096001)
-
-[(Pareschi, 2000)]: [L. Pareschi, G. Russo, G. Toscani, Fast Spectral Methods for the Fokker–Planck–Landau Collision Operator, Journal of Computational Physics, Volume 165, Issue 1, 2000, Pages 216-236](https://www.sciencedirect.com/science/article/pii/S0021999100966129).
-
------
-### Note
-All implementation of numerical methods assumes that both the input and output tensors (which are instantaneous records) are of the following shape: `(num_batch, *physical_domain, *velocity_domain, num_functions)`.
-When stacked to form the resultant datasets, the instantaneous data are stacked along `axis=1`, forming a tensor of shape `(num_batch, num_timestamps, *physical_domain, *velocity_domain, num_functions)`.
+### References
+[1] I. M. Gamba, J. R. Haack, C. D. Hauck, and J. Hu, A Fast Spectral Method for the Boltzmann Collision Operator with General Collision Kernels, SIAM J. Sci. Comput., 39 (2017), pp. B658–B674.
+[2] L. Pareschi, G. Russo, and G. Toscani, Fast Spectral Methods for the Fokker–Planck–Landau Collision Operator, J. Comput. Phys., 165 (2000), pp. 216–236.
 """
-# # Spectral method
-from    .base_classes       import  *
-from    .constants          import  *
-from    .dsm                import  *
-from    .fsm__boltzmann     import  *
-from    .fsm__fpl           import  *
+from .base_classes   import *
+from .constants      import *
+from .dsm            import *
+from .fsm__boltzmann import *
+from .fsm__fpl       import *
+from .runge_kutta    import *
 
-from    .runge_kutta        import  *
-
-from    .base_classes       import  __all__ as  __all__base_classes
-from    .constants          import  __all__ as  __all__constants
-from    .dsm                import  __all__ as  __all__dsm
-from    .fsm__boltzmann     import  __all__ as  __all__fsm__boltzmann
-from    .fsm__fpl           import  __all__ as  __all__fsm__fpl
-from    .runge_kutta        import  __all__ as  __all__runge_kutta
+from .base_classes   import __all__ as __all__base_classes
+from .constants      import __all__ as __all__constants
+from .dsm            import __all__ as __all__dsm
+from .fsm__boltzmann import __all__ as __all__fsm__boltzmann
+from .fsm__fpl       import __all__ as __all__fsm__fpl
+from .runge_kutta    import __all__ as __all__runge_kutta
 
 
 __all__: list[str] = (
@@ -50,5 +38,9 @@ __all__: list[str] = (
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

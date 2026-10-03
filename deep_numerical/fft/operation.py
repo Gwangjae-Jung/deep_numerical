@@ -1,40 +1,35 @@
-from    typing      import  Optional, Sequence
-import  torch
+from   typing import Optional, Sequence
+import torch
 
 
-__all__ = [
-    # FFT operations
+__all__:   list[str] = [
     'convolve_signals',
     'convolve_freqs',
     'linear_convolution',
     'circular_convolution',
 ]
-
-FFT_NORM:   str = 'forward'
+FFT_NORM: str       = 'forward'
 
 
 ##################################################
-##################################################
-# FFT operations
-## Convolutions using FFT
 def convolve_signals(
-        x1:     torch.Tensor,
-        x2:     torch.Tensor,
-        dim:    Optional[Sequence[int]] = None,
-    ) -> torch.Tensor:
+    x1:  torch.Tensor,
+    x2:  torch.Tensor,
+    dim: Optional[Sequence[int]] = None,
+) -> torch.Tensor:
     """Computes the convolution of two input signals using the fast Fourier transform.
-    
-    Arguments:
-        `x1` (`torch.Tensor`):
-            The first signal.
-        `x2` (`torch.Tensor`):
-            The second signal.
-        `dim` (`Optional[Sequence[int]]`, default: `None`):
-            The sequence of dimensions to be convolved.
-            If `None`, then `x1` and `x2` are convolved throughout the entire dimensions.
 
-    ### Note
+    ## Description
+    Computes the convolution of two input signals using the fast Fourier transform.
     As the operation held on the frequency domain is just the pointwise multiplication, the output does not suffer from aliasing.
+
+    ## Arguments
+    `x1` (`torch.Tensor`): The first signal.
+    `x2` (`torch.Tensor`): The second signal.
+    `dim` (`Optional[Sequence[int]]`, default: `None`): The sequence of dimensions to be convolved. If `None`, then `x1` and `x2` are convolved throughout the entire dimensions.
+
+    ## Returns
+    `torch.Tensor`: The convolved signal tensor.
     """
     if x1.shape != x2.shape:
         raise ValueError(
@@ -46,10 +41,10 @@ def convolve_signals(
         dim = tuple((v for v in range(x1.ndim)))
     else:
         dim = tuple(dim)
-    x1_fft = torch.fft.fftn(x1, dim=dim, norm=FFT_NORM)
-    x2_fft = torch.fft.fftn(x2, dim=dim, norm=FFT_NORM)
-    conv_fft = x1_fft*x2_fft
-    conv: torch.Tensor = torch.fft.ifftn(conv_fft, dim=dim, norm=FFT_NORM)
+    x1_fft:   torch.Tensor = torch.fft.fftn(x1, dim=dim, norm=FFT_NORM)
+    x2_fft:   torch.Tensor = torch.fft.fftn(x2, dim=dim, norm=FFT_NORM)
+    conv_fft: torch.Tensor = x1_fft * x2_fft
+    conv:     torch.Tensor = torch.fft.ifftn(conv_fft, dim=dim, norm=FFT_NORM)
     if torch.is_complex(x1) or torch.is_complex(x2):
         return conv
     else:
@@ -57,24 +52,24 @@ def convolve_signals(
 
 
 def convolve_freqs(
-        x1_fft: torch.Tensor,
-        x2_fft: torch.Tensor,
-        dim:    Optional[Sequence[int]] = None,
-    ) -> torch.Tensor:
+    x1_fft: torch.Tensor,
+    x2_fft: torch.Tensor,
+    dim:    Optional[Sequence[int]] = None,
+) -> torch.Tensor:
     """Computes the convolution of two input FFTs using the fast Fourier transform.
-    
-    Arguments:
-        `x1_fft` (`torch.Tensor`):
-            The first FFT.
-        `x2_fft` (`torch.Tensor`):
-            The second FFT.
-        `dim` (`Optional[Sequence[int]]`, default: `None`):
-            The sequence of dimensions to be convolved.
-            If `None`, then `x1` and `x2` are convolved throughout the entire dimensions.
-    
-    ### Note
-    The output of this function is valid only for the *finite* signals.
+
+    ## Description
+    Computes the convolution of two input FFTs using the fast Fourier transform.
+    The output of this function is valid only for the finite signals.
     Hence, the output may not be used to recover the multiplication of the original signals, unless the sampling frequency is not less than the Nyquist frequency.
+
+    ## Arguments
+    `x1_fft` (`torch.Tensor`): The first FFT.
+    `x2_fft` (`torch.Tensor`): The second FFT.
+    `dim` (`Optional[Sequence[int]]`, default: `None`): The sequence of dimensions to be convolved. If `None`, then `x1` and `x2` are convolved throughout the entire dimensions.
+
+    ## Returns
+    `torch.Tensor`: The convolved frequency tensor.
     """
     if x1_fft.shape != x2_fft.shape:
         raise ValueError(
@@ -86,17 +81,28 @@ def convolve_freqs(
         dim = tuple((v for v in range(x1_fft.ndim)))
     else:
         dim = tuple(dim)
-    x1 = torch.fft.ifftn(x1_fft, dim=dim, norm=FFT_NORM)
-    x2 = torch.fft.ifftn(x2_fft, dim=dim, norm=FFT_NORM)
-    return torch.fft.fftn(x1*x2, dim=dim, norm=FFT_NORM)
+    x1: torch.Tensor = torch.fft.ifftn(x1_fft, dim=dim, norm=FFT_NORM)
+    x2: torch.Tensor = torch.fft.ifftn(x2_fft, dim=dim, norm=FFT_NORM)
+    return torch.fft.fftn(x1 * x2, dim=dim, norm=FFT_NORM)
 
 
 def circular_convolution(
-        x1:     torch.Tensor,
-        x2:     torch.Tensor,
-        dim:    Optional[Sequence[int]] = None,
-    ) -> torch.Tensor:
+    x1:  torch.Tensor,
+    x2:  torch.Tensor,
+    dim: Optional[Sequence[int]] = None,
+) -> torch.Tensor:
     """Returns the circular convolution of two input signals.
+
+    ## Description
+    Computes the circular convolution of two input signals using the fast Fourier transform.
+
+    ## Arguments
+    `x1` (`torch.Tensor`): The first signal.
+    `x2` (`torch.Tensor`): The second signal.
+    `dim` (`Optional[Sequence[int]]`, default: `None`): The sequence of dimensions to be convolved. If `None`, then `x1` and `x2` are convolved throughout the entire dimensions.
+
+    ## Returns
+    `torch.Tensor`: The circular convolution of `x1` and `x2`.
     """
     if x1.shape != x2.shape:
         raise ValueError(
@@ -104,17 +110,17 @@ def circular_convolution(
             f"* x1.shape: {list(x1.shape)}\n"
             f"* x2.shape: {list(x2.shape)}\n"
         )
-    shape = x1.shape
+    shape: torch.Size = x1.shape
     if dim is None:
         dim = tuple((v for v in range(x1.ndim)))
     else:
         dim = tuple(dim)
-    
-    a_fft = torch.fft.fftn(x1, s=shape, dim=dim, norm=FFT_NORM)
-    b_fft = torch.fft.fftn(x2, s=shape, dim=dim, norm=FFT_NORM)
-    
-    u_fft = a_fft * b_fft
-    u: torch.Tensor = torch.fft.ifftn(u_fft, s=shape, dim=dim, norm=FFT_NORM)
+
+    a_fft: torch.Tensor = torch.fft.fftn(x1, s=shape, dim=dim, norm=FFT_NORM)
+    b_fft: torch.Tensor = torch.fft.fftn(x2, s=shape, dim=dim, norm=FFT_NORM)
+
+    u_fft: torch.Tensor = a_fft * b_fft
+    u:     torch.Tensor = torch.fft.ifftn(u_fft, s=shape, dim=dim, norm=FFT_NORM)
     if torch.is_complex(x1) or torch.is_complex(x2):
         return u
     else:
@@ -122,11 +128,22 @@ def circular_convolution(
 
 
 def linear_convolution(
-        x1:     torch.Tensor,
-        x2:     torch.Tensor,
-        dim:    Optional[Sequence[int]] = None,
-    ) -> torch.Tensor:
+    x1:  torch.Tensor,
+    x2:  torch.Tensor,
+    dim: Optional[Sequence[int]] = None,
+) -> torch.Tensor:
     """Returns the linear convolution of two input signals.
+
+    ## Description
+    Computes the linear convolution of two input signals by appropriate zero-padding in the Fourier domain.
+
+    ## Arguments
+    `x1` (`torch.Tensor`): The first signal.
+    `x2` (`torch.Tensor`): The second signal.
+    `dim` (`Optional[Sequence[int]]`, default: `None`): The sequence of dimensions to be convolved. If `None`, then `x1` and `x2` are convolved throughout the entire dimensions.
+
+    ## Returns
+    `torch.Tensor`: The linearly convolved signal.
     """
     if x1.shape != x2.shape:
         raise ValueError(
@@ -138,13 +155,13 @@ def linear_convolution(
         dim = tuple((v for v in range(x1.ndim)))
     else:
         dim = tuple(dim)
-    
-    shape_conv = tuple((x1.shape[_dim] + x2.shape[_dim] - 1 for _dim in dim))
-    a_fft = torch.fft.fftn(x1, s=shape_conv, dim=dim, norm=FFT_NORM)
-    b_fft = torch.fft.fftn(x2, s=shape_conv, dim=dim, norm=FFT_NORM)
-    
-    u_fft = a_fft * b_fft
-    u: torch.Tensor = torch.fft.ifftn(u_fft, s=shape_conv, dim=dim, norm=FFT_NORM)
+
+    shape_conv: tuple[int, ...] = tuple((x1.shape[_dim] + x2.shape[_dim] - 1 for _dim in dim))
+    a_fft:      torch.Tensor    = torch.fft.fftn(x1, s=shape_conv, dim=dim, norm=FFT_NORM)
+    b_fft:      torch.Tensor    = torch.fft.fftn(x2, s=shape_conv, dim=dim, norm=FFT_NORM)
+
+    u_fft: torch.Tensor = a_fft * b_fft
+    u:     torch.Tensor = torch.fft.ifftn(u_fft, s=shape_conv, dim=dim, norm=FFT_NORM)
     if torch.is_complex(x1) or torch.is_complex(x2):
         return u
     else:
@@ -152,5 +169,9 @@ def linear_convolution(
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

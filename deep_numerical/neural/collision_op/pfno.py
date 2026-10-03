@@ -1,21 +1,24 @@
-from    typing              import  Sequence, Optional
-from    typing_extensions   import  Self
-import  torch
-from    deep_numerical.utils        import  type_as_real
-from    deep_numerical.neural       import  BaseModule
-from    deep_numerical.neural.utils import  Activations
-from    deep_numerical.neural.layer import  MLP, FourierLayer
-from    deep_numerical.neural.collision_op._utils   import  compute_moments_homogeneous, maxwellian_homogeneous
+from   typing                                    import Optional, Sequence
+import torch
+
+from   deep_numerical.neural                     import BaseModule
+from   deep_numerical.neural.collision_op._utils import (
+    compute_moments_homogeneous,
+    maxwellian_homogeneous,
+)
+from   deep_numerical.neural.layer               import FourierLayer, MLP
+from   deep_numerical.neural.utils               import Activations
+from   deep_numerical.utils                      import type_as_real
 
 
-__all__ = ["PFNO"]
+__all__: list[str] = ["PFNO"]
     
 
-##################################################
-##################################################
 class PFNO(BaseModule):
-    """## Parameterized Fourier Neural Operator (FNO)
-    ### Integral operator via discrete Fourier transform
+    """Parameterized Fourier Neural Operator (PFNO) for collision operators.
+
+    ## Description
+    Integral neural operator with parameterized translation-invariant kernels.
     
     -----
     ### Description
@@ -46,8 +49,8 @@ class PFNO(BaseModule):
             activation_kwargs:  dict[str, object]   = {},
             
             dtype:              Optional[torch.dtype]   = None,
-        ) -> Self:
-        """## The initializer of the class `ParameterizedFNO`
+        ) -> None:
+        """Initializes the `PFNO` model.
 
         Arguments:
             `n_modes` (`Sequence[int]`):
@@ -182,6 +185,11 @@ class PFNO(BaseModule):
         return self.__dtype
 
 
+
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

@@ -10,10 +10,9 @@ from    deep_numerical.neural.layer     import  MLP, SeparableFourierLayer
 __all__ = ["SeparableFourierNeuralOperator", "SeparableFNO"]
 
 
-##################################################
-##################################################
+
 class SeparableFourierNeuralOperator(BaseModule):
-    """## Separable Fourier Neural Operator (SFNO)
+    """Separable Fourier Neural Operator (SFNO)
     ### Integral operator via discrete Fourier transform
     
     -----
@@ -45,7 +44,7 @@ class SeparableFourierNeuralOperator(BaseModule):
             
             dtype:              Optional[torch.dtype]   = None,
         ) -> Self:
-        """## The initializer of the class `SeparableFourierNeuralOperator`
+        """The initializer of the class `SeparableFourierNeuralOperator`
         
         Arguments:
             `n_modes` (`Sequence[int]`):
@@ -128,17 +127,17 @@ class SeparableFourierNeuralOperator(BaseModule):
     
     @property
     def dim_domain(self) -> int:
-        """## Spatial domain dimension."""
+        """Spatial domain dimension."""
         return self.__dim_domain
 
     @property
     def n_modes(self) -> tuple[int, ...]:
-        """## Truncated Fourier modes per spatial dimension."""
+        """Truncated Fourier modes per spatial dimension."""
         return self.__n_modes
 
     @property
     def dtype(self) -> torch.dtype:
-        """## Floating point data type of the model."""
+        """Floating point data type of the model."""
         return self.__dtype
 
 
@@ -146,5 +145,9 @@ SeparableFNO = SeparableFourierNeuralOperator
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

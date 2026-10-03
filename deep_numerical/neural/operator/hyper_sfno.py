@@ -9,10 +9,9 @@ from    ..utils             import  warn_redundant_arguments
 __all__: list[str] = ["HyperSFNO",]
 
 
-##################################################
-##################################################
+
 class HyperSFNO(BaseModule):
-    """## Separable Fourier Neural Operator with hypernetworks (Hyper-SFNO)
+    """Separable Fourier Neural Operator with hypernetworks (Hyper-SFNO)
     ### Integral operator via discrete Fourier transform
     
     -----
@@ -44,7 +43,7 @@ class HyperSFNO(BaseModule):
             
             **kwargs,
         ) -> None:
-        """## The initializer of the class `SeparableFourierNeuralOperator`
+        """The initializer of the class `SeparableFourierNeuralOperator`
         
         Arguments:
             `n_modes` (`Sequence[int]`):
@@ -130,5 +129,9 @@ class HyperSFNO(BaseModule):
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

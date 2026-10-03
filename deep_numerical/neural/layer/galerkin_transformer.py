@@ -9,10 +9,9 @@ from    deep_numerical.neural.layer.general     import  MLP
 __all__ = ["GalerkinTypeSelfAttention", "GalerkinTypeCrossAttention", "GalerkinTypeEncoderBlockSelfAttention", "GalerkinTypeEncoderBlockCrossAttention"]
 
 
-##################################################
-##################################################
+
 class GalerkinTypeSelfAttention(nn.Module):
-    """## Galerkin-type self-attention
+    """Galerkin-type self-attention
     ### Self-attention with the key-value inner product ahead
     """
     def __init__(
@@ -62,12 +61,12 @@ class GalerkinTypeSelfAttention(nn.Module):
     
     @property
     def einsum_command(self) -> str:
-        """## Einsum command string for multi-head linear projection."""
+        """Einsum command string for multi-head linear projection."""
         return f"b...c, chd -> b...hd"
     
     
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        """## Computes Galerkin-type self-attention forward pass.
+        """Computes Galerkin-type self-attention forward pass.
 
         ## Description
         Applies linear projection to query, key, value spaces, normalizes keys and values,
@@ -104,7 +103,7 @@ class GalerkinTypeSelfAttention(nn.Module):
 
 
 class GalerkinTypeCrossAttention(nn.Module):
-    """## Galerkin-type cross-attention
+    """Galerkin-type cross-attention
     ### Self-attention with the key-value inner product ahead
     """
     def __init__(
@@ -164,17 +163,17 @@ class GalerkinTypeCrossAttention(nn.Module):
     
     
     def forward(self, U: torch.Tensor, X: torch.Tensor) -> torch.Tensor:
-        """
-        ### Arguments
-        @ `U` (`torch.Tensor`)
-            * `U` is the embedding of the input function.
-            * `U` has the shape `(B, *__domain__. C)`.
-            * `U` is input to the key map and the value map.
-        
-        @ `X` (`torch.Tensor`)
-            * `X` is the 3-tensor saving the coordinates of the query points.
-            * `X` has the shape `(B, size(__domain__), dim(__domain__))`.
-            * `X` is input to the query map.
+        """Computes Galerkin-type cross-attention forward pass.
+
+        ## Description
+        Maps the query coordinates `X` and key/value input embeddings `U` into attention spaces and computes cross-attention.
+
+        ## Arguments
+        `U` (`torch.Tensor`): Input function embedding tensor of shape `(B, *spatial_shape, C)`.
+        `X` (`torch.Tensor`): Query coordinates tensor of shape `(B, *spatial_shape, dim)`.
+
+        ## Returns
+        `torch.Tensor`: The cross-attention output tensor.
         """
         # Map to the query/key/value spaces
         X_query = torch.einsum(self.einsum_command, [X, self.ca_query])
@@ -198,10 +197,9 @@ class GalerkinTypeCrossAttention(nn.Module):
         return f"GalerkinTypeCrossAttention(dim_domain: {self.__dim_domain}, hidden_channels: {self.__hidden_channels}, n_heads: {self.__n_heads})"
 
 
-##################################################
-##################################################
+
 class GalerkinTypeEncoderBlockSelfAttention(nn.Module):
-    """## Galerkin-type self-attention
+    """Galerkin-type self-attention
     ### Self-attention with the key-value inner product ahead
     """
     def __init__(
@@ -256,7 +254,7 @@ class GalerkinTypeEncoderBlockSelfAttention(nn.Module):
 
     
     def forward(self, X: torch.Tensor) -> torch.Tensor:
-        """## Computes encoder block forward pass.
+        """Computes encoder block forward pass.
 
         ## Description
         Passes input through self-attention followed by MLP with residual skip connections.
@@ -279,7 +277,7 @@ class GalerkinTypeEncoderBlockSelfAttention(nn.Module):
 
 
 class GalerkinTypeEncoderBlockCrossAttention(nn.Module):
-    """## Galerkin-type cross-attention
+    """Galerkin-type cross-attention
     ### Self-attention with the key-value inner product ahead
     """
     def __init__(
@@ -337,7 +335,7 @@ class GalerkinTypeEncoderBlockCrossAttention(nn.Module):
 
     
     def forward(self, U: torch.Tensor, X: torch.Tensor) -> torch.Tensor:
-        """## Computes cross-attention encoder block forward pass.
+        """Computes cross-attention encoder block forward pass.
 
         ## Description
         Passes input function embedding and query coordinates through cross-attention
@@ -360,5 +358,9 @@ class GalerkinTypeEncoderBlockCrossAttention(nn.Module):
 
 
 ##################################################
-##################################################
-# End of file
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()

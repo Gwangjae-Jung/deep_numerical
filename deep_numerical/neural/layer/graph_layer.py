@@ -26,7 +26,7 @@ else:
     ##################################################
     ##################################################
     class GraphKernelLayer(MessagePassing):
-        """## Graph kernel layer
+        """Graph kernel layer
         ### Kernel integration via message passing
         
         -----
@@ -48,7 +48,7 @@ else:
                 activation_name:    str = "relu",
                 activation_kwargs:  Dict[str, object] = {},
             ) -> None:
-            """## The initializer of `GraphKernelLayer`
+            """The initializer of `GraphKernelLayer`
             
             Arguments:
                 `node_channels` (`int`): The number of the node features.
@@ -110,7 +110,7 @@ else:
                 x_j:        torch.Tensor,
                 edge_attr:  torch.Tensor,
             ) -> torch.Tensor:
-            """## Constructs messages along edges.
+            """Constructs messages along edges.
 
             ## Description
             Evaluates the continuous kernel function at edge attributes and transforms source node features.
@@ -128,7 +128,7 @@ else:
         
         
         def update(self, aggr_out: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
-            """## Updates node features after message aggregation.
+            """Updates node features after message aggregation.
 
             ## Description
             Adds aggregated messages to the linear transformation of target node features.
@@ -149,4 +149,12 @@ else:
 
     ##################################################
     ##################################################
-    # End of file
+
+
+##################################################
+def main() -> None:
+    pass
+
+
+if __name__ == '__main__':
+    main()
