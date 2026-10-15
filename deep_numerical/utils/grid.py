@@ -248,7 +248,7 @@ def arg_boundary(
     grid_x:      torch.Tensor = points[..., :dim]
     x_max:       float        = torch.max(torch.abs(grid_x)).item()
     delta_x_min: float        = torch.min(grid_x[*ones(dim)] - grid_x[*zeros(dim)]).item()
-    lhs:         torch.Tensor = torch.max(torch.abs(points[..., :dim]), dim=-1)
+    lhs:         torch.Tensor = torch.max(torch.abs(points[..., :dim]), dim=-1).values
     rhs:         float        = x_max - 0.5 * delta_x_min
     return torch.argwhere(lhs > rhs)
 
@@ -280,7 +280,7 @@ def arg_boundary_inflow(
 
     normals: torch.Tensor = bd[..., :dim]
     normals = torch.sign(normals) * torch.where(torch.abs(normals) > x_max - 0.5 * delta_x_min, 1, 0)
-    normals = normals / torch.norm(normals, p=2, dim=-1, keepdims=True)
+    normals = normals / torch.norm(normals, p=2, dim=-1, keepdim=True)
 
     dot_n_v:    torch.Tensor   = torch.einsum("...i, ...i -> ...", normals, bd[..., dim:])
     arg_inflow: torch.Tensor   = torch.argwhere(dot_n_v < -eps)[..., 0]
@@ -319,7 +319,7 @@ def arg_boundary_outflow(
 
     normals: torch.Tensor = bd[..., :dim]
     normals = torch.sign(normals) * torch.where(torch.abs(normals) > x_max - 0.5 * delta_x_min, 1, 0)
-    normals = normals / torch.norm(normals, p=2, dim=-1, keepdims=True)
+    normals = normals / torch.norm(normals, p=2, dim=-1, keepdim=True)
 
     dot_n_v:     torch.Tensor   = torch.einsum("...i, ...i -> ...", normals, bd[..., dim:])
     arg_outflow: torch.Tensor   = torch.argwhere(dot_n_v > eps)[..., 0]
@@ -375,7 +375,7 @@ def specular_velocity(xv: torch.Tensor) -> torch.Tensor:
     """
     assert xv.shape[-1] % 2 == 0
     dim: int = xv.shape[-1] // 2
-    specular_vel: torch.Tensor = torch.flip(xv[..., dim:], dim=range(-1 - dim, -1))
+    specular_vel: torch.Tensor = torch.flip(xv[..., dim:], dims=range(-1 - dim, -1))
     ret:          torch.Tensor = xv.clone()
     ret[..., dim:] = specular_vel
     return ret
@@ -405,7 +405,7 @@ def compute_conservative_pairs(
 
     if verbose:
         from tqdm.notebook import tqdm
-        it: Any = tqdm(idx_pairs, desc='Computing pairs satisfying conservation laws')
+        it = tqdm(idx_pairs, desc='Computing pairs satisfying conservation laws')
     else:
         it = idx_pairs
 

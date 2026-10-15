@@ -412,7 +412,7 @@ def _fpl_character_2_3D__entry22_weight(
 
 ##################################################
 def main() -> None:
-    pass
+    return
 
 
 if __name__ == '__main__':

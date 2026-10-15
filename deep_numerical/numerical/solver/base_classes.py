@@ -1,9 +1,7 @@
-from   itertools         import product
-from   typing            import Callable, Optional, Sequence
 import warnings
+from   typing            import Callable, Optional, Sequence
 
 import torch
-from   scipy.interpolate import RegularGridInterpolator
 from   typing_extensions import Self, override
 
 from   deep_numerical                     import EINSUM_STRING, ones, repeat
@@ -18,6 +16,16 @@ from   deep_numerical.utils               import (
 )
 from   .constants                         import DEFAULT_QUAD_ORDER_LEBEDEV, LAMBDA, LAMBDA_FPL
 from   .runge_kutta                       import one_step_RK4_classic
+from   .semi_lagrangian                   import (
+    moment_correction_l2,
+    one_step_SL_AB3,
+    one_step_SL_AB4,
+    one_step_SL_Euler,
+    one_step_SL_RK3,
+    one_step_SL_RK4,
+    one_step_SL_Strang,
+    semi_lagrangian_transport,
+)
 
 
 __all__: list[str] = [
@@ -272,117 +280,32 @@ class SpectralMethodBase():
         return self._freqs
 
     
-    # Properties - Einsum
+    # Properties - Coordinates and Spacing
     @property
-
-    def einsum_string_x(self) -> str:
-
-        """Einsum subscript string for spatial dimensions."""
-        return EINSUM_STRING[1:1+self._dimension]
+    def delta_v(self) -> float:
+        """The grid spacing in each velocity dimension."""
+        return self._delta_v
 
     @property
-
-
-    def einsum_string_v(self) -> str:
-
-
-        """Einsum subscript string for velocity dimensions."""
-        return EINSUM_STRING[1+self._dimension:1+2*self._dimension]
+    def delta_x(self) -> Optional[float]:
+        """The grid spacing in each spatial dimension."""
+        return self._delta_x
 
     @property
-
-
-    def einsum_string_bxvd(self) -> str:
-
-
-        """Einsum subscript string for batch, space, velocity, and channel axes."""
-        return f"b{self.einsum_string_x}{self.einsum_string_v}d"
-
-    
-    @property
-    def v_freq_slices(self) -> product:
-        """Precomputes the product of the slices for the velocity space in the Fourier space."""
-        # NOTE: The input tensors are of the shape `(batch, *space, *velocity, channels)`.
-        dim = self._dimension
-        _freq_slices: list[Sequence[slice]] = [tuple([slice(None)]) for _ in range(1+dim)]
-        for _ in self.v_axes:
-            res_d   = self._v_num_grid
-            front_d = (res_d+1)//2
-            rear_d  = res_d-front_d
-            __slices_d = tuple([slice(0, front_d, None), slice(-rear_d, None, None)])
-            _freq_slices.append(__slices_d)
-        return product(*_freq_slices)
+    def v_coords(self) -> torch.Tensor:
+        """The 1D coordinate tensor along any velocity axis."""
+        return velocity_grid(1, self._v_num_grid, self._v_max, dtype=self._dtype, device=self._device).flatten()
 
     @property
+    def x_coords(self) -> Optional[torch.Tensor]:
+        """The 1D coordinate tensor along any spatial axis."""
+        if self._is_homogeneous or (self._x_max is None) or (self._x_num_grid is None):
+            return None
+        return torch.linspace(-self._x_max, self._x_max, self._x_num_grid, dtype=self._dtype, device=self._device)
 
-
-    def truncated_ones(self) -> torch.Tensor:
-
-
-        """Tensor of ones sized to the truncated spatio-velocity grid."""
-        return torch.ones(
-            (
-                1,
-                *ones(self._dimension),
-                *repeat(self._v_num_grid, self._dimension),
-                1,
-            ),
-            dtype=self._dtype, device=self._device,
-        )
-    
-    
-    def truncated_multiplication(
-            self,
-            f_fft:      torch.Tensor,
-            kernel_fft: torch.Tensor,
-        ) -> torch.Tensor:
-        """Computes the truncated multiplication of two input FFTs.
-        
-        ### Note
-        Both `f_fft` and `kernel_fft` should be of the same dimension, and should b aligned as `(batch, *space, *velocity, channels, ...)`.
-        """
-        # Check the dimensions of the input tensors
-        assert f_fft.ndim == kernel_fft.ndim, \
-            f"Dimension mismatch: {f_fft.ndim} vs {kernel_fft.ndim}"
-            
-        # The case which is not implemented yet
-        for d in self.v_axes:
-            if f_fft.size(d) < kernel_fft.size(d):
-                raise ValueError(
-                    f"The size of the dimension {d} of `f_fft` is less than that of `kernel_fft`.\n"
-                    f"* {f_fft.size(d)      = }\n"
-                    f"* {kernel_fft.size(d) = }\n"
-                    f"- {f_fft.shape = }\n"
-                    f"- {kernel_fft.shape = }\n"
-                )
-
-        # Conduct the usual multiplication if the shape matches on `dim`
-        _v_axes = slice(1+self._dimension, 1+2*self._dimension)
-        if f_fft.shape[_v_axes] == kernel_fft.shape[_v_axes]:
-            return f_fft * kernel_fft
-
-        # Otherwise, conduct the truncated multiplication
-        _dim_cut = 2+2*self._dimension  # Including the channel dimension
-        newshape = tuple(
-            [
-                *f_fft.shape[:_dim_cut],
-                *torch.broadcast_shapes(f_fft.shape[_dim_cut:], kernel_fft.shape[_dim_cut:]),
-            ]
-        )
-        Y_fft = torch.zeros(newshape, dtype=f_fft.dtype, device=f_fft.device)
-        for _sl in self.v_freq_slices:
-            Y_fft[_sl] = f_fft[_sl] * kernel_fft[_sl]
-        return Y_fft
-    
-    
-    @property
-    def compression_size(self) -> tuple[int, ...]:
-        return tuple([self._v_num_grid] * self._dimension)
-
-
-    def precompute(self, return_: bool=False) -> torch.Tensor:
+    def precompute(self, return_: bool = False) -> Optional[torch.Tensor]:
         """(`SpectralMethodBase`) The method `precompute` should be implemented in the derived classes."""
-        pass
+        return None
     
     
     @property
@@ -510,20 +433,20 @@ class SpectralMethodBase():
     def forward(
             self,
             _PLACEHOLDER__t_curr:   Optional[float],
-            f_fft:      torch.Tensor,
+            f_in:       torch.Tensor,
             delta_t:    float,
             RK_fcn:     Callable[[float, torch.Tensor, float, Callable], torch.Tensor] = one_step_RK4_classic,
         ) -> torch.Tensor:
-        """Returns the Fourier coefficients of the solution at the next time step.
-        
+        """Returns the solution at the next time step.
+
         -----
-        (`SpectralMethodBase`) This method is already implemented."""
+        (`SpectralMethodBase`) This method is already implemented.
+        """
         if self._is_homogeneous:
-            return self._forward_homogeneous(0.0, f_fft, delta_t, RK_fcn)
+            return self._forward_homogeneous(0.0, f_in, delta_t, RK_fcn)
         else:
-            return self._forward_inhomogeneous(0.0, f_fft, delta_t, RK_fcn)
-        
-        
+            return self._forward_inhomogeneous(0.0, f_in, delta_t, RK_fcn)
+
     def _forward_homogeneous(
             self,
             _PLACEHOLDER__t_curr:   Optional[float],
@@ -532,79 +455,72 @@ class SpectralMethodBase():
             RK_fcn:     Callable[[float, torch.Tensor, float, Callable], torch.Tensor],
         ) -> torch.Tensor:
         return RK_fcn(0.0, f_fft, delta_t, self.compute_fft)
-    
 
     def _forward_inhomogeneous(
             self,
             _PLACEHOLDER__t_curr:   Optional[float],
-            f_fft:      torch.Tensor,
+            f_in:       torch.Tensor,
             delta_t:    float,
             RK_fcn:     Callable[[float, torch.Tensor, float, Callable], torch.Tensor],
         ) -> torch.Tensor:
-        homogeneous_result = RK_fcn(0.0, f_fft, delta_t, self.compute_fft)
-        homogeneous_result: torch.Tensor = torch.fft.ifftn(homogeneous_result, dim=self.v_axes, norm=self.internal_fft_norm).real
-        
-        # Enforce the boundary condition
-        if self._boundary_condition in ("specular",):
-            homogeneous_result[:, *[self._arg_bd_inflow[:, k] for k in range(2*self._dimension)], :] = \
-                homogeneous_result[:, *[self._arg_bd_inflow_spec[:, k] for k in range(2*self._dimension)], :]
-        
-        # Conduct the transport stage (by interpolation)
-        homogeneous_result = homogeneous_result.permute(
-            *tuple(range(1, (2*self._dimension+1)+1)), 0
-        )   ## Permutation for interpolation
-        homogeneous_result = torch.nn.functional.pad(
-            homogeneous_result,
-            pad = (
-                *repeat((1, 1), self._dimension), # space
-                *repeat((0, 0), self._dimension), # velocity
-                (0, 0), # data
-                (0, 0), # *batch* (transposed)
-            ),
-            # mode = "wrap",
-        )
-        interp = RegularGridInterpolator(
-            points  = self._xv_pad,
-            values  = homogeneous_result,
-            method          = 'linear',
-            bounds_error    = False,
-            fill_value      = None,
-        ).__call__
-        homogeneous_result = torch.tensor(interp(self._xv_query.data), dtype=self._dtype, device=self._device)
-        homogeneous_result = homogeneous_result.permute(
-            2*self._dimension+1, *tuple(range(2*self._dimension+1))
-        )   ## Inverse permutation
-        ### End of the transport stage
-        
-        # Enforce the boundary condition, again
-        if self._boundary_condition in ("specular",):
-            homogeneous_result[:, *[self._arg_bd_inflow[:, k] for k in range(2*self._dimension)], :] = \
-                homogeneous_result[:, *[self._arg_bd_inflow_spec[:, k] for k in range(2*self._dimension)], :]
-        
-        # Physical space -> Frequency space
-        return torch.fft.fftn(homogeneous_result, dim=self.v_axes, norm=self.internal_fft_norm)
-    
-    
+        """Inhomogeneous time stepping using conservative semi-Lagrangian transport."""
+        is_fourier_input: bool = torch.is_complex(f_in)
+        if is_fourier_input:
+            f_phys = torch.fft.ifftn(f_in, dim=self.v_axes, norm=self.internal_fft_norm).real
+        else:
+            f_phys = f_in
+
+        if hasattr(self, 'forward_semi_lagrangian'):
+            f_next = getattr(self, 'forward_semi_lagrangian')(f_phys, delta_t)
+        else:
+            raise NotImplementedError(
+                f"Inhomogeneous forward is not supported for {self.__class__.__name__} without semi-Lagrangian transport."
+            )
+
+        if is_fourier_input:
+            return torch.fft.fftn(f_next, dim=self.v_axes, norm=self.internal_fft_norm)
+        return f_next
+
     def solve(
             self,
             t_init:     float,
             t_final:    float,
             delta_t:    float,
             f_init:     torch.Tensor,
-            RK_fcn:     Callable[[None, torch.Tensor, float, Callable], torch.Tensor],
+            RK_fcn:     Callable[[float, torch.Tensor, float, Callable], torch.Tensor] = one_step_RK4_classic,
         ) -> torch.Tensor:
-        """Retuns the numerical solution.
-        
-        -----
-        (`SpectralMethodBase`) This method is already implemented.
+        """Returns the numerical solution trajectory.
+
+        Arguments:
+            `t_init` (`float`):
+                Initial time.
+            `t_final` (`float`):
+                Final time.
+            `delta_t` (`float`):
+                Time step size.
+            `f_init` (`torch.Tensor`):
+                Initial distribution function in physical space.
+            `RK_fcn` (`Callable`, default: `one_step_RK4_classic`):
+                Time marching algorithm for homogeneous case.
+
+        Returns:
+            `torch.Tensor`: The stacked solution trajectory along dimension 1.
         """
         trange = get_trange()
-        num_updates = int((t_final-t_init)/delta_t+0.1)
+        num_updates = int((t_final - t_init) / delta_t + 0.1)
         ret: list[torch.Tensor] = [f_init]
-        f_fft_curr: torch.Tensor = torch.fft.fftn(f_init, dim=self.v_axes, norm=self.internal_fft_norm)
-        for _ in trange(num_updates):
-            f_fft_curr = self.forward(None, f_fft_curr, delta_t, RK_fcn)
-            ret.append(torch.real(torch.fft.ifftn(f_fft_curr, dim=self.v_axes, norm=self.internal_fft_norm)))
+
+        if self._is_homogeneous:
+            f_fft_curr: torch.Tensor = torch.fft.fftn(f_init, dim=self.v_axes, norm=self.internal_fft_norm)
+            for _ in trange(num_updates):
+                f_fft_curr = self.forward(0.0, f_fft_curr, delta_t, RK_fcn)
+                ret.append(torch.fft.ifftn(f_fft_curr, dim=self.v_axes, norm=self.internal_fft_norm).real)
+        else:
+            f_curr: torch.Tensor = f_init.clone()
+            for _ in trange(num_updates):
+                f_curr = self.forward(0.0, f_curr, delta_t, RK_fcn)
+                ret.append(f_curr)
+
         return torch.stack(ret, dim=1)
     
     
@@ -899,6 +815,12 @@ class FastSM_Boltzmann(SpectralMethodBase):
         self._fsm_phase_1:  Optional[torch.Tensor] = None
         self._fsm_phase_2:  Optional[torch.Tensor] = None
         self._kernel_diag:  Optional[torch.Tensor] = None
+
+        # Configuration for inhomogeneous semi-Lagrangian transport
+        self._knudsen:                float = 1.0
+        self._sl_scheme:              str   = 'rk4'
+        self._spatial_reconstruction: str   = 'cweno35'
+        self._moment_correction:      bool  = True
         return
     
     
@@ -927,34 +849,48 @@ class FastSM_Boltzmann(SpectralMethodBase):
     def kernel_diag(self) -> Optional[torch.Tensor]:
         return torch.squeeze(self._kernel_diag, dim=tuple(range(1+self._dimension)))
     @property
-    def approximation_level(self) -> int:
-        pass
-    ##################################################
-    # Reshaping properties for precomputation
+    def knudsen(self) -> float:
+        """The Knudsen number epsilon in the scaled Boltzmann equation."""
+        return self._knudsen
+    @knudsen.setter
+    def knudsen(self, value: float) -> None:
+        if value <= 0.0:
+            raise ValueError(f"Knudsen number must be positive. Got {value}")
+        self._knudsen = float(value)
+        return
     @property
-    def _freqs_reshape(self) -> tuple[int, ...]:
-        pass
+    def sl_scheme(self) -> str:
+        """The time integration scheme for semi-Lagrangian transport."""
+        return self._sl_scheme
+    @sl_scheme.setter
+    def sl_scheme(self, value: str) -> None:
+        scheme = value.lower()
+        valid = ('rk4', 'rk3', 'strang', 'euler', 'ab3', 'ab4')
+        if scheme not in valid:
+            raise ValueError(f"Unsupported semi-Lagrangian scheme: {value}. Must be one of {valid}")
+        self._sl_scheme = scheme
+        return
     @property
-    def _r_roots_reshape(self) -> tuple[int, ...]:
-        pass
+    def spatial_reconstruction(self) -> str:
+        """The spatial reconstruction order for conservative semi-Lagrangian transport."""
+        return self._spatial_reconstruction
+    @spatial_reconstruction.setter
+    def spatial_reconstruction(self, value: str) -> None:
+        order = value.lower()
+        valid = ('linear', 'cweno23', 'cweno35')
+        if order not in valid:
+            raise ValueError(f"Unsupported spatial reconstruction: {value}. Must be one of {valid}")
+        self._spatial_reconstruction = order
+        return
     @property
-    def _r_weights_reshape(self) -> tuple[int]:
-        pass
-    @property
-    def _s_roots_reshape(self) -> tuple[int, ...]:
-        pass
-    @property
-    def _s_weights_reshape(self) -> tuple[int, ...]:
-        pass
-    @property
-    def _g_roots_reshape(self) -> tuple[int, ...]:
-        pass
-    @property
-    def _g_weights_reshape(self) -> tuple[int, ...]:
-        pass
-    ##################################################
-    
-    
+    def moment_correction(self) -> bool:
+        """Whether to enforce L2 conservation of mass, momentum, and energy."""
+        return self._moment_correction
+    @moment_correction.setter
+    def moment_correction(self, value: bool) -> None:
+        self._moment_correction = bool(value)
+        return
+
     def _dimension_error(self) -> None:
         raise NotImplementedError(f"This class is supported only for 2D and 3D problems. (dimension: {self._dimension})")
     
@@ -1011,7 +947,106 @@ class FastSM_Boltzmann(SpectralMethodBase):
         """This method computes the FFT of the coefficient operator in the loss part of the collision operator."""
         loss_linear_fft = fft_curr * self._kernel_diag
         return loss_linear_fft
-    
+
+    def collision_operator_physical(
+            self,
+            f: torch.Tensor,
+        ) -> torch.Tensor:
+        """Computes the collision operator Q(f) in physical space.
+
+        ## Description
+        Applies FFT along velocity axes, evaluates the fast spectral collision operator
+        in Fourier space, and transforms back via IFFT with real projection.
+
+        Arguments:
+            `f` (`torch.Tensor`):
+                The distribution function in physical space, shaped `(batch, *space, *velocity, 1)`.
+
+        Returns:
+            `torch.Tensor`: The collision operator Q(f) in physical space of identical shape.
+        """
+        f_fft = torch.fft.fftn(f, dim=self.v_axes, norm=self.internal_fft_norm)
+        q_fft = self.compute_fft(0.0, f_fft)
+        q_phys = torch.fft.ifftn(q_fft, dim=self.v_axes, norm=self.internal_fft_norm).real
+        return q_phys
+
+    def forward_semi_lagrangian(
+            self,
+            f_curr:     torch.Tensor,
+            delta_t:    float,
+        ) -> torch.Tensor:
+        """Advances the inhomogeneous Boltzmann equation by one time step delta_t using conservative semi-Lagrangian method.
+
+        ## Description
+        Following Boscarino, Cho, and Russo (2024), this solves the equation:
+            \\partial_t f + v \\cdot \\nabla_x f = \\frac{1}{\\varepsilon} Q(f)
+        coupled with conservative semi-Lagrangian advection and fast spectral collision.
+        If moment_correction is enabled, mass, momentum, and energy are conserved to machine precision.
+
+        Arguments:
+            `f_curr` (`torch.Tensor`):
+                The current distribution function in physical space, shaped `(batch, *space, *velocity, 1)`.
+            `delta_t` (`float`):
+                The time step size.
+
+        Returns:
+            `torch.Tensor`: The updated distribution function at t + delta_t.
+        """
+        v_coords = self.v_coords
+        knudsen  = self._knudsen
+        order    = self._spatial_reconstruction
+
+        def collision_fn(f_state: torch.Tensor) -> torch.Tensor:
+            q_raw = self.collision_operator_physical(f_state)
+            if self._moment_correction:
+                q_raw = moment_correction_l2(q_raw, v_coords, self._delta_v)
+            return q_raw
+
+        scheme = self._sl_scheme
+        if scheme == 'rk4':
+            f_next = one_step_SL_RK4(
+                f_curr       = f_curr,
+                delta_t      = delta_t,
+                collision_fn = collision_fn,
+                v_coords     = v_coords,
+                x_max        = self._x_max,
+                knudsen      = knudsen,
+                order        = order,
+            )
+        elif scheme == 'rk3':
+            f_next = one_step_SL_RK3(
+                f_curr       = f_curr,
+                delta_t      = delta_t,
+                collision_fn = collision_fn,
+                v_coords     = v_coords,
+                x_max        = self._x_max,
+                knudsen      = knudsen,
+                order        = order,
+            )
+        elif scheme == 'strang':
+            f_next = one_step_SL_Strang(
+                f_curr       = f_curr,
+                delta_t      = delta_t,
+                collision_fn = collision_fn,
+                v_coords     = v_coords,
+                x_max        = self._x_max,
+                knudsen      = knudsen,
+                order        = order,
+            )
+        elif scheme == 'euler':
+            f_next = one_step_SL_Euler(
+                f_curr       = f_curr,
+                delta_t      = delta_t,
+                collision_fn = collision_fn,
+                v_coords     = v_coords,
+                x_max        = self._x_max,
+                knudsen      = knudsen,
+                order        = order,
+            )
+        else:
+            raise ValueError(f"Unknown semi-Lagrangian scheme: {scheme}")
+
+        return f_next
     
     def to(self, device: torch.device) -> Self:
         if self._fsm_scale is not None:
@@ -1022,7 +1057,8 @@ class FastSM_Boltzmann(SpectralMethodBase):
             self._fsm_phase_2 = self._fsm_phase_2.to(device)
         if self._kernel_diag is not None:
             self._kernel_diag = self._kernel_diag.to(device)
-        self._freqs = self._freqs.to(device)
+        self._freqs  = self._freqs.to(device)
+        self._device = device
         return self
     
 
@@ -1337,24 +1373,25 @@ class FastSM_Landau(SpectralMethodBase):
     
     
     def to(self, device: torch.device) -> Self:
-        self._freqs.to(device)
-        self._freq_norms.to(device)
+        self._freqs      = self._freqs.to(device)
+        self._freq_norms = self._freq_norms.to(device)
         if self._fpl_character_1 is not None:
-            self._fpl_character_1.to(device)
+            self._fpl_character_1   = self._fpl_character_1.to(device)
         if self._fpl_character_2 is not None:
-            self._fpl_character_2.to(device)
+            self._fpl_character_2   = self._fpl_character_2.to(device)
         if self._fpl_gain_tensor_1 is not None:
-            self._fpl_gain_tensor_1.to(device)
+            self._fpl_gain_tensor_1 = self._fpl_gain_tensor_1.to(device)
         if self._fpl_gain_tensor_2 is not None:
-            self._fpl_gain_tensor_2.to(device)
+            self._fpl_gain_tensor_2 = self._fpl_gain_tensor_2.to(device)
         if self._fpl_loss_tensor is not None:
-            self._fpl_loss_tensor.to(device)
+            self._fpl_loss_tensor   = self._fpl_loss_tensor.to(device)
+        self._device = device
         return self
-    
+
 
 ##################################################
 def main() -> None:
-    pass
+    return
 
 
 if __name__ == '__main__':

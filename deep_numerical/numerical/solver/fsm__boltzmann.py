@@ -7,14 +7,16 @@ Based on the rewriting of the expression of the kernel modes, this module aims t
 Reference: [Irene M. Gamba, Jeffrey R. Haack, Cory D. Hauck, and Jingwei Hu, A Fast Spectral Method for the Boltzmann Collision Operator with General Collision Kernels, SIAM Journal on Scientific Computing, Volume 39, Issue 1, 2017, Pages B658-B674](https://epubs.siam.org/doi/10.1137/16M1096001)
 """
 from   typing            import Optional
+
+from   scipy.special     import gamma
 import torch
 from   torch.special     import bessel_j0 as j0
 from   typing_extensions import override
 
 from   deep_numerical                     import ones, repeat
 from   deep_numerical.fft                 import freq_tensor
-from   deep_numerical.numerical           import sinc
 from   deep_numerical.numerical.integrate import roots_circle, roots_lebedev, roots_legendre_shifted
+from   deep_numerical.numerical.math      import area_of_unit_sphere, sinc
 from   ._kernel_modes.boltzmann_VHS       import Boltzmann_VHS_kernel_modes
 from   .base_classes                      import FastSM_Boltzmann
 
@@ -108,95 +110,7 @@ class FastSM_Boltzmann_VHS(FastSM_Boltzmann):
         return self._vhs_alpha
 
 
-    # Override reshaping properties for precomputation
-    @override
-    @property
-    def _freqs_reshape(self) -> tuple[int, ...]:
-        """Reshape the frequency tensor to the following shape:
-        - Batch dimension: `1`
-        - Space dimension: `*ones(dimension)`
-        - Velocity dimension: `*repeat(resolution, dimension)`
-        - Data dimension: `dimension`
-        - Integral dimension: `*ones(2)`
-        """
-        return (
-            1,
-            *ones(self._dimension),
-            *repeat(self._v_num_grid, self._dimension),
-            self._dimension,
-            *ones(2)
-        )
-    @override
-    @property
-    def _r_roots_reshape(self) -> tuple[int, ...]:
-        """Reshape the tensor of the Legendre quadrature points to the following shape:
-        - Batch dimension: `1`
-        - Space dimension: `*ones(dimension)`
-        - Velocity dimension: `*ones(dimension)`
-        - Data dimension: `1`
-        - Integral dimension: `(quad_order_legendre, 1)`
-        """
-        return (
-            1,
-            *ones(self._dimension),
-            *ones(self._dimension),
-            1,
-            *(self._quad_order_legendre, 1)
-        )
-    @override
-    @property
-    def _r_weights_reshape(self) -> tuple[int, ...]:
-        """Reshape the tensor of the Legendre quadrature weights to the following shape:
-        - Batch dimension: `1`
-        - Space dimension: `*ones(dimension)`
-        - Velocity dimension: `*ones(dimension)`
-        - Data dimension: `1`
-        - Integral dimension: `(quad_order_legendre, 1)`
-        """
-        return (
-            1,
-            *ones(self._dimension),
-            *ones(self._dimension),
-            1,
-            *(self._quad_order_legendre, 1)
-        )
-    @override
-    @property
-    def _s_roots_reshape(self) -> tuple[int, ...]:
-        """Reshape the tensor of the quadrature points on $S^{d-1}$ to the following shape:
-        - Batch dimension: `1`
-        - Space dimension: `*ones(dimension)`
-        - Velocity dimension: `*ones(dimension)`
-        - Data dimension: `dimension`
-        - Integral dimension: `(1, -1)` (which is `(1, quad_order_uniform)` for `dimension==2`, and `(1, quad_order_lebedev)` for `dimension==3`)
-        """
-        return (
-            1,
-            *ones(self._dimension),
-            *ones(self._dimension),
-            self._dimension,
-            *(1, -1)
-        )
-    @override
-    @property
-    def _s_weights_reshape(self) -> tuple[int, ...]:
-        """Reshape the tensor of the quadrature weights on $S^{d-1}$ to the following shape:
-        - Batch dimension: `1`
-        - Space dimension: `*ones(dimension)`
-        - Velocity dimension: `*ones(dimension)`
-        - Data dimension: `1`
-        - Integral dimension: `(1, -1)` (which is `(1, quad_order_uniform)` for `dimension==2`, and `(1, quad_order_lebedev)` for `dimension==3`)
-        """
-        return (
-            1,
-            *ones(self._dimension),
-            *ones(self._dimension),
-            1,
-            *(1, -1)
-        )
-    
-    
-    # Override precomputation methods
+    # Precomputation methods
     @override
     def _precompute_fsm_gain(self) -> None:
         fsm_scale, fsm_phase_1, fsm_phase_2 = getattr(self, f'_precompute_fsm_gain_{self._dimension}D')()
@@ -204,6 +118,7 @@ class FastSM_Boltzmann_VHS(FastSM_Boltzmann):
         self._fsm_phase_1  = fsm_phase_1
         self._fsm_phase_2  = fsm_phase_2
         return
+
     @override
     def _precompute_fsm_loss(self) -> None:
         self._kernel_diag = Boltzmann_VHS_kernel_modes(
@@ -217,10 +132,8 @@ class FastSM_Boltzmann_VHS(FastSM_Boltzmann):
             dtype           = self._dtype,
             device          = self._device,
         )[*repeat(None, 1+self._dimension), ..., None]
-        # Append one extra dimension
         return
-    
-    
+
     def _precompute_fsm_gain_2D(self) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Precomputes 2D gain kernel modes for the fast spectral method.
 
@@ -231,44 +144,44 @@ class FastSM_Boltzmann_VHS(FastSM_Boltzmann):
         ## Returns
         `tuple[torch.Tensor, torch.Tensor, torch.Tensor]`: Tensors `(fsm_scale, fsm_phase_1, fsm_phase_2)`.
         """
-        # Get the frequency tensor
-        freqs = freq_tensor(self._dimension, self._v_num_grid, True, dtype=self._dtype, device=self._device)
-        freqs = freqs.reshape(self._freqs_reshape)
+        dim = self._dimension
 
-        # Get the reshaped arrays of the values of `radius, circle`
-        r_roots, r_weights  = roots_legendre_shifted(self._quad_order_legendre, 0, 2*self.v_radius, dtype=self._dtype, device=self._device)
-        s_roots, s_weights  = roots_circle(self.quad_order_uniform, dtype=self._dtype, device=self._device)
-        s_roots = s_roots.T     # See `Comments 1`.
-        r_roots:   torch.Tensor = r_roots.reshape(self._r_roots_reshape)
-        s_roots:   torch.Tensor = s_roots.reshape(self._s_roots_reshape)
-        r_weights: torch.Tensor = r_weights.reshape(self._r_weights_reshape)
-        s_weights: torch.Tensor = s_weights.reshape(self._s_weights_reshape)
+        # Frequency tensor: (1, 1, 1, v_num_grid, v_num_grid, 2, 1, 1)
+        freqs = freq_tensor(dim, self._v_num_grid, True, dtype=self._dtype, device=self._device)
+        freqs = freqs.view(1, *ones(dim), *repeat(self._v_num_grid, dim), dim, 1, 1)
 
-        # Part 1: Compute the scaling part (`fsm_scale`)
-        _fsm_scale_coeff    = (2*torch.pi) * self.vhs_coeff
-        _fsm_scale_fcn      = \
-            torch.pow(r_roots, self.vhs_alpha+self._dimension-1) * \
+        # Quadrature roots and weights
+        r_roots, r_weights = roots_legendre_shifted(self._quad_order_legendre, 0, 2*self.v_radius, dtype=self._dtype, device=self._device)
+        s_roots, s_weights = roots_circle(self.quad_order_uniform, dtype=self._dtype, device=self._device)
+        s_roots = s_roots.T
+
+        r_roots   = r_roots.view(1, *ones(2*dim), 1, -1, 1)
+        r_weights = r_weights.view(1, *ones(2*dim), 1, -1, 1)
+        s_roots   = s_roots.view(1, *ones(2*dim), dim, 1, -1)
+        s_weights = s_weights.view(1, *ones(2*dim), 1, 1, -1)
+
+        # Scaling part (fsm_scale)
+        scale_coeff = (2 * torch.pi) * self.vhs_coeff
+        scale_fcn   = (
+            torch.pow(r_roots, self.vhs_alpha + dim - 1) *
             j0(
-                (0.5 * self.v_ratio) * \
-                r_roots * \
+                (0.5 * self.v_ratio) *
+                r_roots *
                 torch.sqrt((freqs**2).sum(-3, keepdim=True))
             )
-        fsm_scale = _fsm_scale_coeff * _fsm_scale_fcn * r_weights
-        
-        # Part 2: Compute the multiplicative part (`fsm_phase`)
-        _fsm_arg = \
-            (0.5 * self.v_ratio) * \
-            (freqs * r_roots * s_roots).sum(-3, keepdim=True)
-        _coeff_1 = (1+self._restitution)/2
-        _coeff_2 = (3-self._restitution)/2
-        _phase_weight = torch.sqrt(s_weights)
-        fsm_phase_1 = torch.exp(+1j * _fsm_arg * _coeff_1) * _phase_weight
-        fsm_phase_2 = torch.exp(-1j * _fsm_arg * _coeff_2) * _phase_weight
-               
-        # Return the output tensors
+        )
+        fsm_scale = scale_coeff * scale_fcn * r_weights
+
+        # Phase factor (fsm_phase)
+        fsm_arg      = (0.5 * self.v_ratio) * (freqs * r_roots * s_roots).sum(-3, keepdim=True)
+        coeff_1      = (1 + self._restitution) / 2
+        coeff_2      = (3 - self._restitution) / 2
+        phase_weight = torch.sqrt(s_weights)
+        fsm_phase_1  = torch.exp(+1j * fsm_arg * coeff_1) * phase_weight
+        fsm_phase_2  = torch.exp(-1j * fsm_arg * coeff_2) * phase_weight
+
         return (fsm_scale, fsm_phase_1, fsm_phase_2)
-    
-    
+
     def _precompute_fsm_gain_3D(self) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Precomputes 3D gain kernel modes for the fast spectral method.
 
@@ -279,42 +192,42 @@ class FastSM_Boltzmann_VHS(FastSM_Boltzmann):
         ## Returns
         `tuple[torch.Tensor, torch.Tensor, torch.Tensor]`: Tensors `(fsm_scale, fsm_phase_1, fsm_phase_2)`.
         """
-        # Get the frequency tensor
-        freqs = freq_tensor(self._dimension, self._v_num_grid, True, dtype=self._dtype, device=self._device)
-        freqs = freqs.reshape(self._freqs_reshape)
+        dim = self._dimension
 
-        # Get the reshaped arrays of the values of `radius, phi, theta`
-        r_roots, r_weights  = roots_legendre_shifted(self.quad_order_legendre, 0, 2*self.v_radius, dtype=self._dtype, device=self._device)
-        s_roots, s_weights  = roots_lebedev(self.quad_order_lebedev, dtype=self._dtype, device=self._device) # See `Comments 1`.
-        s_roots = s_roots.transpose(0,1)
-        r_roots:   torch.Tensor = r_roots.reshape(self._r_roots_reshape)
-        s_roots:   torch.Tensor = s_roots.reshape(self._s_roots_reshape)
-        r_weights: torch.Tensor = r_weights.reshape(self._r_weights_reshape)
-        s_weights: torch.Tensor = s_weights.reshape(self._s_weights_reshape)
+        # Frequency tensor: (1, 1, 1, 1, v_num_grid, v_num_grid, v_num_grid, 3, 1, 1)
+        freqs = freq_tensor(dim, self._v_num_grid, True, dtype=self._dtype, device=self._device)
+        freqs = freqs.view(1, *ones(dim), *repeat(self._v_num_grid, dim), dim, 1, 1)
 
-        # Part 1: Compute the scaling part (`fsm_scale`)
-        _fsm_scale_coeff    = (4*torch.pi) * self.vhs_coeff
-        _fsm_scale_fcn      = \
-            torch.pow(r_roots, self.vhs_alpha+self._dimension-1) * \
+        # Quadrature roots and weights
+        r_roots, r_weights = roots_legendre_shifted(self.quad_order_legendre, 0, 2*self.v_radius, dtype=self._dtype, device=self._device)
+        s_roots, s_weights = roots_lebedev(self.quad_order_lebedev, dtype=self._dtype, device=self._device)
+        s_roots = s_roots.transpose(0, 1)
+
+        r_roots   = r_roots.view(1, *ones(2*dim), 1, -1, 1)
+        r_weights = r_weights.view(1, *ones(2*dim), 1, -1, 1)
+        s_roots   = s_roots.view(1, *ones(2*dim), dim, 1, -1)
+        s_weights = s_weights.view(1, *ones(2*dim), 1, 1, -1)
+
+        # Scaling part (fsm_scale)
+        scale_coeff = (4 * torch.pi) * self.vhs_coeff
+        scale_fcn   = (
+            torch.pow(r_roots, self.vhs_alpha + dim - 1) *
             sinc(
-                (0.5 * self.v_ratio) * \
-                r_roots * \
+                (0.5 * self.v_ratio) *
+                r_roots *
                 torch.norm(freqs, p=2, dim=-3, keepdim=True)
             )
-        fsm_scale = _fsm_scale_coeff * _fsm_scale_fcn * r_weights
-        
-        # Part 2: Compute the multiplicative part (`fsm_phase`)
-        ## NOTE: Some weights in the Lebedev rule might be negative.
-        _fsm_arg = \
-            (0.5 * self.v_ratio) * \
-            (freqs * r_roots * s_roots).sum(-3, keepdim=True)
-        _scale_1 = (1+self._restitution)/2
-        _scale_2 = (3-self._restitution)/2
-        _phase_weight = torch.sqrt(s_weights.type(self.dtype_complex))
-        fsm_phase_1 = torch.exp(+1j * _fsm_arg * _scale_1) * _phase_weight
-        fsm_phase_2 = torch.exp(-1j * _fsm_arg * _scale_2) * _phase_weight
-                
-        # Reshape and return the result
+        )
+        fsm_scale = scale_coeff * scale_fcn * r_weights
+
+        # Phase factor (fsm_phase)
+        fsm_arg      = (0.5 * self.v_ratio) * (freqs * r_roots * s_roots).sum(-3, keepdim=True)
+        scale_1      = (1 + self._restitution) / 2
+        scale_2      = (3 - self._restitution) / 2
+        phase_weight = torch.sqrt(s_weights.type(self.dtype_complex))
+        fsm_phase_1  = torch.exp(+1j * fsm_arg * scale_1) * phase_weight
+        fsm_phase_2  = torch.exp(-1j * fsm_arg * scale_2) * phase_weight
+
         return (fsm_scale, fsm_phase_1, fsm_phase_2)
 
 
@@ -420,130 +333,7 @@ class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
         return self._vss_exp_angle
     
     
-    # Override reshaping properties for precomputation
-    # Reshaping properties for precomputation
-    @override
-    @property
-    def _freqs_reshape(self) -> tuple[int, ...]:
-        """Reshape the frequency tensor to the following shape:
-        - Batch dimension: `1`
-        - Space dimension: `*ones(dimension)`
-        - Velocity dimension: `*repeat(resolution, dimension)`
-        - Data dimension: `dimension`
-        - Integral dimension: `*ones(3)`
-        """
-        return (
-            1,
-            *ones(self._dimension),
-            *repeat(self._v_num_grid, self._dimension),
-            self._dimension,
-            *ones(3)
-        )
-    @override
-    @property
-    def _r_roots_reshape(self) -> tuple[int, ...]:
-        """Reshape the tensor of the Legendre quadrature points to the following shape:
-        - Batch dimension: `1`
-        - Space dimension: `*ones(dimension)`
-        - Velocity dimension: `*ones(dimension)`
-        - Data dimension: `1`
-        - Integral dimension: `(quad_order_legendre, 1, 1)`
-        """
-        return (
-            1,
-            *ones(self._dimension),
-            *ones(self._dimension),
-            1,
-            *(self._quad_order_legendre, 1, 1)
-        )
-    @override
-    @property
-    def _r_weights_reshape(self) -> tuple[int, ...]:
-        """Reshape the tensor of the Legendre quadrature weights to the following shape:
-        - Batch dimension: `1`
-        - Space dimension: `*ones(dimension)`
-        - Velocity dimension: `*ones(dimension)`
-        - Data dimension: `1`
-        - Integral dimension: `(quad_order_legendre, 1, 1)`
-        """
-        return (
-            1,
-            *ones(self._dimension),
-            *ones(self._dimension),
-            1,
-            *(self._quad_order_legendre, 1, 1)
-        )
-    @override
-    @property
-    def _s_roots_reshape(self) -> tuple[int, ...]:
-        """Reshape the tensor of the quadrature points on $S^{d-1}$ to the following shape:
-        - Batch dimension: `1`
-        - Space dimension: `*ones(dimension)`
-        - Velocity dimension: `*ones(dimension)`
-        - Data dimension: `dimension`
-        - Integral dimension: `(1, -1, 1)` (which is `(1, quad_order_uniform, 1)` for `dimension==2`, and `(1, quad_order_lebedev, 1)` for `dimension==3`)
-        """
-        return (
-            1,
-            *ones(self._dimension),
-            *ones(self._dimension),
-            self._dimension,
-            *(1, -1, 1)
-        )
-    @override
-    @property
-    def _s_weights_reshape(self) -> tuple[int, ...]:
-        """Reshape the tensor of the quadrature weights on $S^{d-1}$ to the following shape:
-        - Batch dimension: `1`
-        - Space dimension: `*ones(dimension)`
-        - Velocity dimension: `*ones(dimension)`
-        - Data dimension: `1`
-        - Integral dimension: `(1, -1, 1)` (which is `(1, quad_order_uniform, 1)` for `dimension==2`, and `(1, quad_order_lebedev, 1)` for `dimension==3`)
-        """
-        return (
-            1,
-            *ones(self._dimension),
-            *ones(self._dimension),
-            1,
-            *(1, -1, 1)
-        )
-    @override
-    @property
-    def _g_roots_reshape(self) -> tuple[int, ...]:
-        """Reshape the tensor of the quadrature points on $S^{d-1}$ to the following shape:
-        - Batch dimension: `1`
-        - Space dimension: `*ones(dimension)`
-        - Velocity dimension: `*ones(dimension)`
-        - Data dimension: `dimension`
-        - Integral dimension: `(1, 1, -1)` (which is `(1, 1, quad_order_uniform)` for `dimension==2`, and `(1, 1, quad_order_lebedev)` for `dimension==3`)
-        """
-        return (
-            1,
-            *ones(self._dimension),
-            *ones(self._dimension),
-            self._dimension,
-            *(1, 1, -1)
-        )
-    @override
-    @property
-    def _g_weights_reshape(self) -> tuple[int, ...]:
-        """Reshape the tensor of the quadrature weights on $S^{d-1}$ to the following shape:
-        - Batch dimension: `1`
-        - Space dimension: `*ones(dimension)`
-        - Velocity dimension: `*ones(dimension)`
-        - Data dimension: `1`
-        - Integral dimension: `(1, 1, -1)` (which is `(1, 1, quad_order_uniform)` for `dimension==2`, and `(1, 1, quad_order_lebedev)` for `dimension==3`)
-        """
-        return (
-            1,
-            *ones(self._dimension),
-            *ones(self._dimension),
-            1,
-            *(1, 1, -1)
-        )
-    
-    
-    # Override precomputation methods
+    # Precomputation methods
     @override
     def _precompute_fsm_gain(self) -> None:
         fsm_scale, fsm_phase_1, fsm_phase_2 = getattr(self, f'_precompute_fsm_gain_{self._dimension}D')()
@@ -551,26 +341,22 @@ class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
         self._fsm_phase_1  = fsm_phase_1
         self._fsm_phase_2  = fsm_phase_2
         return
+
     @override
     def _precompute_fsm_loss(self) -> None:
-        from    scipy.special   import  gamma
-        from    ...utils        import  area_of_unit_sphere
-        
-        coeff_kernel_modes: float   = self._vss_coeff / area_of_unit_sphere(self._dimension)
-        # Division by the area of the unit sphere in the velocity space should be done
-        # as `Boltzmann_VHS_kernel_modes` multiplies the output by this area
+        coeff_kernel_modes: float = self._vss_coeff / area_of_unit_sphere(self._dimension)
         _scale: float
-        if self._dimension==2:
-            _scale = 2**(self._vss_exp_angle+1) * (torch.pi**0.5) * (
-                gamma(self._vss_exp_angle+0.5) / \
-                gamma(self._vss_exp_angle+1.0)
+        if self._dimension == 2:
+            _scale = 2**(self._vss_exp_angle + 1) * (torch.pi**0.5) * (
+                gamma(self._vss_exp_angle + 0.5) /
+                gamma(self._vss_exp_angle + 1.0)
             )
-        elif self._dimension==3:
-            _scale = 2**(self._vss_exp_angle+2) * torch.pi / (
-                self._vss_exp_angle+1
+        elif self._dimension == 3:
+            _scale = 2**(self._vss_exp_angle + 2) * torch.pi / (
+                self._vss_exp_angle + 1
             )
         coeff_kernel_modes *= _scale
-        
+
         self._kernel_diag = Boltzmann_VHS_kernel_modes(
             dimension       = self._dimension,
             num_grid        = self._v_num_grid,
@@ -582,11 +368,8 @@ class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
             dtype           = self._dtype,
             device          = self._device,
         )[*repeat(None, 1+self._dimension), ..., None]
-        # Append one extra dimension
-        
         return
-    
-    
+
     def _precompute_fsm_gain_2D(self) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Precomputes 2D gain kernel modes for the fast spectral method.
 
@@ -597,56 +380,55 @@ class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
         ## Returns
         `tuple[torch.Tensor, torch.Tensor, torch.Tensor]`: Tensors `(fsm_scale, fsm_phase_1, fsm_phase_2)`.
         """
-        # Get the frequency tensor
-        freqs = freq_tensor(self._dimension, self._v_num_grid, True, dtype=self._dtype, device=self._device)
-        freqs = freqs.reshape(self._freqs_reshape)
+        dim = self._dimension
 
-        # Get the reshaped arrays of the values of `radius, circle`
-        r_roots, r_weights  = roots_legendre_shifted(self._quad_order_legendre, 0, 2*self.v_radius, dtype=self._dtype, device=self._device)
-        s_roots, s_weights  = roots_circle(self.quad_order_uniform, dtype=self._dtype, device=self._device)
-        g_roots, g_weights  = roots_circle(self.quad_order_uniform, dtype=self._dtype, device=self._device)
-        s_roots = s_roots.T     # See `Comments 1`.
-        g_roots = g_roots.T     # See `Comments 1`.
-        r_roots:   torch.Tensor = r_roots.reshape(self._r_roots_reshape)
-        s_roots:   torch.Tensor = s_roots.reshape(self._s_roots_reshape)
-        g_roots:   torch.Tensor = g_roots.reshape(self._g_roots_reshape)
-        r_weights: torch.Tensor = r_weights.reshape(self._r_weights_reshape)
-        s_weights: torch.Tensor = s_weights.reshape(self._s_weights_reshape)
-        g_weights: torch.Tensor = g_weights.reshape(self._g_weights_reshape)
-        
-        # Part 1: Compute the scaling part (`fsm_scale`)
-        _fsm_power      = \
-            self.vss_coeff * \
-            torch.pow(r_roots, self.vss_exp_speed+self._dimension-1)
-        _fsm_integral   = \
-            torch.sum(
-                torch.pow(
-                    1 + torch.sum(s_roots*g_roots, dim=-4, keepdim=True),
-                    self.vss_exp_angle
-                ) * \
-                torch.exp(
-                    -0.5j * self.v_ratio * r_roots * \
-                    torch.sum(freqs*g_roots, dim=-4, keepdim=True)
-                ) * \
-                g_weights,
-                dim=-1, keepdim=True
-            )
-        fsm_scale = _fsm_power * _fsm_integral * r_weights
-        
-        # Part 2: Compute the multiplicative part (`fsm_phase`)
-        _fsm_arg = \
-            (0.5 * self.v_ratio) * \
-            (freqs * r_roots * s_roots).sum(-4, keepdim=True)
-        _coeff_1 = (1+self._restitution)/2
-        _coeff_2 = (3-self._restitution)/2
-        _phase_weight = torch.sqrt(s_weights)
-        fsm_phase_1 = torch.exp(+1j * _fsm_arg * _coeff_1) * _phase_weight
-        fsm_phase_2 = torch.exp(-1j * _fsm_arg * _coeff_2) * _phase_weight
-               
-        # Return the output tensors
-        return map(lambda tensor: torch.squeeze(tensor, dim=-1), (fsm_scale, fsm_phase_1, fsm_phase_2))
-    
-    
+        # Frequency tensor: (1, 1, 1, v_num_grid, v_num_grid, 2, 1, 1, 1)
+        freqs = freq_tensor(dim, self._v_num_grid, True, dtype=self._dtype, device=self._device)
+        freqs = freqs.view(1, *ones(dim), *repeat(self._v_num_grid, dim), dim, 1, 1, 1)
+
+        # Quadrature roots and weights
+        r_roots, r_weights = roots_legendre_shifted(self._quad_order_legendre, 0, 2*self.v_radius, dtype=self._dtype, device=self._device)
+        s_roots, s_weights = roots_circle(self.quad_order_uniform, dtype=self._dtype, device=self._device)
+        g_roots, g_weights = roots_circle(self.quad_order_uniform, dtype=self._dtype, device=self._device)
+        s_roots = s_roots.T
+        g_roots = g_roots.T
+
+        r_roots   = r_roots.view(1, *ones(2*dim), 1, -1, 1, 1)
+        r_weights = r_weights.view(1, *ones(2*dim), 1, -1, 1, 1)
+        s_roots   = s_roots.view(1, *ones(2*dim), dim, 1, -1, 1)
+        s_weights = s_weights.view(1, *ones(2*dim), 1, 1, -1, 1)
+        g_roots   = g_roots.view(1, *ones(2*dim), dim, 1, 1, -1)
+        g_weights = g_weights.view(1, *ones(2*dim), 1, 1, 1, -1)
+
+        # Part 1: Compute the scaling part (fsm_scale)
+        fsm_power    = self.vss_coeff * torch.pow(r_roots, self.vss_exp_speed + dim - 1)
+        fsm_integral = torch.sum(
+            torch.pow(
+                1 + torch.sum(s_roots * g_roots, dim=-4, keepdim=True),
+                self.vss_exp_angle
+            ) *
+            torch.exp(
+                -0.5j * self.v_ratio * r_roots *
+                torch.sum(freqs * g_roots, dim=-4, keepdim=True)
+            ) *
+            g_weights,
+            dim=-1, keepdim=True
+        )
+        fsm_scale = fsm_power * fsm_integral * r_weights
+
+        # Part 2: Compute the multiplicative part (fsm_phase)
+        fsm_arg      = (0.5 * self.v_ratio) * (freqs * r_roots * s_roots).sum(-4, keepdim=True)
+        coeff_1      = (1 + self._restitution) / 2
+        coeff_2      = (3 - self._restitution) / 2
+        phase_weight = torch.sqrt(s_weights)
+        fsm_phase_1  = torch.exp(+1j * fsm_arg * coeff_1) * phase_weight
+        fsm_phase_2  = torch.exp(-1j * fsm_arg * coeff_2) * phase_weight
+
+        scale_2d   = torch.squeeze(fsm_scale,   dim=-1)
+        phase_1_2d = torch.squeeze(fsm_phase_1, dim=-1)
+        phase_2_2d = torch.squeeze(fsm_phase_2, dim=-1)
+        return (scale_2d, phase_1_2d, phase_2_2d)
+
     def _precompute_fsm_gain_3D(self) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Precomputes 3D gain kernel modes for the fast spectral method.
 
@@ -657,57 +439,55 @@ class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
         ## Returns
         `tuple[torch.Tensor, torch.Tensor, torch.Tensor]`: Tensors `(fsm_scale, fsm_phase_1, fsm_phase_2)`.
         """
-        # Get the frequency tensor
-        freqs = freq_tensor(self._dimension, self._v_num_grid, True, dtype=self._dtype, device=self._device)
-        freqs = freqs.reshape(self._freqs_reshape)
+        dim = self._dimension
 
-        # Get the reshaped arrays of the values of `radius, phi, theta`
-        r_roots, r_weights  = roots_legendre_shifted(self.quad_order_legendre, 0, 2*self.v_radius, dtype=self._dtype, device=self._device)
-        s_roots, s_weights  = roots_lebedev(self.quad_order_lebedev, dtype=self._dtype, device=self._device) # See `Comments 1`.
-        g_roots, g_weights  = roots_lebedev(self.quad_order_lebedev, dtype=self._dtype, device=self._device) # See `Comments 1`.
-        s_roots = s_roots.transpose(0,1)
-        g_roots = g_roots.transpose(0,1)
-        r_roots:   torch.Tensor = r_roots.reshape(self._r_roots_reshape)
-        s_roots:   torch.Tensor = s_roots.reshape(self._s_roots_reshape)
-        g_roots:   torch.Tensor = g_roots.reshape(self._g_roots_reshape)
-        r_weights: torch.Tensor = r_weights.reshape(self._r_weights_reshape)
-        s_weights: torch.Tensor = s_weights.reshape(self._s_weights_reshape)
-        g_weights: torch.Tensor = g_weights.reshape(self._g_weights_reshape)
+        # Frequency tensor: (1, 1, 1, 1, v_num_grid, v_num_grid, v_num_grid, 3, 1, 1, 1)
+        freqs = freq_tensor(dim, self._v_num_grid, True, dtype=self._dtype, device=self._device)
+        freqs = freqs.view(1, *ones(dim), *repeat(self._v_num_grid, dim), dim, 1, 1, 1)
 
-        # Part 1: Compute the scaling part (`fsm_scale`)
-        _fsm_power      = \
-            self.vss_coeff * \
-            torch.pow(r_roots, self.vss_exp_speed+self._dimension-1)
-        _fsm_integral   = \
-            torch.sum(
-                torch.pow(
-                    1 + torch.sum(s_roots*g_roots, dim=-4, keepdim=True),
-                    self.vss_exp_angle
-                ) * \
-                torch.exp(
-                    -0.5j * self.v_ratio * r_roots * \
-                    torch.sum(freqs*g_roots, dim=-4, keepdim=True)
-                ) * \
-                g_weights,
-                dim=-1, keepdim=True
-            )
-        fsm_scale = _fsm_power * _fsm_integral * r_weights
-        
-        # Part 2: Compute the multiplicative part (`fsm_phase`)
-        ## NOTE: Some weights in the Lebedev rule might be negative.
-        _fsm_arg = \
-            (0.5 * self.v_ratio) * \
-            (freqs * r_roots * s_roots).sum(-4, keepdim=True)
-        _scale_1 = (1+self._restitution)/2
-        _scale_2 = (3-self._restitution)/2
-        _phase_weight = torch.sqrt(s_weights.type(self.dtype_complex))
-        fsm_phase_1 = torch.exp(+1j * _fsm_arg * _scale_1) * _phase_weight
-        fsm_phase_2 = torch.exp(-1j * _fsm_arg * _scale_2) * _phase_weight
-                
-        # Reshape and return the result
-        return map(lambda tensor: torch.squeeze(tensor, dim=-1), (fsm_scale, fsm_phase_1, fsm_phase_2))
+        # Quadrature roots and weights
+        r_roots, r_weights = roots_legendre_shifted(self.quad_order_legendre, 0, 2*self.v_radius, dtype=self._dtype, device=self._device)
+        s_roots, s_weights = roots_lebedev(self.quad_order_lebedev, dtype=self._dtype, device=self._device)
+        g_roots, g_weights = roots_lebedev(self.quad_order_lebedev, dtype=self._dtype, device=self._device)
+        s_roots = s_roots.transpose(0, 1)
+        g_roots = g_roots.transpose(0, 1)
 
-    
+        r_roots   = r_roots.view(1, *ones(2*dim), 1, -1, 1, 1)
+        r_weights = r_weights.view(1, *ones(2*dim), 1, -1, 1, 1)
+        s_roots   = s_roots.view(1, *ones(2*dim), dim, 1, -1, 1)
+        s_weights = s_weights.view(1, *ones(2*dim), 1, 1, -1, 1)
+        g_roots   = g_roots.view(1, *ones(2*dim), dim, 1, 1, -1)
+        g_weights = g_weights.view(1, *ones(2*dim), 1, 1, 1, -1)
+
+        # Part 1: Compute the scaling part (fsm_scale)
+        fsm_power    = self.vss_coeff * torch.pow(r_roots, self.vss_exp_speed + dim - 1)
+        fsm_integral = torch.sum(
+            torch.pow(
+                1 + torch.sum(s_roots * g_roots, dim=-4, keepdim=True),
+                self.vss_exp_angle
+            ) *
+            torch.exp(
+                -0.5j * self.v_ratio * r_roots *
+                torch.sum(freqs * g_roots, dim=-4, keepdim=True)
+            ) *
+            g_weights,
+            dim=-1, keepdim=True
+        )
+        fsm_scale = fsm_power * fsm_integral * r_weights
+
+        # Part 2: Compute the multiplicative part (fsm_phase)
+        fsm_arg      = (0.5 * self.v_ratio) * (freqs * r_roots * s_roots).sum(-4, keepdim=True)
+        scale_1      = (1 + self._restitution) / 2
+        scale_2      = (3 - self._restitution) / 2
+        phase_weight = torch.sqrt(s_weights.type(self.dtype_complex))
+        fsm_phase_1  = torch.exp(+1j * fsm_arg * scale_1) * phase_weight
+        fsm_phase_2  = torch.exp(-1j * fsm_arg * scale_2) * phase_weight
+
+        scale_3d   = torch.squeeze(fsm_scale,   dim=-1)
+        phase_1_3d = torch.squeeze(fsm_phase_1, dim=-1)
+        phase_2_3d = torch.squeeze(fsm_phase_2, dim=-1)
+        return (scale_3d, phase_1_3d, phase_2_3d)
+
     def reset_VHS_parameters(self, new_vhs_coeff: float, new_vhs_alpha: float) -> None:
         """Set a new value for the exponent of the VHS model."""
         self._vhs_coeff = new_vhs_coeff
@@ -715,19 +495,16 @@ class FastSM_Boltzmann_VSS(FastSM_Boltzmann):
         self.precompute()
         return
 
-
-    # Override miscellaneous methods
     @override
     @property
     def approximation_level(self) -> int:
         """Return the approximation level of the fast spectral method."""
         return int(self._fsm_phase_1.size(-2) * self._fsm_phase_1.size(-1))
-    
-    
+
 
 ##################################################
 def main() -> None:
-    pass
+    return
 
 
 if __name__ == '__main__':
