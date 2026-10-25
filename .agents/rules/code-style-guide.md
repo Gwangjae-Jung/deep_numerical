@@ -2,7 +2,7 @@
 trigger: always_on
 ---
 
-## 1. Python coding style
+# Python coding style
 Below are some guidelines when you create Python scripts.
 1. If possible, vertically align the words in sentences of similar work in the same paragraph. Refer to <a href="#example01">[Example 01]</a> for example.
 2. The type of each object and argumet of functions should be annotated.
@@ -15,6 +15,8 @@ Below are some guidelines when you create Python scripts.
 6. Semantic separation can be marked using a comment line of fifty `'#'`s. See <a href="#example01">[Example 01]</a>.
 7. The implementation of each function(method) should end with a `return` phrase, even if the return type is `None`; in this case, the implementation should end with the single line `return`, and the `Returns:` section in the docstring should be written as in <a href="#example01">[Example 01]</a>.
 8. Avoid hardcoding; define constant variables on the top of the scripts.
+9. Avoid importing by relative path; use absolute path.
+10. The last cell of each Jupyter Notebook file (of extension `.ipynb`) should be a Markdown cell with the text `End of file.`.
 
 ## Appendix 1
 ```python
