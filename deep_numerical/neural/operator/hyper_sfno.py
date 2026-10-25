@@ -3,7 +3,7 @@ from    typing_extensions   import  Self
 import  torch
 from    deep_numerical.neural   import  BaseModule
 from    deep_numerical.neural.layer import  MLP, HyperSeparableFourierLayer
-from    ..utils             import  warn_redundant_arguments
+from    deep_numerical.neural.utils import  warn_redundant_arguments
 
 
 __all__: list[str] = ["HyperSFNO",]

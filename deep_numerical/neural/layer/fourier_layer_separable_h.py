@@ -4,7 +4,7 @@ import  torch
 from    torch       import  nn
 from    math        import  prod
 from    itertools   import  product
-from    .general    import  MLP
+from    deep_numerical.neural.layer.general import  MLP
 from    deep_numerical  import  EINSUM_STRING
 
 

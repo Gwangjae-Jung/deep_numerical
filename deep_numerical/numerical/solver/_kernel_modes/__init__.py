@@ -1,7 +1,7 @@
 """Kernel modes for spectral Boltzmann collision operators.
 """
-from .boltzmann_VHS import *
-from .boltzmann_VHS import __all__ as __all__boltzmann_vhs
+from deep_numerical.numerical.solver._kernel_modes.boltzmann_VHS import *
+from deep_numerical.numerical.solver._kernel_modes.boltzmann_VHS import __all__ as __all__boltzmann_vhs
 
 
 __all__: list[str] = list(__all__boltzmann_vhs)

@@ -1,8 +1,8 @@
 from   typing      import Callable, Optional
 import torch
 
-from   .quadrature import *
-from   .quadrature import __all__ as __all__quadrature
+from   deep_numerical.numerical.integrate.quadrature import *
+from   deep_numerical.numerical.integrate.quadrature import __all__ as __all__quadrature
 
 
 _FUNCTIONS: set[str]  = {'integration_guass_legendre', 'integration_gauss_legendre', 'integration_lebedev', 'integration_legendre', 'integration_S2'}

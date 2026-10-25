@@ -27,13 +27,13 @@ from   typing_extensions import Self, TypeAlias
 
 
 if TYPE_CHECKING:
-    from numpy import ndarray
-    from torch import Tensor
-    from .     import autograd
-    from .     import fft
-    from .     import neural
-    from .     import numerical
-    from .     import utils
+    from numpy          import ndarray
+    from torch          import Tensor
+    from deep_numerical import autograd
+    from deep_numerical import fft
+    from deep_numerical import neural
+    from deep_numerical import numerical
+    from deep_numerical import utils
 
     ArrayData: TypeAlias = Union[ndarray, Tensor]
     """The typealias for the available tensors (`numpy.ndarray` and `torch.Tensor`)."""

@@ -2,8 +2,8 @@ from   typing            import Callable, Optional
 from   typing_extensions import override
 import torch
 
-from   .base_classes                       import DirectSM_Base
-from   ._kernel_modes.boltzmann_VHS        import (
+from   deep_numerical.numerical.solver.base_classes                import DirectSM_Base
+from   deep_numerical.numerical.solver._kernel_modes.boltzmann_VHS import (
     Boltzmann_VHS_kernel_modes_1D_integrand,
     Boltzmann_VHS_kernel_modes_2D_integrand,
     Boltzmann_VHS_kernel_modes_3D_integrand,
