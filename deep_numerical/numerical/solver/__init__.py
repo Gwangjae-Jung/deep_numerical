@@ -14,21 +14,21 @@ This module provides classes which compute the numerical solution of several kin
 [2] L. Pareschi, G. Russo, and G. Toscani, Fast Spectral Methods for the Fokker–Planck–Landau Collision Operator, J. Comput. Phys., 165 (2000), pp. 216–236.
 [3] S. Boscarino, B. Cho, and G. Russo, A Conservative Semi-Lagrangian Method for Inhomogeneous Boltzmann Equation, J. Comput. Phys., 498 (2024), 112678.
 """
-from .base_classes    import *
-from .constants       import *
-from .dsm             import *
-from .fsm__boltzmann  import *
-from .fsm__fpl        import *
-from .runge_kutta     import *
-from .semi_lagrangian import *
+from deep_numerical.numerical.solver.base_classes    import *
+from deep_numerical.numerical.solver.constants       import *
+from deep_numerical.numerical.solver.dsm             import *
+from deep_numerical.numerical.solver.fsm__boltzmann  import *
+from deep_numerical.numerical.solver.fsm__fpl        import *
+from deep_numerical.numerical.solver.runge_kutta     import *
+from deep_numerical.numerical.solver.semi_lagrangian import *
 
-from .base_classes    import __all__ as __all__base_classes
-from .constants       import __all__ as __all__constants
-from .dsm             import __all__ as __all__dsm
-from .fsm__boltzmann  import __all__ as __all__fsm__boltzmann
-from .fsm__fpl        import __all__ as __all__fsm__fpl
-from .runge_kutta     import __all__ as __all__runge_kutta
-from .semi_lagrangian import __all__ as __all__semi_lagrangian
+from deep_numerical.numerical.solver.base_classes    import __all__ as __all__base_classes
+from deep_numerical.numerical.solver.constants       import __all__ as __all__constants
+from deep_numerical.numerical.solver.dsm             import __all__ as __all__dsm
+from deep_numerical.numerical.solver.fsm__boltzmann  import __all__ as __all__fsm__boltzmann
+from deep_numerical.numerical.solver.fsm__fpl        import __all__ as __all__fsm__fpl
+from deep_numerical.numerical.solver.runge_kutta     import __all__ as __all__runge_kutta
+from deep_numerical.numerical.solver.semi_lagrangian import __all__ as __all__semi_lagrangian
 
 
 __all__: list[str] = (

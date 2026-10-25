@@ -7,7 +7,7 @@ from    deep_numerical.neural   import  Activations, get_activation
 from    deep_numerical.neural.layer.general     import  MLP
 
 try:
-    from    .vector_self_attention  import  VectorSelfAttention, _HAS_TORCH_GEOMETRIC
+    from    deep_numerical.neural.layer.vector_self_attention import VectorSelfAttention, _HAS_TORCH_GEOMETRIC
 except (ImportError, ModuleNotFoundError):
     _HAS_TORCH_GEOMETRIC = False
 

@@ -19,9 +19,9 @@ if not _HAS_TORCH_GEOMETRIC:
     )
     __all__: list[str] = []
 else:
-    from    .general        import  MLP
-    from    .graph_layer    import  GraphKernelLayer
-    from    ..utils         import  get_activation
+    from    deep_numerical.neural.layer.general     import  MLP
+    from    deep_numerical.neural.layer.graph_layer import  GraphKernelLayer
+    from    deep_numerical.neural.utils             import  get_activation
 
     __all__ = ["MultipoleGraphKernelLayer"]
 

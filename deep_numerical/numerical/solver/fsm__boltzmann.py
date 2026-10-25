@@ -17,8 +17,8 @@ from   deep_numerical                     import ones, repeat
 from   deep_numerical.fft                 import freq_tensor
 from   deep_numerical.numerical.integrate import roots_circle, roots_lebedev, roots_legendre_shifted
 from   deep_numerical.numerical.math      import area_of_unit_sphere, sinc
-from   ._kernel_modes.boltzmann_VHS       import Boltzmann_VHS_kernel_modes
-from   .base_classes                      import FastSM_Boltzmann
+from   deep_numerical.numerical.solver._kernel_modes.boltzmann_VHS import Boltzmann_VHS_kernel_modes
+from   deep_numerical.numerical.solver.base_classes                import FastSM_Boltzmann
 
 
 __all__: list[str] = ['FastSM_Boltzmann_VHS', 'FastSM_Boltzmann_VSS']

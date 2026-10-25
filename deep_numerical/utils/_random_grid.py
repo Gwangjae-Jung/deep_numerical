@@ -17,8 +17,7 @@ if not _HAS_TORCH_GEOMETRIC:
         stacklevel=2,
     )
     __all__: list[str] = []
-else:
-    from .grid import space_grid
+    from deep_numerical.utils.grid import space_grid
 
     __all__: list[str] = [
         "RandomGraphGenerator",

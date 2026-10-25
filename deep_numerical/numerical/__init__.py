@@ -14,8 +14,8 @@ In this package, the following features are provided:
 import importlib
 from   typing import Any, Set, TYPE_CHECKING
 
-from   .math  import *
-from   .math  import __all__ as __all__math
+from   deep_numerical.numerical.math import *
+from   deep_numerical.numerical.math import __all__ as __all__math
 
 
 _SUBMODULES: Set[str]  = {'distribution', 'integrate', 'math', 'solver'}
@@ -23,10 +23,10 @@ _MATH:       Set[str]  = set(__all__math)
 __all__:     list[str] = list(_SUBMODULES | _MATH)
 
 if TYPE_CHECKING:
-    from . import distribution
-    from . import integrate
-    from . import math
-    from . import solver
+    from deep_numerical.numerical import distribution
+    from deep_numerical.numerical import integrate
+    from deep_numerical.numerical import math
+    from deep_numerical.numerical import solver
 
 
 ##################################################

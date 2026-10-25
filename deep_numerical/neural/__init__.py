@@ -3,16 +3,16 @@ from   typing import TYPE_CHECKING, Any
 
 import torch
 
-from   .utils import *
-from   .utils import __all__ as __all__utils
+from   deep_numerical.neural.utils import *
+from   deep_numerical.neural.utils import __all__ as __all__utils
 
 
 if TYPE_CHECKING:
-    from .utils        import *
-    from .layer        import *
-    from .network      import *
-    from .operator     import *
-    from .collision_op import *
+    from deep_numerical.neural.utils        import *
+    from deep_numerical.neural.layer        import *
+    from deep_numerical.neural.network      import *
+    from deep_numerical.neural.operator     import *
+    from deep_numerical.neural.collision_op import *
 
 
 _SUBMODULES: set[str]  = {'utils', 'layer', 'network', 'operator', 'collision_op'}
