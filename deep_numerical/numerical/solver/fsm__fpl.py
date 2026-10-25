@@ -5,7 +5,7 @@ from   torch.special import bessel_j0 as j0
 from   deep_numerical                     import ones, repeat, zeros
 from   deep_numerical.numerical.integrate import roots_legendre_shifted
 from   deep_numerical.numerical.math      import sinc
-from   .base_classes                      import FastSM_Landau
+from   deep_numerical.numerical.solver.base_classes import FastSM_Landau
 
 
 __all__: list[str] = ['FastSM_Landau_VHS']
@@ -101,8 +101,8 @@ class FastSM_Landau_VHS(FastSM_Landau):
     def _precompute_fpl_character_1_2D(self) -> None:
         # Define variables
         _len_norms  = int(self._dimension * (self._v_num_grid//2)**2 + 1)
-        norms       = torch.sqrt(torch.arange(_len_norms, **self.dtype_and_device))[:, None]
-        r, w = roots_legendre_shifted(self._quad_order_legendre, 0, torch.pi, **self.dtype_and_device)
+        norms       = torch.sqrt(torch.arange(_len_norms, dtype=self.dtype, device=self.device))[:, None]
+        r, w = roots_legendre_shifted(self._quad_order_legendre, 0, torch.pi, dtype=self.dtype, device=self.device)
         r: torch.Tensor = r.reshape(1, -1)
         w: torch.Tensor = w.reshape(1, -1)
         
@@ -122,8 +122,8 @@ class FastSM_Landau_VHS(FastSM_Landau):
     def _precompute_fpl_character_2_2D(self) -> None:
         # Define variables
         _len_norms = int(self._dimension * (self._v_num_grid//2)**2 + 1)
-        norms   = torch.sqrt(torch.arange(_len_norms, **self.dtype_and_device))[:, None]
-        r, w    = roots_legendre_shifted(self._quad_order_legendre, 0, torch.pi, **self.dtype_and_device)
+        norms   = torch.sqrt(torch.arange(_len_norms, dtype=self.dtype, device=self.device))[:, None]
+        r, w    = roots_legendre_shifted(self._quad_order_legendre, 0, torch.pi, dtype=self.dtype, device=self.device)
         r       = r.reshape((1, -1))
         w       = w.reshape((1, -1))
         
@@ -132,7 +132,7 @@ class FastSM_Landau_VHS(FastSM_Landau):
             self._vhs_coeff / (self.v_ratio**(2+self._vhs_alpha))
         )
         _power: torch.Tensor = r**(3+self._vhs_alpha)
-        _func:  torch.Tensor = _fpl_character_2__weight_C(r * norms, self._quad_order_uniform, **self.dtype_and_device)
+        _func:  torch.Tensor = _fpl_character_2__weight_C(r * norms, self._quad_order_uniform, dtype=self.dtype, device=self.device)
         integrand: torch.Tensor = _power * _func
         
         # Compute the integral
@@ -151,7 +151,7 @@ class FastSM_Landau_VHS(FastSM_Landau):
         # NOTE: `F` and `G` are of shape `(1, *ones(self.dim), *repeat(self.num_grid, 1))`
         _freq_norms_sq = _freq_norms_sq.type(self._dtype)  # Typecasting
         
-        Q = torch.zeros((*self.fpl_base_shape, *repeat(self._dimension, 2)), **self.dtype_and_device)
+        Q = torch.zeros((*self.fpl_base_shape, *repeat(self._dimension, 2)), dtype=self.dtype, device=self.device)
         _i = self._freqs[..., [0]].type(self._dtype)
         _j = self._freqs[..., [1]].type(self._dtype)
         double_cos: torch.Tensor = (_i**2 - _j**2) / _freq_norms_sq
@@ -171,83 +171,86 @@ class FastSM_Landau_VHS(FastSM_Landau):
     
     # 3-dimensional precomputations
     def _precompute_fpl_character_1_3D(self) -> None:
-        # No implementation
+        """Precomputes the 3D characteristic function for the positive part of FPL collision operator.
+
+        ## Description
+        Following Pareschi, Russo, Toscani (2000, Section A.2, Eq. A.35), computes:
+            F(|m|) = 4\\pi \\int_0^\\pi \\rho^{\\gamma+4} \\text{sinc}(\\rho |m|) d\\rho
+        as a function of discrete frequency norm index |m|^2.
+
+        ## Returns
+        This function returns no values.
+        """
+        _len_norms: int          = int(1 + self._dimension * ((self._v_num_grid // 2) ** 2))
+        norms:      torch.Tensor = torch.sqrt(torch.arange(_len_norms, dtype=self.dtype, device=self.device))[:, None]
+        r, w = roots_legendre_shifted(self._quad_order_legendre, 0, torch.pi, dtype=self.dtype, device=self.device)
+        r: torch.Tensor = r.reshape((1, -1))
+        w: torch.Tensor = w.reshape((1, -1))
+
+        _coeff: float        = float((4 * torch.pi * self._vhs_coeff) / (self.v_ratio ** (3 + self._vhs_alpha)))
+        _power: torch.Tensor = torch.pow(r, 4 + self._vhs_alpha)
+        _func:  torch.Tensor = sinc(norms * r)
+        integrand: torch.Tensor = _coeff * _power * _func
+
+        self._fpl_character_1 = torch.sum(integrand * w, dim=-1)
         return
-    
-    
+
     def _precompute_fpl_character_2_3D(self) -> None:
-        # No implementation
+        """The 3D negative bilinear tensor is evaluated directly via spherical-polar quadrature."""
         return
-    
-    
+
     def _precompute_fpl_gain_tensors_3D(self) -> None:
         self.__precompute_fpl_gain_tensors_3D__positive()
         self.__precompute_fpl_gain_tensors_3D__negative()
         return
-        
-    
+
     def __precompute_fpl_gain_tensors_3D__positive(self) -> None:
-        # Define variables
-        _len_norms = int(1 + self._dimension * ((self._v_num_grid//2)**2))
-        norms: torch.Tensor = torch.sqrt(torch.arange(_len_norms, **self.dtype_and_device))[:, None]
-        r, w = roots_legendre_shifted(self._quad_order_legendre, 0, torch.pi, **self.dtype_and_device)
-        r: torch.Tensor = r.reshape((1, -1))
-        w: torch.Tensor = w.reshape((1, -1))
-        
-        # Compute the integrand
-        _coeff = float(
-            (4*torch.pi*self._vhs_coeff) / (self.v_ratio**(3+self._vhs_alpha))
-        )
-        _power: torch.Tensor = torch.pow(r, 4+self._vhs_alpha)
-        _func:  torch.Tensor = sinc(norms * r)
-        integrand: torch.Tensor = _coeff * _power * _func
-        
-        # Compute the integral
-        gain_tensor_1 = torch.sum(integrand*w, dim=-1)
-        _freq_norms_sq: torch.Tensor = torch.sum(self._freqs**2, dim=-1, keepdim=True)
-        self._fpl_gain_tensor_1 = gain_tensor_1[_freq_norms_sq]
+        if self._fpl_character_1 is None:
+            self._precompute_fpl_character_1_3D()
+        _freq_norms_sq: torch.Tensor = torch.sum(self._freqs ** 2, dim=-1, keepdim=True)
+        self._fpl_gain_tensor_1 = self._fpl_character_1[_freq_norms_sq]
         return
-    
-    
+
     def __precompute_fpl_gain_tensors_3D__negative(self) -> None:
         # Initialize the tensor
         self._fpl_gain_tensor_2: torch.Tensor = \
             torch.zeros(
                 (1, *ones(self._dimension), *repeat(self._v_num_grid, self._dimension), 1, 3, 3),
-                **self.dtype_and_device,
+                dtype=self.dtype, device=self.device,
             )
-        
+
         # Define variables
-        freqs_xy:       torch.Tensor = self._freqs[...,  :2].type(self._dtype)
-        freqs_z:        torch.Tensor = self._freqs[..., [2]].type(self._dtype)
-        freq_norms_xy:  torch.Tensor = torch.norm(freqs_xy, p=2, dim=-1, keepdim=True)
-        r, w = roots_legendre_shifted(self._quad_order_legendre, 0, torch.pi, **self.dtype_and_device)
+        freqs_xy:      torch.Tensor = self._freqs[...,  :2].type(self._dtype)
+        freqs_z:       torch.Tensor = self._freqs[..., [2]].type(self._dtype)
+        freq_norms_xy: torch.Tensor = torch.norm(freqs_xy, p=2, dim=-1, keepdim=True)
+        r, w = roots_legendre_shifted(self._quad_order_legendre, 0, torch.pi, dtype=self.dtype, device=self.device)
         ## Reshape the variables
-        freqs_xy:       torch.Tensor = freqs_xy[..., None]
-        freqs_z:        torch.Tensor = freqs_z[ ..., None]
-        freq_norms_xy:  torch.Tensor = freq_norms_xy[..., None]
-        r:      torch.Tensor = r.reshape((*ones(freqs_xy.ndim-1), -1))
-        w:      torch.Tensor = w.reshape((*ones(freqs_xy.ndim-1), -1))
-        
-        
+        freqs_xy:      torch.Tensor = freqs_xy[..., None]
+        freqs_z:       torch.Tensor = freqs_z[..., None]
+        freq_norms_xy: torch.Tensor = freq_norms_xy[..., None]
+        r:             torch.Tensor = r.reshape((*ones(freqs_xy.ndim - 1), -1))
+        w:             torch.Tensor = w.reshape((*ones(freqs_xy.ndim - 1), -1))
+
         # Computation begins
         _coeff_common = float(
-            self._vhs_coeff / (self.v_ratio**(3+self._vhs_alpha))
+            self._vhs_coeff / (self.v_ratio ** (3 + self._vhs_alpha))
         )
-        _power: torch.Tensor = torch.pow(r, 4+self._vhs_alpha)
-        
-        ## <<< (0, 1) entry (nondiagonal) >>> 
-        _entry_01_scale: torch.Tensor = \
-            _coeff_common * \
-            freqs_xy.prod(dim=-1, keepdim=True) / \
-            torch.pow(freq_norms_xy, 2)
-        _entry_01_scale[*zeros(2*self._dimension)] = 0     # (batch, x, y, z, v_x, v_y))
+        _power: torch.Tensor = torch.pow(r, 4 + self._vhs_alpha)
+
+        ## <<< (0, 1) entry (nondiagonal) >>>
+        freq_norms_xy_sq: torch.Tensor = torch.pow(freq_norms_xy, 2)
+        safe_norms_sq:    torch.Tensor = torch.where(freq_norms_xy_sq > 0, freq_norms_xy_sq, torch.ones_like(freq_norms_xy_sq))
+        _entry_01_scale:  torch.Tensor = torch.where(
+            freq_norms_xy_sq > 0,
+            _coeff_common * freqs_xy.prod(dim=-1, keepdim=True) / safe_norms_sq,
+            torch.zeros_like(freq_norms_xy_sq),
+        )
         _entry_01_weight: torch.Tensor = _fpl_character_2_3D__entry01_weight(
             a   = freqs_z,
             b   = freq_norms_xy,
             scale_factor    = r,
             quad_order_uniform = self._quad_order_uniform,
-            **self.dtype_and_device,
+            dtype=self.dtype, device=self.device,
         )
         entry_01_integrand: torch.Tensor = \
             _entry_01_scale * _power * _entry_01_weight
@@ -261,7 +264,7 @@ class FastSM_Landau_VHS(FastSM_Landau):
             b   = freq_norms_xy,
             scale_factor    = r,
             quad_order_uniform = self._quad_order_uniform,
-            **self.dtype_and_device,
+            dtype=self.dtype, device=self.device,
         )
         entry_22_integrand: torch.Tensor = _entry_22_scale * _power * _entry_22_weight
         del(_power, _entry_22_weight)

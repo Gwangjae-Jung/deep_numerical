@@ -1,5 +1,5 @@
 import warnings
-from   typing            import Callable, Optional, Sequence
+from   typing            import Callable, Literal, Optional
 
 import torch
 from   typing_extensions import Self, override
@@ -14,9 +14,9 @@ from   deep_numerical.utils               import (
     space_grid,
     velocity_grid,
 )
-from   .constants                         import DEFAULT_QUAD_ORDER_LEBEDEV, LAMBDA, LAMBDA_FPL
-from   .runge_kutta                       import one_step_RK4_classic
-from   .semi_lagrangian                   import (
+from   deep_numerical.numerical.solver.constants       import DEFAULT_QUAD_ORDER_LEBEDEV, LAMBDA, LAMBDA_FPL
+from   deep_numerical.numerical.solver.runge_kutta     import one_step_RK4_classic
+from   deep_numerical.numerical.solver.semi_lagrangian import (
     moment_correction_l2,
     one_step_SL_AB3,
     one_step_SL_AB4,
@@ -34,9 +34,6 @@ __all__: list[str] = [
     'FastSM_Boltzmann',
     'FastSM_Landau',
 ]
-
-
-DEBUG: bool = False
 
 
 class SpectralMethodBase():
@@ -89,14 +86,8 @@ class SpectralMethodBase():
         In contrast, they discretizes the space, containing both `x_max` and `-x_max` as entries.
         """
         if dimension not in (2, 3):
-            raise NotImplementedError(
-                ' '.join(
-                    [
-                        f"The spectral method for the Boltzmann equation is considered only for dimensions 2 and 3.",
-                        f"(dimension={dimension})",
-                    ]
-                )
-            )
+            raise NotImplementedError(f"The spectral method for the Boltzmann equation is considered only for dimensions 2 and 3. (dimension={dimension})")
+        
         # Dimension
         self._dimension:    int = dimension
         
@@ -124,18 +115,8 @@ class SpectralMethodBase():
         self._device:   torch.device    = device
         
         # Frequency (spectral method)
-        self._freqs:    torch.Tensor  = freq_tensor(dimension, v_num_grid, keepdim=freqs_keepdim, dtype=dtype, device=device)
+        self._freqs = freq_tensor(dimension, v_num_grid, keepdim=freqs_keepdim, dtype=dtype, device=device)
         
-        # Interpolation for the inhomogeneous case
-        # `self._xv_pad`:   The ordered tuple of interpolating `xv` points
-        # `self._xv_query`: The query points at transport stage, saved as a single tensor
-        self._boundary_condition:   Optional[str]                       = None
-        self._xv_pad:               Optional[tuple[torch.Tensor, ...]]  = None
-        self._xv_query:             Optional[torch.Tensor]              = None
-        self._arg_bd_inflow:        Optional[torch.Tensor]              = None
-        self._arg_bd_inflow_spec:   Optional[torch.Tensor]              = None
-        
-        # Done
         return
     
     
@@ -147,10 +128,10 @@ class SpectralMethodBase():
     @property
     def f_ndim(self) -> int:
         """The dimension of the input tensor, which is `2*(1+self.dimension)`. Note that
-        * the zeroth dimension is used to save multiple instances,
-        * the next `self.dimension` dimension(s) is(are) used to refer to the locatioon,
-        * the next `self.dimension` dimension(s) is(are) used to refer to the velocity,
-        * and the last dimension is used to refer a specific function.
+            * the zeroth dimension is used to save multiple instances,
+            * the next `self.dimension` dimension(s) is(are) used to refer to the locatioon,
+            * the next `self.dimension` dimension(s) is(are) used to refer to the velocity,
+            * and the last dimension is used to refer a specific function.
         """
         return 2*(1+self._dimension)
     @property
@@ -171,9 +152,7 @@ class SpectralMethodBase():
         return self._v_max
     @property
     def v_axes(self) -> tuple[int, ...]:
-        """
-        The axes of the velocity space in a given distribution function. It is defined as
-            `tuple(range(1+self.dimension, 1+2*self.dimension))`.
+        """The axes of the velocity space in a given distribution function. It is defined as `tuple(range(1+self.dimension, 1+2*self.dimension))`.
         """
         return tuple(range(1+self._dimension, 1+2*self._dimension))
     @property
@@ -208,9 +187,7 @@ class SpectralMethodBase():
         return self._x_max
     @property
     def x_axes(self) -> tuple[int, ...]:
-        """
-        The axes of the spatial space in a given distribution function. It is defined as
-            `tuple(range(1, 1+self.dimension))`.
+        """The axes of the spatial space in a given distribution function. It is defined as `tuple(range(1, 1+self.dimension))`.
         """
         return tuple(range(1, 1+self._dimension))
     @property
@@ -221,18 +198,11 @@ class SpectralMethodBase():
     
     # Properties - `torch`
     @property
-
     def dtype(self) -> torch.dtype:
-
         """Real floating-point data type."""
         return self._dtype
-
     @property
-
-
     def dtype_complex(self) -> torch.dtype:
-
-
         """Complex floating-point data type matching real dtype precision."""
         default_dtype = torch.get_default_dtype()
         if default_dtype==torch.double:
@@ -241,39 +211,25 @@ class SpectralMethodBase():
             return torch.cfloat
         else:
             raise TypeError(f"Unsupported default dtype: {default_dtype}")
-
     @property
-
-
     def device(self) -> torch.device:
-
-
         """Device on which solver tensors reside."""
         return self._device
-
-    @property
-
-
-    def dtype_and_device(self) -> dict[str, object]:
-
-
-        """Dictionary of dtype and device keyword arguments."""
-        return {'dtype': self._dtype, 'device': self._device}
     
     
     # Properties - Fast Fourier transform
     @property
-    def internal_fft_norm(self) -> str:
+    def internal_fft_norm(self) -> Literal['forward', 'backward', 'norm']:
         """The normalization of the internal FFT, which is set to 'forward'."""
         return 'forward'
     @property
     def freq_min(self) -> int:
         """The minimum frequency in the Fourier space, determined by the resolution."""
-        return -(self._v_num_grid//2)
+        return -(self._v_num_grid>>1)
     @property
     def freq_max(self) -> int:
         """The maximum frequency in the Fourier space, determined by the resolution."""
-        return (self._v_num_grid-1)//2
+        return (self._v_num_grid-1)>>1
     @property
     def freqs(self) -> torch.Tensor:
         """The tensor of allowed frequencies with `keepdims=False`."""
@@ -325,107 +281,24 @@ class SpectralMethodBase():
         return self._arg_bd_inflow_spec
     
     
-    def precompute_query(self, delta_t: float, boundary_condition: str) -> None:
-        """(`SpectralMethodBase`) The method `precompute_query` is already implemented in the base class.
-        Note that this method *explicitly* requires the time step with which the transport stage is conducted.
-        Be sure to pass the time step which is used to conduct the collision stage.
-        
-        Arguments:
-            `delta_t` (`float`):
-                The time step with which time marching (collision and transport stages) is conducted.
-                
-            `boundary_condition` (`str`):
-                The boundary condition the kinetic equation to be solved is equipped with.
-                Supported boundary conditions and corresponding keywords are given as follows.
-                * Zero boundary condition: `zero`, `zeros`
-                * Periodic boundary condition: `periodic`
-        """
-        if not self.is_homogeneous:
-            # Check the boundary condition
-            boundary_condition = boundary_condition.lower()
-            assert boundary_condition in self.supported_boundary_conditions, \
-                f"The passed 'boundary_condition' ({boundary_condition}) is not supported."
-            # Compute the padded input
-            padded_x_max = self._x_max + self._delta_x
-            padded_x_num_grid = self._x_num_grid + 2
-            self._xv_pad = tuple(
-                (
-                    *repeat(
-                        torch.linspace(-padded_x_max, padded_x_max, padded_x_num_grid, dtype=self._dtype, device=self._device),
-                        self._dimension
-                    ),
-                    *repeat(
-                        velocity_grid(1, self._v_num_grid, self._v_max, dtype=self._dtype, device=self._device).flatten(),
-                        self._dimension
-                    ),
-                )
-            )
-            # Compute the query points
-            self._xv_query = space_grid(
-                2*self._dimension,
-                (
-                    *repeat(self._x_num_grid, self._dimension),
-                    *repeat(self._v_num_grid, self._dimension),
-                ),
-                (
-                    *repeat(self._x_max, self._dimension),
-                    *repeat(self._v_max, self._dimension),
-                ),
-                where_closed = (*repeat('both', self._dimension), *repeat('none', self._dimension)),
-                dtype   = self._dtype,
-                device  = self._device,
-            )   # NOTE: Contains `pm(x_max)` but does not contain `pm(v_max)`
-            self._xv_query[..., :self._dimension] -= delta_t * self._xv_query[..., self._dimension:]
-            if boundary_condition in ("periodic",):
-                self._xv_query[..., :self._dimension] = \
-                    (self._xv_query[..., :self._dimension] + self._x_max) % (2*self._x_max) - self._x_max
-            self._boundary_condition = boundary_condition
-            ##### Computation of some other member variables
-            self._arg_bd_inflow = arg_boundary_inflow(self._xv_query)
-            self._arg_bd_inflow_spec = arg_specular_velocity(self._v_num_grid, self._arg_bd_inflow, dim=self._dimension)
-        else:
-            warnings.warn(
-                ' '.join([
-                    "The method 'precompute_query()' is called, but no precomputation will be conducted, as the solver is set space-homogeneous.",
-                    "Check your initialization again."
-                ]),
-                UserWarning
-            )
-            self._xv_pad    = None
-            self._xv_query  = None
-        return
-        
-    
-    def compute_fft(
-            self,
-            _PLACEHOLDER__t_curr:   float,
-            fft_curr:   torch.Tensor,
-        ) -> torch.Tensor:
+    def compute_fft(self, _PLACEHOLDER__t_curr: float, fft_curr: torch.Tensor) -> torch.Tensor:
         """(`SpectralMethodBase`) This method computes `gain_fft - loss_fft`, where
         
         * `gain_fft` is the gain term in the Fourier space, computed using the method `compute_gain_fft`, and
         * `loss_fft` is the loss term in the Fourier space, computed using the method `compute_loss_fft`.
         
-        -----
-        ### Note
-        The first arguments in `self.compute_gain_fft` and `self.compute_loss_fft` are given `0.0`, which should be a real number.
+        Arguments:
+            `_PLACEHOLDER__t_curr` (`float`): The placeholding argument for the compatibility with the Runge-Kutta method.
+            `fft_curr` (`torch.Tensor`): The current Fourier transform of the distribution function.
+        
+        Returns:
+            `torch.Tensor`: The difference between the gain and loss terms in the Fourier space.
         """
-        return (
-            self.compute_gain_fft(0.0, fft_curr) - \
-            self.compute_loss_fft(0.0, fft_curr)
-        )
-    def compute_gain_fft(
-            self,
-            _PLACEHOLDER__t_curr:   Optional[float],
-            fft_curr:   torch.Tensor,
-        ) -> torch.Tensor:
+        return self.compute_gain_fft(0.0, fft_curr) - self.compute_loss_fft(0.0, fft_curr)
+    def compute_gain_fft(self, _PLACEHOLDER__t_curr: Optional[float], fft_curr: torch.Tensor) -> torch.Tensor:
         """(`SpectralMethodBase`) The method `compute_gain_fft` should be implemented in the derived classes."""
         pass
-    def compute_loss_fft(
-            self,
-            _PLACEHOLDER__t_curr:   Optional[float],
-            fft_curr:   torch.Tensor,
-        ) -> torch.Tensor:
+    def compute_loss_fft(self, _PLACEHOLDER__t_curr: Optional[float], fft_curr: torch.Tensor) -> torch.Tensor:
         """(`SpectralMethodBase`) The method `compute_loss_fft` should be implemented in the derived classes."""
         pass
     
@@ -466,10 +339,11 @@ class SpectralMethodBase():
         """Inhomogeneous time stepping using conservative semi-Lagrangian transport."""
         is_fourier_input: bool = torch.is_complex(f_in)
         if is_fourier_input:
-            f_phys = torch.fft.ifftn(f_in, dim=self.v_axes, norm=self.internal_fft_norm).real
+            f_phys = torch.real(torch.fft.ifftn(f_in, dim=self.v_axes, norm=self.internal_fft_norm))
         else:
             f_phys = f_in
 
+        f_next: torch.Tensor
         if hasattr(self, 'forward_semi_lagrangian'):
             f_next = getattr(self, 'forward_semi_lagrangian')(f_phys, delta_t)
         else:
@@ -912,11 +786,7 @@ class FastSM_Boltzmann(SpectralMethodBase):
         pass
     
     
-    def compute_gain_fft(
-            self,
-            _PLACEHOLDER__t_curr:   float,
-            fft_curr:   torch.Tensor,
-        ) -> torch.Tensor:
+    def compute_gain_fft(self, _PLACEHOLDER__t_curr: float, fft_curr: torch.Tensor) -> torch.Tensor:
         terms1 = convolve_freqs(
             fft_curr[..., None, None] * self._fsm_phase_1,
             fft_curr[..., None, None] * self._fsm_phase_2,
@@ -924,13 +794,7 @@ class FastSM_Boltzmann(SpectralMethodBase):
         )
         gain_fft = torch.sum(self._fsm_scale*terms1, dim=(-2, -1))
         return gain_fft
-    
-    
-    def compute_loss_fft(
-            self,
-            _PLACEHOLDER__t_curr:   float,
-            fft_curr:   torch.Tensor,
-        ) -> torch.Tensor:
+    def compute_loss_fft(self, _PLACEHOLDER__t_curr: float, fft_curr: torch.Tensor) -> torch.Tensor:
         loss_fft = convolve_freqs(
             fft_curr * self._kernel_diag,
             fft_curr,
@@ -939,19 +803,7 @@ class FastSM_Boltzmann(SpectralMethodBase):
         return loss_fft
     
     
-    def compute_loss_linear_fft(
-            self,
-            _PLACEHOLDER__t_curr:   float,
-            fft_curr:   torch.Tensor,
-        ) -> torch.Tensor:
-        """This method computes the FFT of the coefficient operator in the loss part of the collision operator."""
-        loss_linear_fft = fft_curr * self._kernel_diag
-        return loss_linear_fft
-
-    def collision_operator_physical(
-            self,
-            f: torch.Tensor,
-        ) -> torch.Tensor:
+    def collision_operator_physical( self, f: torch.Tensor) -> torch.Tensor:
         """Computes the collision operator Q(f) in physical space.
 
         ## Description
@@ -970,11 +822,7 @@ class FastSM_Boltzmann(SpectralMethodBase):
         q_phys = torch.fft.ifftn(q_fft, dim=self.v_axes, norm=self.internal_fft_norm).real
         return q_phys
 
-    def forward_semi_lagrangian(
-            self,
-            f_curr:     torch.Tensor,
-            delta_t:    float,
-        ) -> torch.Tensor:
+    def forward_semi_lagrangian(self, f_curr: torch.Tensor, delta_t: float) -> torch.Tensor:
         """Advances the inhomogeneous Boltzmann equation by one time step delta_t using conservative semi-Lagrangian method.
 
         ## Description
@@ -990,7 +838,7 @@ class FastSM_Boltzmann(SpectralMethodBase):
                 The time step size.
 
         Returns:
-            `torch.Tensor`: The updated distribution function at t + delta_t.
+            `torch.Tensor`: The updated distribution function at `t + delta_t`.
         """
         v_coords = self.v_coords
         knudsen  = self._knudsen
@@ -1138,8 +986,8 @@ class FastSM_Landau(SpectralMethodBase):
             if isinstance(quad_order_legendre,  int) else v_num_grid
         
         # Add the batch dimension for ease of implementation
-        self._freqs:        torch.Tensor = torch.tensor([], **self.dtype_and_device)
-        self._freq_norms:   torch.Tensor = torch.tensor([], **self.dtype_and_device)
+        self._freqs:        torch.Tensor = torch.tensor([], dtype=self.dtype, device=self.device)
+        self._freq_norms:   torch.Tensor = torch.tensor([], dtype=self.dtype, device=self.device)
         self.__redefine_freqs()
         
         # Character functions and tensors for the gain and loss terms
@@ -1155,6 +1003,12 @@ class FastSM_Landau(SpectralMethodBase):
         self._fpl_gain_tensor_1:    Optional[torch.Tensor] = None
         self._fpl_gain_tensor_2:    Optional[torch.Tensor] = None
         self._fpl_loss_tensor:      Optional[torch.Tensor] = None
+
+        # Configuration for inhomogeneous semi-Lagrangian transport
+        self._knudsen:                float = 1.0
+        self._sl_scheme:              str   = 'rk4'
+        self._spatial_reconstruction: str   = 'cweno35'
+        self._moment_correction:      bool  = True
         
         return
     
@@ -1370,6 +1224,173 @@ class FastSM_Landau(SpectralMethodBase):
             return -loss_linear_fft
         elif self._dimension==1:
             return torch.zeros_like(fft_curr, dtype=fft_curr.dtype, device=fft_curr.device)
+    
+    @property
+    def knudsen(self) -> float:
+        """The Knudsen number epsilon in the scaled Fokker-Planck-Landau equation."""
+        return self._knudsen
+
+    @knudsen.setter
+    def knudsen(self, value: float) -> None:
+        if value <= 0.0:
+            raise ValueError(f"Knudsen number must be positive. Got {value}")
+        self._knudsen = float(value)
+        return
+
+    @property
+    def sl_scheme(self) -> str:
+        """The time integration scheme for semi-Lagrangian transport."""
+        return self._sl_scheme
+
+    @sl_scheme.setter
+    def sl_scheme(self, value: str) -> None:
+        scheme: str = value.lower()
+        valid:  tuple[str, ...] = ('rk4', 'rk3', 'strang', 'euler', 'ab3', 'ab4')
+        if scheme not in valid:
+            raise ValueError(f"Unsupported semi-Lagrangian scheme: {value}. Must be one of {valid}")
+        self._sl_scheme = scheme
+        return
+
+    @property
+    def spatial_reconstruction(self) -> str:
+        """The spatial reconstruction order for conservative semi-Lagrangian transport."""
+        return self._spatial_reconstruction
+
+    @spatial_reconstruction.setter
+    def spatial_reconstruction(self, value: str) -> None:
+        order: str = value.lower()
+        valid: tuple[str, ...] = ('linear', 'cweno23', 'cweno35')
+        if order not in valid:
+            raise ValueError(f"Unsupported spatial reconstruction: {value}. Must be one of {valid}")
+        self._spatial_reconstruction = order
+        return
+
+    @property
+    def moment_correction(self) -> bool:
+        """Whether to enforce L2 conservation of mass, momentum, and energy."""
+        return self._moment_correction
+
+    @moment_correction.setter
+    def moment_correction(self, value: bool) -> None:
+        self._moment_correction = bool(value)
+        return
+
+    def collision_operator_physical(
+        self,
+        f: torch.Tensor,
+    ) -> torch.Tensor:
+        """Computes the collision operator Q_L(f) in physical space.
+
+        ## Description
+        Applies FFT along velocity axes, evaluates the fast spectral Landau collision operator
+        in Fourier space, and transforms back via IFFT with real projection.
+
+        Arguments:
+            `f` (`torch.Tensor`): The distribution function in physical space, shaped `(batch, *space, *velocity, 1)`.
+
+        Returns:
+            `torch.Tensor`: The collision operator Q_L(f) in physical space of identical shape.
+        """
+        f_fft:  torch.Tensor = torch.fft.fftn(f, dim=self.v_axes, norm=self.internal_fft_norm)
+        q_fft:  torch.Tensor = self.compute_fft(0.0, f_fft)
+        q_phys: torch.Tensor = torch.fft.ifftn(q_fft, dim=self.v_axes, norm=self.internal_fft_norm).real
+        return q_phys
+
+    def forward_semi_lagrangian(
+        self,
+        f_curr:  torch.Tensor,
+        delta_t: float,
+    ) -> torch.Tensor:
+        """Advances the inhomogeneous Fokker-Planck-Landau equation by one time step delta_t using conservative semi-Lagrangian method.
+
+        ## Description
+        Solves the inhomogeneous kinetic equation:
+            \\partial_t f + v \\cdot \\nabla_x f = \\frac{1}{\\varepsilon} Q_L(f)
+        coupled with conservative semi-Lagrangian advection and fast spectral Landau collision.
+        If moment_correction is enabled, mass, momentum, and energy are conserved to machine precision.
+
+        Arguments:
+            `f_curr` (`torch.Tensor`): The current distribution function in physical space, shaped `(batch, *space, *velocity, 1)`.
+            `delta_t` (`float`): The time step size.
+
+        Returns:
+            `torch.Tensor`: The updated distribution function at t + delta_t.
+        """
+        v_coords: torch.Tensor = self.v_coords
+        knudsen:  float        = self._knudsen
+        order:    str          = self._spatial_reconstruction
+
+        def collision_fn(f_state: torch.Tensor) -> torch.Tensor:
+            q_raw: torch.Tensor = self.collision_operator_physical(f_state)
+            if self._moment_correction:
+                q_raw = moment_correction_l2(q_raw, v_coords, self._delta_v)
+            return q_raw
+
+        scheme: str = self._sl_scheme
+        if scheme == 'rk4':
+            f_next: torch.Tensor = one_step_SL_RK4(
+                f_curr       = f_curr,
+                delta_t      = delta_t,
+                collision_fn = collision_fn,
+                v_coords     = v_coords,
+                x_max        = self._x_max,
+                knudsen      = knudsen,
+                order        = order,
+            )
+        elif scheme == 'rk3':
+            f_next = one_step_SL_RK3(
+                f_curr       = f_curr,
+                delta_t      = delta_t,
+                collision_fn = collision_fn,
+                v_coords     = v_coords,
+                x_max        = self._x_max,
+                knudsen      = knudsen,
+                order        = order,
+            )
+        elif scheme == 'strang':
+            f_next = one_step_SL_Strang(
+                f_curr       = f_curr,
+                delta_t      = delta_t,
+                collision_fn = collision_fn,
+                v_coords     = v_coords,
+                x_max        = self._x_max,
+                knudsen      = knudsen,
+                order        = order,
+            )
+        elif scheme == 'euler':
+            f_next = one_step_SL_Euler(
+                f_curr       = f_curr,
+                delta_t      = delta_t,
+                collision_fn = collision_fn,
+                v_coords     = v_coords,
+                x_max        = self._x_max,
+                knudsen      = knudsen,
+                order        = order,
+            )
+        elif scheme == 'ab3':
+            f_next = one_step_SL_AB3(
+                f_curr       = f_curr,
+                delta_t      = delta_t,
+                collision_fn = collision_fn,
+                v_coords     = v_coords,
+                x_max        = self._x_max,
+                knudsen      = knudsen,
+                order        = order,
+            )
+        elif scheme == 'ab4':
+            f_next = one_step_SL_AB4(
+                f_curr       = f_curr,
+                delta_t      = delta_t,
+                collision_fn = collision_fn,
+                v_coords     = v_coords,
+                x_max        = self._x_max,
+                knudsen      = knudsen,
+                order        = order,
+            )
+        else:
+            raise ValueError(f"Unknown semi-Lagrangian scheme: {scheme}")
+
+        return f_next
     
     
     def to(self, device: torch.device) -> Self:
